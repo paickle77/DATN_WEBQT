@@ -1,0 +1,45 @@
+.revenue-month-container {
+  max-width: 100%;
+  margin: 0 auto;
+//   padding: 20px;
+
+  h2 {
+    text-align: center;
+  }
+
+  .date-picker-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .custom-datepicker {
+    padding: 8px 12px;
+    font-size: 16px;
+  }
+
+  .revenue-results {
+    margin-top: 20px;
+    padding: 20PX;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th, td {
+        border: 1px solid #ccc;
+        padding: 10px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #f0f0f0;
+      }
+    }
+
+    .total {
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: right;
+    }
+  }
+}

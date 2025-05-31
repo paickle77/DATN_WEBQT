@@ -1,0 +1,14 @@
+.date-picker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: Arial, sans-serif;
+
+  .custom-datepicker {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    width: 200px;
+  }
+}
