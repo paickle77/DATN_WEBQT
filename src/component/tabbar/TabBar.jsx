@@ -1,31 +1,38 @@
+// src/component/tabbar/TabBar.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaHome, FaCog } from 'react-icons/fa';
+import { ENUM_PAGE } from '../ENUM/enum.ts';      // ← import enum
 import './TabBar.scss';
-import { FaHome, FaCog } from 'react-icons/fa'; // dùng react-icons
-import image from '../../IMAGE/image.png'
-const TabBarr = () => {
-    const navigate = useNavigate();
+import image from '../../IMAGE/image.png';
 
-  const gotohome=()=>{
-      navigate('/home');
-  }
-   
+const TabBar = () => {
+  const navigate = useNavigate();
+
   return (
-    <div onClick={gotohome} className="tab-bar">
-      <div className="tab-icon">
+    <div className="tab-bar">
+      {/* Home icon */}
+      <div
+        className="tab-icon"
+        onClick={() => navigate(ENUM_PAGE.Home)}
+      >
         <FaHome size={24} />
       </div>
 
+      {/* Logo */}
       <div className="tab-logo">
-        <img  src={image} alt="Logo" />
+        <img src={image} alt="Logo Cake Shop" />
       </div>
 
-      <div className="tab-icon">
+      {/* Settings icon */}
+      <div
+        className="tab-icon"
+        onClick={() => navigate(ENUM_PAGE.Home)}  // hoặc route settings nếu có
+      >
         <FaCog size={24} />
-
       </div>
     </div>
   );
 };
 
-export default TabBarr;
+export default TabBar;

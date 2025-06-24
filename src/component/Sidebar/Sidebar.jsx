@@ -20,6 +20,10 @@ const Sidebar = () => {
         console.log('click')
           navigate('/RevenueByMonth');
     }
+    const gotoRevenueByYear=()=>{
+        console.log('click')
+          navigate('/RevenueByYear');
+    }
     const gotoProductmanager=()=>{
         console.log('click')
           navigate('/ProductManagement');
@@ -36,7 +40,10 @@ const Sidebar = () => {
           console.log('click')
           navigate('/CustomerManagement');
     }
-
+    const gotoVoucherManagement = () => {
+      console.log('click');
+      navigate('/VoucherManagement');
+    }
 
   return (
     <div className="sidebar">
@@ -52,7 +59,7 @@ const Sidebar = () => {
         <div className="sidebar-sub">
           <div className="sidebar-sub-item" onClick={gotoRevenueByDate}>Doanh thu theo ngày</div>
           <div className="sidebar-sub-item" onClick={gotoRevenueByMonth} >Doanh thu theo tháng</div>
-          <div className="sidebar-sub-item">Doanh thu theo năm</div>
+          <div className="sidebar-sub-item" onClick={gotoRevenueByYear}>Doanh thu theo năm</div>
         </div>
       )}
 
@@ -68,7 +75,7 @@ const Sidebar = () => {
       <div className="sidebar-item"  onClick={gotoStaticReport}>
         <FaUserCog /> <span>Thông kê và báo cáo</span>
       </div>
-      <div className="sidebar-item">
+      <div className="sidebar-item" onClick={gotoVoucherManagement}>
         <FaPen /> <span> Quản lý khuyến mãi / mã giảm giá</span>
       </div>
     </div>

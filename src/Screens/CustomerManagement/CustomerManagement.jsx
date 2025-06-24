@@ -1,95 +1,177 @@
-import React, { useState } from 'react';
+// src/Screens/CustomerManagement/CustomerManagement.jsx
+import React, { useState, useEffect } from 'react';
 import './CustomerManagement.scss';
 import TabBarr from '../../component/tabbar/TabBar';
+import api from '../../utils/api';
 
-const sampleCustomers = [
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    email: 'vana@gmail.com',
-    phone: '0912345678',
-    address: 'Hà Nội',
-  },
-  {
-    id: 2,
-    name: 'Trần Thị B',
-    email: 'thib@gmail.com',
-    phone: '0987654321',
-    address: 'TP. Hồ Chí Minh',
-  },
-  {
-    id: 3,
-    name: 'Lê Văn C',
-    email: 'vanc@gmail.com',
-    phone: '0933333333',
-    address: 'Đà Nẵng',
-  },
-];
+const emptyCustomer = {
+  name: '',
+  email: '',
+  phone: '',
+  is_lock: false,
+  address_id: ''
+};
 
 const CustomerManagement = () => {
-  const [customers, setCustomers] = useState(sampleCustomers);
+  const [customers, setCustomers]   = useState([]);
+  const [addresses, setAddresses]   = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleDelete = (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) {
-      setCustomers(customers.filter((c) => c.id !== id));
+  const [showForm, setShowForm]     = useState(false);
+  const [formData, setFormData]     = useState(emptyCustomer);
+  const [editingId, setEditingId]   = useState(null);
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const fetchAll = () => {
+    api.get('/users').then(r => setCustomers(r.data.data));
+    api.get('/addresses').then(r => setAddresses(r.data.data));
+  };
+
+  const handleDelete = id => {
+    if (window.confirm('Xóa khách hàng này?')) {
+      api.delete(`/users/${id}`)
+        .then(fetchAll)
+        .catch(console.error);
     }
   };
 
-  const filteredCustomers = customers.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleAdd = () => {
+    setEditingId(null);
+    setFormData(emptyCustomer);
+    setShowForm(true);
+  };
+  const handleEdit = c => {
+    setEditingId(c._id);
+    setFormData({
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      is_lock: c.is_lock,
+      address_id: c.address_id || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    const fn = editingId
+      ? api.put(`/users/${editingId}`, formData)
+      : api.post('/users', formData);
+    fn.then(() => {
+      fetchAll();
+      setShowForm(false);
+    })
+    .catch(err => alert(err.response?.data?.msg || err.message));
+  };
+
+  const filtered = customers.filter(c =>
+  c.name?.toLowerCase().includes(searchTerm.toLowerCase())
+);
+
+  // helper để hiển thị địa chỉ
+  const lookupAddress = id => {
+    const a = addresses.find(x => x._id === id);
+    return a ? `${a.street}, ${a.ward}, ${a.district}` : '';
+  };
 
   return (
     <div className="customer-management">
-        <div>
-            <TabBarr/>
-        </div>
+      <div><TabBarr/></div>
       <h2>Quản lý khách hàng</h2>
 
-      <div style={{padding:20}} className="top-bar">
+      <div className="top-bar">
         <input
           type="text"
-          placeholder="Tìm kiếm theo tên khách hàng..."
+          placeholder="Tìm khách hàng..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
         />
+        <button onClick={handleAdd}>+ Thêm khách hàng</button>
       </div>
 
-      <div style={{padding:20}}>
+      {showForm && (
+        <form className="customer-form" onSubmit={handleSubmit}>
+          <h3>{editingId ? 'Sửa khách hàng' : 'Thêm khách hàng'}</h3>
+          <div className="form-row">
+            <label>Tên:</label>
+            <input required
+              value={formData.name}
+              onChange={e => setFormData({...formData, name: e.target.value})}
+            />
+          </div>
+          <div className="form-row">
+            <label>Email:</label>
+            <input type="email" required
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+          <div className="form-row">
+            <label>Phone:</label>
+            <input required
+              value={formData.phone}
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+            />
+          </div>
+          <div className="form-row">
+            <label>Địa chỉ:</label>
+            <select required
+              value={formData.address_id}
+              onChange={e => setFormData({...formData, address_id: e.target.value})}
+            >
+              <option value="">--Chọn địa chỉ--</option>
+              {addresses.map(a => (
+                <option key={a._id} value={a._id}>
+                  {`${a.street}, ${a.ward}, ${a.district}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-row checkbox-row">
+            <label>Khóa tài khoản:</label>
+            <input
+              type="checkbox"
+              checked={formData.is_lock}
+              onChange={e => setFormData({...formData, is_lock: e.target.checked})}
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit">{editingId ? 'Lưu' : 'Tạo'}</button>
+            <button type="button" onClick={() => setShowForm(false)}>Hủy</button>
+          </div>
+        </form>
+      )}
+
+      <div className="table-wrapper">
         <table>
-        <thead>
-          <tr>
-            <th>Mã KH</th>
-            <th>Tên</th>
-            <th>Email</th>
-            <th>SĐT</th>
-            <th>Địa chỉ</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredCustomers.length > 0 ? (
-            filteredCustomers.map((customer) => (
-              <tr key={customer.id}>
-                <td>KH{customer.id.toString().padStart(3, '0')}</td>
-                <td>{customer.name}</td>
-                <td>{customer.email}</td>
-                <td>{customer.phone}</td>
-                <td>{customer.address}</td>
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Email</th>
+              <th>Phone</th><th>Địa chỉ</th><th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((c,i) => (
+              <tr key={c._id}>
+                <td>{i+1}</td>
+                <td>{c.name}</td>
+                <td>{c.email}</td>
+                <td>{c.phone}</td>
+                <td>{lookupAddress(c.address_id)}</td>
                 <td>
-                  <button onClick={() => alert('Xem chi tiết khách hàng')}>Xem</button>
-                  <button onClick={() => handleDelete(customer.id)}>Xóa</button>
+                  <button onClick={() => handleEdit(c)}>Sửa</button>
+                  <button onClick={() => handleDelete(c._id)}>Xóa</button>
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="6">Không tìm thấy khách hàng phù hợp</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            ))}
+            {filtered.length===0 && (
+              <tr><td colSpan="6">Không tìm thấy dữ liệu.</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

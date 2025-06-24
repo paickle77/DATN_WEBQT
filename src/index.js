@@ -9,13 +9,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './component/Sidebar/Sidebar';
 import DatePickerComponent from './component/DatePicker/DatePickerComponent';
 import DashboardCards from './component/DashboardCards/DashboardCards';
-import RevenueByDate from './Screens/Revenue/Revenuebydate/RevenueByDate';
-import RevenueByMonth from './Screens/Revenue/RevenueByMonth/RevenueByMonth';
+import RevenueByDate from './Screens/Revenue/RevenueByDate.jsx';
+import RevenueByMonth from './Screens/Revenue/RevenueByMonth.jsx';
+import RevenueByYear from './Screens/Revenue/RevenueByYear.jsx';
 import ProductManagement from './Screens/ProductManagement/ProductManagement';
 import OrderManagement from './Screens/OrderManagement/OrderManagement';
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';
 import StatisticReport from './Screens/StatisticReport/StatisticReport';
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
+import VoucherManagement from './Screens/VoucherManagement/VoucherManagement';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -27,10 +29,14 @@ root.render(
          <Route path={ENUM_PAGE.sidebar} element={<Sidebar />} />
           <Route path={ENUM_PAGE.RevenueByDate} element={<RevenueByDate />} />
            <Route path={ENUM_PAGE.RevenueByMonth} element={<RevenueByMonth />} />
+            <Route path={ENUM_PAGE.RevenueByYear} element={<RevenueByYear />} />
+              <Route path={ENUM_PAGE.DatePickerComponent} element={<DatePickerComponent />} />
+                <Route path={ENUM_PAGE.DashboardCards} element={<DashboardCards />} />
             <Route path={ENUM_PAGE.ProductManagement} element={<ProductManagement />} />
              <Route path={ENUM_PAGE.OrderManagement} element={<OrderManagement />} />
               <Route path={ENUM_PAGE.CustomerManagement} element={<CustomerManagement />} />
                <Route path={ENUM_PAGE.StatisticReport} element={<StatisticReport />} />
+               <Route path={ENUM_PAGE.VoucherManagement} element={<VoucherManagement />} />
       </Routes>
     </Router>
   </React.StrictMode>

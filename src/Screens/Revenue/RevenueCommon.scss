@@ -1,0 +1,82 @@
+/* src/Screens/Revenue/RevenueCommon.scss */
+.revenue-wrapper {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+
+    label {
+      font-weight: 500;
+      color: #555;
+    }
+    .react-datepicker-wrapper {
+      width: 180px;
+      input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        transition: border-color .2s, box-shadow .2s;
+        &:focus {
+          outline: none;
+          border-color: #1890ff;
+          box-shadow: 0 0 6px rgba(24,144,255,.3);
+        }
+      }
+    }
+  }
+
+  .result {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+
+    h3 {
+      margin-bottom: 15px;
+      color: #1890ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      th, td {
+        padding: 10px;
+        border: 1px solid #f0f0f0;
+        text-align: left;
+      }
+      thead {
+        background: #fafafa;
+        th { font-weight: 600; }
+      }
+      tbody tr:hover { background: #fafafa; }
+    }
+    .total {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: right;
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .filter { flex-direction: column; align-items: flex-start; }
+    .filter .react-datepicker-wrapper { width: 100%; }
+  }
+}
