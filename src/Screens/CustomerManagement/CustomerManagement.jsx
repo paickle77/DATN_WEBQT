@@ -38,6 +38,22 @@ const CustomerManagement = () => {
     }
   };
 
+  const handleLock = id => {
+    if (window.confirm('Khóa tài khoản này?')) {
+      api.put(`/users/${id}`, { is_lock: true })
+        .then(fetchAll)
+        .catch(console.error);
+    }
+  };
+
+  const handleUnlock = id => {
+    if (window.confirm('Mở khóa tài khoản này?')) {
+      api.put(`/users/${id}`, { is_lock: false })
+        .then(fetchAll)
+        .catch(console.error);
+    }
+  };
+
   const handleAdd = () => {
     setEditingId(null);
     setFormData(emptyCustomer);
@@ -46,10 +62,10 @@ const CustomerManagement = () => {
   const handleEdit = c => {
     setEditingId(c._id);
     setFormData({
-      name: c.name,
-      email: c.email,
-      phone: c.phone,
-      is_lock: c.is_lock,
+      name:       c.name,
+      email:      c.email,
+      phone:      c.phone,
+      is_lock:    c.is_lock,
       address_id: c.address_id || ''
     });
     setShowForm(true);
@@ -68,10 +84,9 @@ const CustomerManagement = () => {
   };
 
   const filtered = customers.filter(c =>
-  c.name?.toLowerCase().includes(searchTerm.toLowerCase())
-);
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // helper để hiển thị địa chỉ
   const lookupAddress = id => {
     const a = addresses.find(x => x._id === id);
     return a ? `${a.street}, ${a.ward}, ${a.district}` : '';
@@ -79,7 +94,7 @@ const CustomerManagement = () => {
 
   return (
     <div className="customer-management">
-      <div><TabBarr/></div>
+      <TabBarr />
       <h2>Quản lý khách hàng</h2>
 
       <div className="top-bar">
@@ -150,7 +165,7 @@ const CustomerManagement = () => {
           <thead>
             <tr>
               <th>#</th><th>Name</th><th>Email</th>
-              <th>Phone</th><th>Địa chỉ</th><th>Hành động</th>
+              <th>Phone</th><th>Địa chỉ</th><th>Trạng thái</th><th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -162,13 +177,24 @@ const CustomerManagement = () => {
                 <td>{c.phone}</td>
                 <td>{lookupAddress(c.address_id)}</td>
                 <td>
+                  {c.is_lock
+                    ? <span className="status-locked">Đã khóa</span>
+                    : <span className="status-active">Hoạt động</span>
+                  }
+                </td>
+                <td>
                   <button onClick={() => handleEdit(c)}>Sửa</button>
                   <button onClick={() => handleDelete(c._id)}>Xóa</button>
+                  {/* Nút khóa / mở khóa */}
+                  {c.is_lock
+                    ? <button onClick={() => handleUnlock(c._id)}>Mở khóa</button>
+                    : <button onClick={() => handleLock(c._id)}>Khóa</button>
+                  }
                 </td>
               </tr>
             ))}
             {filtered.length===0 && (
-              <tr><td colSpan="6">Không tìm thấy dữ liệu.</td></tr>
+              <tr><td colSpan="7">Không tìm thấy dữ liệu.</td></tr>
             )}
           </tbody>
         </table>

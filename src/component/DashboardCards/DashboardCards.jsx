@@ -3,40 +3,45 @@ import React, { useState, useEffect } from 'react';
 import './DashboardCards.scss';
 import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { ENUM_PAGE }   from '../ENUM/enum.ts';  // hoặc .ts nếu bạn chưa đổi sang .js
+import { ENUM_PAGE } from '../ENUM/enum.ts';
 
 const DashboardCards = () => {
-  const [employees, setEmployees]   = useState([]);
-  const [branches, setBranches]     = useState([]);
-  const [vouchers, setVouchers]     = useState([]);
-  const [activeList, setActiveList] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [branches, setBranches]   = useState([]);
+  const [vouchers, setVouchers]   = useState([]);
+  const [lockedUsers, setLockedUsers] = useState([]);              // thêm state
+  const [activeList, setActiveList]   = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([
       api.get('/users'),
       api.get('/branches'),
-      api.get('/vouchers')
+      api.get('/vouchers'),
     ]).then(([uRes, bRes, vRes]) => {
-      setEmployees(uRes.data.data);
+      const allUsers = uRes.data.data;
+      setEmployees(allUsers);
+      setLockedUsers(allUsers.filter(u => u.is_lock));            // lọc tài khoản bị khoá
       setBranches(bRes.data.data);
       setVouchers(vRes.data.data);
     });
   }, []);
 
   const cards = [
-    { key: 'employees', count: employees.length,    label: 'Nhân viên',          color: 'blue',   columns: ['name','email','phone'] },
-    { key: 'branches',  count: branches.length,     label: 'Cơ Sở',              color: 'orange', columns: ['name','address','phone'] },
-    { key: 'accounts',  count: employees.length,    label: 'Tài khoản người dùng',color: 'amber',  columns: ['name','email','phone'] },
-    { key: 'vouchers',  count: vouchers.length,     label: 'Khuyến mãi',         color: 'green',  columns: ['code','description','discount_percent'] },
-    { key: 'excel',     count: '',                  label: 'EXCEL',              color: 'red' },
-    { key: 'salary',    count: '',                  label: 'Lương nhân viên',    color: 'purple' },
+    { key: 'employees',   count: employees.length,    label: 'Nhân viên',          color: 'blue',   columns: ['name','email','phone'] },
+    { key: 'branches',    count: branches.length,     label: 'Cơ Sở',              color: 'orange', columns: ['name','address','phone'] },
+    { key: 'accounts',    count: employees.length,    label: 'Tài khoản người dùng',color: 'amber',  columns: ['name','email','phone'] },
+    { key: 'lockedUsers', count: lockedUsers.length,  label: 'Tài khoản bị khóa',   color: 'red',   columns: ['name','email','phone'] },
+    { key: 'vouchers',    count: vouchers.length,     label: 'Khuyến mãi',         color: 'green',  columns: ['code','description','discount_percent'] },
+    { key: 'excel',       count: '',                  label: 'EXCEL',              color: 'red' },
+    { key: 'salary',      count: '',                  label: 'Lương nhân viên',    color: 'purple' },
   ];
 
   const dataMap = {
     employees,
     branches,
     accounts: employees,
+    lockedUsers,
     vouchers
   };
 
@@ -49,10 +54,8 @@ const DashboardCards = () => {
             className={`card ${card.color}`}
             onClick={() => {
               if (card.key === 'excel') {
-                // điều hướng sang trang Báo cáo
                 navigate(ENUM_PAGE.StatisticReport);
               } else {
-                // vẫn giữ lại hành vi cũ với các card khác
                 setActiveList(card.key);
               }
             }}
@@ -70,31 +73,26 @@ const DashboardCards = () => {
         ))}
       </div>
 
-      {/* Phần hiển thị danh sách cột chỉ với những card có columns */}
+      {/* Hiển thị bảng chỉ với các card có columns */}
       {activeList && cards.find(c => c.key === activeList)?.columns && (
         <div className="list-container">
           <h3>Dữ liệu: {cards.find(c => c.key === activeList).label}</h3>
           <table>
             <thead>
               <tr>
-                {cards
-                  .find(c => c.key === activeList)
-                  .columns.map(col => (
-                    <th key={col}>
-                      {col.replace(/_/g, ' ')
-                         .replace(/\b\w/g, l => l.toUpperCase())}
-                    </th>
-                  ))}
+                {cards.find(c => c.key === activeList).columns.map(col => (
+                  <th key={col}>
+                    {col.replace(/_/g,' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {dataMap[activeList].map(item => (
                 <tr key={item._id}>
-                  {cards
-                    .find(c => c.key === activeList)
-                    .columns.map(col => (
-                      <td key={col}>{String(item[col] ?? '')}</td>
-                    ))}
+                  {cards.find(c => c.key === activeList).columns.map(col => (
+                    <td key={col}>{String(item[col] ?? '')}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>

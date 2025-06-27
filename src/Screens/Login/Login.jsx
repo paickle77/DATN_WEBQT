@@ -1,17 +1,33 @@
+// src/Screens/Login/Login.jsx
 import React, { useState } from 'react';
 import './Login.scss';
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 const LoginForm = () => {
-    const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Đăng nhập thành công');
+    setLoading(true);
+    try {
+      // Gọi API đăng nhập
+      const res = await api.post('/login', { email, password });
+      const token = res.data.data.token;
+      // Lưu token để dùng cho các request sau
+      localStorage.setItem('token', res.data.data.token);
+      // Điều hướng về Home
       navigate('/home');
-    
+    } catch (err) {
+      // Hiển thị lỗi từ server (hoặc generic)
+      const msg = err.response?.data?.error || 'Đăng nhập thất bại';
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,17 +38,19 @@ const LoginForm = () => {
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
           placeholder="Mật khẩu"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
         />
-        <button type="submit">Đăng nhập</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Đang xử lý…' : 'Đăng nhập'}
+        </button>
       </form>
     </div>
   );
