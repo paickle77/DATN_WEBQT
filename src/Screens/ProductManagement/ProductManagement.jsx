@@ -17,30 +17,27 @@ const emptyForm = {
 };
 
 const ProductManagement = () => {
-  const [products, setProducts]       = useState([]);
-  const [categories, setCategories]   = useState([]);
-  const [branches, setBranches]       = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [ingredients, setIngredients] = useState([]);
-  const [searchTerm, setSearchTerm]   = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // form state
-  const [showForm, setShowForm]       = useState(false);
-  const [formData, setFormData]       = useState(emptyForm);
-  const [editingId, setEditingId]     = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
 
-  // load initial data
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = () => {
-    api.get('/products').then(r => setProducts(r.data.data));
-    api.get('/categories').then(r => setCategories(r.data.data));
-    api.get('/branches').then(r => setBranches(r.data.data));
-    api.get('/ingredients').then(r => setIngredients(r.data.data));
+    api.get('/products').then(r => setProducts(r.data.data)).catch(console.error);
+    api.get('/categories').then(r => setCategories(r.data.data)).catch(console.error);
+    api.get('/branches').then(r => setBranches(r.data.data)).catch(console.error);
+    api.get('/ingredients').then(r => setIngredients(r.data.data)).catch(console.error);
   };
 
-  // delete
   const handleDelete = id => {
     if (window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
       api.delete(`/products/${id}`)
@@ -49,14 +46,12 @@ const ProductManagement = () => {
     }
   };
 
-  // open add form
   const handleAdd = () => {
     setEditingId(null);
     setFormData(emptyForm);
     setShowForm(true);
   };
 
-  // open edit form
   const handleEdit = p => {
     setEditingId(p._id);
     setFormData({
@@ -73,28 +68,25 @@ const ProductManagement = () => {
     setShowForm(true);
   };
 
-  // submit add or edit
   const handleSubmit = e => {
     e.preventDefault();
-    const fn = editingId
+    const req = editingId
       ? api.put(`/products/${editingId}`, formData)
       : api.post('/products', formData);
-
-    fn.then(() => {
+    req.then(() => {
       fetchAll();
       setShowForm(false);
     })
     .catch(err => alert(err.response?.data?.msg || err.message));
   };
 
-  // filter
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="product-management">
-      <div><TabBarr/></div>
+      <TabBarr />
       <h2>Quản lý sản phẩm</h2>
 
       <div className="top-bar">
@@ -110,91 +102,112 @@ const ProductManagement = () => {
       {showForm && (
         <form className="product-form" onSubmit={handleSubmit}>
           <h3>{editingId ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}</h3>
+
           <div className="form-row">
-            <label>Tên:</label>
+            <label>Tên</label>
             <input
               required
               value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
+
           <div className="form-row">
-            <label>Loại:</label>
-            <select
+            <label>Mô tả</label>
+            <textarea
               required
-              value={formData.category_id}
-              onChange={e => setFormData({...formData, category_id: e.target.value})}
-            >
-              <option value="">--Chọn category--</option>
-              {categories.map(c => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+            />
           </div>
+
           <div className="form-row">
-            <label>Chi nhánh:</label>
+            <label>Giá gốc</label>
+            <input
+              type="number"
+              required
+              value={formData.price}
+              onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Giá khuyến mãi</label>
+            <input
+              type="number"
+              value={formData.discount_price}
+              onChange={e => setFormData({ ...formData, discount_price: Number(e.target.value) })}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Kho (stock)</label>
+            <input
+              type="number"
+              required
+              value={formData.stock}
+              onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Chi nhánh</label>
             <select
               required
               value={formData.branch_id}
-              onChange={e => setFormData({...formData, branch_id: e.target.value})}
+              onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
             >
-              <option value="">--Chọn branch--</option>
+              <option value="">Chọn chi nhánh</option>
               {branches.map(b => (
                 <option key={b._id} value={b._id}>{b.name}</option>
               ))}
             </select>
           </div>
+
           <div className="form-row">
-            <label>Nguyên liệu:</label>
+            <label>Danh mục</label>
+            <select
+              required
+              value={formData.category_id}
+              onChange={e => setFormData({ ...formData, category_id: e.target.value })}
+            >
+              <option value="">Chọn danh mục</option>
+              {categories.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Nguyên liệu chính</label>
             <select
               required
               value={formData.ingredient_id}
-              onChange={e => setFormData({...formData, ingredient_id: e.target.value})}
+              onChange={e => setFormData({ ...formData, ingredient_id: e.target.value })}
             >
-              <option value="">--Chọn ingredient--</option>
+              <option value="">Chọn nguyên liệu</option>
               {ingredients.map(i => (
                 <option key={i._id} value={i._id}>{i.name}</option>
               ))}
             </select>
           </div>
+
           <div className="form-row">
-            <label>Giá:</label>
-            <input
-              type="number"
-              required
-              value={formData.price}
-              onChange={e => setFormData({...formData, price: +e.target.value})}
-            />
-          </div>
-          <div className="form-row">
-            <label>Giá KM:</label>
-            <input
-              type="number"
-              value={formData.discount_price}
-              onChange={e => setFormData({...formData, discount_price: +e.target.value})}
-            />
-          </div>
-          <div className="form-row">
-            <label>Stock:</label>
-            <input
-              type="number"
-              required
-              value={formData.stock}
-              onChange={e => setFormData({...formData, stock: +e.target.value})}
-            />
-          </div>
-          <div className="form-row">
-            <label>Ảnh (URL):</label>
+            <label>Ảnh (URL)</label>
             <input
               required
               value={formData.image_url}
-              onChange={e => setFormData({...formData, image_url: e.target.value})}
+              onChange={e => setFormData({ ...formData, image_url: e.target.value })}
             />
           </div>
 
           <div className="form-actions">
-            <button type="submit">{editingId ? 'Lưu thay đổi' : 'Tạo mới'}</button>
-            <button type="button" onClick={() => setShowForm(false)}>Hủy</button>
+            <button type="submit">
+              {editingId ? 'Lưu thay đổi' : 'Tạo mới'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)}>
+              Hủy
+            </button>
           </div>
         </form>
       )}
@@ -203,27 +216,41 @@ const ProductManagement = () => {
         <table>
           <thead>
             <tr>
-              <th>Mã SP</th>
+              <th>STT</th>
+              <th>Ảnh</th>
               <th>Tên</th>
-              <th>Loại</th>
+              <th>Danh mục</th>
               <th>Giá</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length > 0 ? filtered.map((p, i) => (
-              <tr key={p._id}>
-                <td>SP{(i+1).toString().padStart(3,'0')}</td>
-                <td>{p.name}</td>
-                <td>{categories.find(c=>c._id===p.category_id)?.name}</td>
-                <td>{p.price.toLocaleString('vi-VN')}</td>
-                <td>
-                  <button onClick={() => handleEdit(p)}>Sửa</button>
-                  <button onClick={() => handleDelete(p._id)}>Xóa</button>
-                </td>
+            {filtered.length > 0 ? (
+              filtered.map((p, i) => (
+                <tr key={p._id}>
+                  <td>{i + 1}</td>
+                  <td>
+                    <img
+                      src={p.image_url}
+                      alt={p.name}
+                      className="product-thumb"
+                    />
+                  </td>
+                  <td>{p.name}</td>
+                  <td>
+                    {categories.find(c => c._id === p.category_id)?.name || ''}
+                  </td>
+                  <td>{p.price.toLocaleString('vi-VN')} đ</td>
+                  <td>
+                    <button onClick={() => handleEdit(p)}>Sửa</button>
+                    <button onClick={() => handleDelete(p._id)}>Xóa</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6">Không tìm thấy sản phẩm</td>
               </tr>
-            )) : (
-              <tr><td colSpan="5">Không tìm thấy sản phẩm</td></tr>
             )}
           </tbody>
         </table>

@@ -18,6 +18,10 @@ import OrderManagement    from './Screens/OrderManagement/OrderManagement';
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';
 import StatisticReport    from './Screens/StatisticReport/StatisticReport';
 import VoucherManagement  from './Screens/VoucherManagement/VoucherManagement';
+import IngredientManagement from './Screens/IngredientManagement/IngredientManagement';
+import BranchManagement   from './Screens/BranchManagement/BranchManagement';
+import LogManagement       from './Screens/LogManagement/LogManagement';
+import NotificationManagement from './Screens/NotificationManagement/NotificationManagement';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
@@ -127,6 +131,38 @@ root.render(
           element={
             <PrivateRoute>
               <VoucherManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.IngredientManagement}
+          element={
+            <PrivateRoute>
+              <IngredientManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.BranchManagement}
+          element={
+            <PrivateRoute>
+              <BranchManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.LogManagement}
+          element={
+            <PrivateRoute>
+              <LogManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.NotificationManagement}
+          element={
+            <PrivateRoute>
+              <NotificationManagement />
             </PrivateRoute>
           }
         />
