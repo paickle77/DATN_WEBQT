@@ -6,14 +6,14 @@ import './StatisticReport.scss';
 import TabBarr from '../../component/tabbar/TabBar';
 import api from '../../utils/api';
 
-// Thay thế SheetJS bằng ExcelJS + file-saver
+// ExcelJS + file-saver
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 const StatisticReport = () => {
-  const [fromDate, setFromDate]   = useState(null);
-  const [toDate, setToDate]       = useState(null);
-  const [report, setReport]       = useState(null);
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate]     = useState(null);
+  const [report, setReport]     = useState(null);
 
   const handleGenerate = async () => {
     if (!fromDate || !toDate) {
@@ -33,19 +33,11 @@ const StatisticReport = () => {
         const d = new Date(o.created_at);
         return d >= fromDate && d <= toDate;
       });
-      const totalOrders = ordersInRange.length;
-
-      // tính doanh thu
+      const totalOrders    = ordersInRange.length;
       const orderIdSet     = new Set(ordersInRange.map(o => o._id));
       const detailsInRange = allDetails.filter(d => orderIdSet.has(d.order_id));
-      const totalRevenue   = detailsInRange.reduce(
-        (sum, d) => sum + d.price * d.quantity,
-        0
-      );
-
-      // số khách hàng unique
-      const customerSet    = new Set(ordersInRange.map(o => o.user_id));
-      const totalCustomers = customerSet.size;
+      const totalRevenue   = detailsInRange.reduce((sum, d) => sum + d.price * d.quantity, 0);
+      const totalCustomers = new Set(ordersInRange.map(o => o.user_id)).size;
 
       setReport({ totalRevenue, totalOrders, totalCustomers, details: detailsInRange });
     } catch (err) {
@@ -60,18 +52,14 @@ const StatisticReport = () => {
       return;
     }
 
-    // 1. Tạo workbook và 2 sheet
-    const workbook      = new ExcelJS.Workbook();
-    const summarySheet  = workbook.addWorksheet('Tổng quan');
-    const detailSheet   = workbook.addWorksheet('Chi tiết đơn');
+    const workbook = new ExcelJS.Workbook();
+    const sheet    = workbook.addWorksheet('Báo cáo');
 
-    // 2. Cấu hình cột cho sheet Tổng quan
-    summarySheet.columns = [
-      { header: 'Metric', key: 'metric', width: 30 },
-      { header: 'Value',  key: 'value',  width: 20 },
-    ];
-    // Style header
-    summarySheet.getRow(1).eachCell(cell => {
+    // --- Bảng Tổng quan (Metrics) ở cột A,B
+    sheet.getCell('A1').value = 'Metric';
+    sheet.getCell('B1').value = 'Value';
+    // style header
+    sheet.getRow(1).eachCell(cell => {
       cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
       cell.alignment = { horizontal: 'center' };
@@ -82,50 +70,51 @@ const StatisticReport = () => {
         right:  { style: 'thin' }
       };
     });
-    // Thêm dữ liệu
-    summarySheet.addRows([
-      { metric: 'Tổng doanh thu (₫)', value: report.totalRevenue },
-      { metric: 'Tổng đơn hàng',      value: report.totalOrders },
-      { metric: 'Tổng khách hàng',    value: report.totalCustomers },
-    ]);
-    // Format cột Value
-    summarySheet.getColumn('value').numFmt = '#,##0';
+    // dữ liệu
+    sheet.getCell('A2').value = 'Tổng doanh thu (₫)';
+    sheet.getCell('B2').value = report.totalRevenue;
+    sheet.getCell('B2').numFmt  = '#,##0';
+    sheet.getCell('A3').value = 'Tổng đơn hàng';
+    sheet.getCell('B3').value = report.totalOrders;
+    sheet.getCell('A4').value = 'Tổng khách hàng';
+    sheet.getCell('B4').value = report.totalCustomers;
 
-    // 3. Cấu hình cột cho sheet Chi tiết đơn
-    detailSheet.columns = [
-      { header: '#',           key: 'idx',      width: 5 },
-      { header: 'Order ID',    key: 'orderId',  width: 30 },
-      { header: 'Quantity',    key: 'qty',      width: 12 },
-      { header: 'Unit Price',  key: 'price',    width: 15 },
-      { header: 'Total (₫)',   key: 'total',    width: 15 },
-    ];
-    // Style header
-    detailSheet.getRow(1).eachCell(cell => {
-      cell.font      = { bold: true };
-      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
-      cell.alignment = { horizontal: 'center' };
-      cell.border    = {
-        top:    { style: 'thin' },
-        left:   { style: 'thin' },
-        bottom: { style: 'thin' },
-        right:  { style: 'thin' }
-      };
+    // --- Bảng Chi tiết đơn ở cột D-H
+    const startCol    = 4;  // D
+    const headers     = ['#','Order ID','Quantity','Unit Price','Total (₫)'];
+    // header
+    headers.forEach((h, i) => {
+      const cell = sheet.getCell(1, startCol + i);
+      cell.value = h;
     });
-    // Thêm data chi tiết
+    // style header
+    sheet.getRow(1).eachCell((cell, colNum) => {
+      if (colNum >= startCol && colNum < startCol + headers.length) {
+        cell.font      = { bold: true };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+        cell.alignment = { horizontal: 'center' };
+        cell.border    = {
+          top:    { style: 'thin' },
+          left:   { style: 'thin' },
+          bottom: { style: 'thin' },
+          right:  { style: 'thin' }
+        };
+      }
+    });
+    // rows
     report.details.forEach((d, i) => {
-      detailSheet.addRow({
-        idx:     i + 1,
-        orderId: d.order_id,
-        qty:     d.quantity,
-        price:   d.price,
-        total:   d.quantity * d.price
-      });
+      const rowIdx = i + 2;
+      sheet.getCell(rowIdx, startCol + 0).value = i + 1;
+      sheet.getCell(rowIdx, startCol + 1).value = d.order_id;
+      sheet.getCell(rowIdx, startCol + 2).value = d.quantity;
+      sheet.getCell(rowIdx, startCol + 3).value = d.price;
+      sheet.getCell(rowIdx, startCol + 4).value = d.quantity * d.price;
+      // format tiền
+      sheet.getCell(rowIdx, startCol + 3).numFmt = '#,##0';
+      sheet.getCell(rowIdx, startCol + 4).numFmt = '#,##0';
     });
-    // Format số tiền
-    detailSheet.getColumn('price').numFmt = '#,##0';
-    detailSheet.getColumn('total').numFmt = '#,##0';
 
-    // 4. Xuất file
+    // Xuất file
     const buf      = await workbook.xlsx.writeBuffer();
     const filename = `BaoCao_${fromDate.toISOString().slice(0,10)}_${toDate.toISOString().slice(0,10)}.xlsx`;
     saveAs(new Blob([buf]), filename);
