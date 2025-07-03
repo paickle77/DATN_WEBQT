@@ -4,12 +4,21 @@ import './DashboardCards.scss';
 import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { ENUM_PAGE } from '../ENUM/enum.ts';
+import {
+  FaUserTie,
+  FaWarehouse,
+  FaUser,
+  FaLock,
+  FaTicketAlt,
+  FaFileExcel,
+  FaMoneyBillWave
+} from 'react-icons/fa';
 
 const DashboardCards = () => {
   const [employees, setEmployees] = useState([]);
   const [branches, setBranches]   = useState([]);
   const [vouchers, setVouchers]   = useState([]);
-  const [lockedUsers, setLockedUsers] = useState([]);              // thêm state
+  const [lockedUsers, setLockedUsers] = useState([]);
   const [activeList, setActiveList]   = useState(null);
   const navigate = useNavigate();
 
@@ -21,29 +30,70 @@ const DashboardCards = () => {
     ]).then(([uRes, bRes, vRes]) => {
       const allUsers = uRes.data.data;
       setEmployees(allUsers);
-      setLockedUsers(allUsers.filter(u => u.is_lock));            // lọc tài khoản bị khoá
+      setLockedUsers(allUsers.filter(u => u.is_lock));
       setBranches(bRes.data.data);
       setVouchers(vRes.data.data);
     });
   }, []);
 
   const cards = [
-    { key: 'employees',   count: employees.length,    label: 'Nhân viên',          color: 'blue',   columns: ['name','email','phone'] },
-    { key: 'branches',    count: branches.length,     label: 'Cơ Sở',              color: 'orange', columns: ['name','address','phone'] },
-    { key: 'accounts',    count: employees.length,    label: 'Tài khoản người dùng',color: 'amber',  columns: ['name','email','phone'] },
-    { key: 'lockedUsers', count: lockedUsers.length,  label: 'Tài khoản bị khóa',   color: 'red',   columns: ['name','email','phone'] },
-    { key: 'vouchers',    count: vouchers.length,     label: 'Khuyến mãi',         color: 'green',  columns: ['code','description','discount_percent'] },
-    { key: 'excel',       count: '',                  label: 'EXCEL',              color: 'red' },
-    { key: 'salary',      count: '',                  label: 'Lương nhân viên',    color: 'purple' },
+    {
+      key: 'employees',
+      count: employees.length,
+      label: 'Nhân viên',
+      color: 'blue',
+      columns: ['name','email','phone'],
+      icon: <FaUserTie />
+    },
+    {
+      key: 'branches',
+      count: branches.length,
+      label: 'Cơ sở',
+      color: 'orange',
+      columns: ['name','address','phone'],
+      icon: <FaWarehouse />
+    },
+    {
+      key: 'accounts',
+      count: employees.length,
+      label: 'Người dùng',
+      color: 'amber',
+      columns: ['name','email','phone'],
+      icon: <FaUser />
+    },
+    {
+      key: 'lockedUsers',
+      count: lockedUsers.length,
+      label: 'Khóa tài khoản',
+      color: 'red',
+      columns: ['name','email','phone'],
+      icon: <FaLock />
+    },
+    {
+      key: 'vouchers',
+      count: vouchers.length,
+      label: 'Khuyến mãi',
+      color: 'green',
+      columns: ['code','description','discount_percent'],
+      icon: <FaTicketAlt />
+    },
+    {
+      key: 'excel',
+      count: '',
+      label: 'Báo cáo Excel',
+      color: 'purple',
+      icon: <FaFileExcel />
+    },
+    {
+      key: 'salary',
+      count: '',
+      label: 'Bảng lương',
+      color: 'green',
+      icon: <FaMoneyBillWave />
+    },
   ];
 
-  const dataMap = {
-    employees,
-    branches,
-    accounts: employees,
-    lockedUsers,
-    vouchers
-  };
+  const dataMap = { employees, branches, accounts: employees, lockedUsers, vouchers };
 
   return (
     <div className="dashboard-wrapper">
@@ -60,13 +110,14 @@ const DashboardCards = () => {
               }
             }}
           >
+            <div className="card-icon">{card.icon}</div>
             {card.count !== '' && <div className="count">{card.count}</div>}
             <div className="label">{card.label}</div>
             <button className="card-button">
               {card.key === 'excel'
                 ? 'Xuất báo cáo'
                 : card.key === 'salary'
-                  ? 'Bảng lương'
+                  ? 'Xem bảng lương'
                   : `Danh sách ${card.label.toLowerCase()}`}
             </button>
           </div>
