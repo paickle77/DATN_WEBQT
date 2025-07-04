@@ -7,6 +7,7 @@ export enum ENUM_PAGE {
   RevenueByYear = "/RevenueByYear",
   ProductManagement = "/ProductManagement",
   OrderManagement = "/OrderManagement",
+  RefundManagement    = "/RefundManagement",
   CustomerManagement = "/CustomerManagement",
   VoucherManagement = "/VoucherManagement",
   IngredientManagement = "/IngredientManagement",

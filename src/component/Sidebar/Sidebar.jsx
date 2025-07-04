@@ -12,6 +12,7 @@ import {
   FaBuilding,
   FaBell,
   FaClipboardList,
+  FaUndo,
   FaChartPie,
   FaCalendarDay,
   FaCalendarAlt,
@@ -67,6 +68,12 @@ const Sidebar = () => {
       >
         <FaShoppingCart /> <span>Quản lý đơn hàng</span>
       </div>
+       <div
+         className="sidebar-item"
+         onClick={() => navigate(ENUM_PAGE.RefundManagement)}
+       >
+         <FaUndo /> <span>Quản lý hoàn trả</span>
+       </div>
       <div
         className="sidebar-item"
         onClick={() => navigate(ENUM_PAGE.CustomerManagement)}

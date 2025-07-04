@@ -15,6 +15,7 @@ import RevenueByMonth     from './Screens/Revenue/RevenueByMonth.jsx';
 import RevenueByYear      from './Screens/Revenue/RevenueByYear.jsx';
 import ProductManagement  from './Screens/ProductManagement/ProductManagement';
 import OrderManagement    from './Screens/OrderManagement/OrderManagement';
+import RefundManagement   from './Screens/RefundManagement/RefundManagement';
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';
 import StatisticReport    from './Screens/StatisticReport/StatisticReport';
 import VoucherManagement  from './Screens/VoucherManagement/VoucherManagement';
@@ -107,6 +108,14 @@ root.render(
           element={
             <PrivateRoute>
               <OrderManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.RefundManagement}
+          element={
+            <PrivateRoute>
+              <RefundManagement />
             </PrivateRoute>
           }
         />

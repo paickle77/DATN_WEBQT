@@ -1,0 +1,32 @@
+.refund-management {
+  padding: 20px;
+  h2 {
+    margin-bottom: 15px;
+    color: #333;
+  }
+  .table-wrapper {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      th, td {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+      }
+      th {
+        background: #f0f0f0;
+        text-align: left;
+      }
+      td button {
+        margin-right: 5px;
+        padding: 4px 8px;
+        border: none;
+        background: #3498db;
+        color: white;
+        cursor: pointer;
+        &:last-child {
+          background: #e74c3c;
+        }
+      }
+    }
+  }
+}
