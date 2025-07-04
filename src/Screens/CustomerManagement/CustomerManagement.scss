@@ -1,60 +1,65 @@
+/* src/Screens/CustomerManagement/CustomerManagement.scss */
 .customer-management {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 0 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #333;
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
 
   h2 {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    color: #333;
   }
 
   .top-bar {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 
     input {
       flex: 1;
-      padding: 8px 12px;
+      padding: 8px;
+      font-size: 14px;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+
     button {
       padding: 8px 16px;
-      background: #1890ff;
-      color: white;
+      background-color: #1890ff;
+      color: #fff;
       border: none;
       border-radius: 4px;
-      cursor: pointer;
       font-weight: 600;
-      &:hover { background: #096dd9; }
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover { background-color: #096dd9; }
     }
   }
 
   .customer-form {
     background: #fff;
-    border: 1px solid #e8e8e8;
-    border-radius: 6px;
     padding: 20px;
-    margin-bottom: 30px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.05);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+
+    h3 {
+      margin-bottom: 15px;
+      color: #444;
+    }
 
     .form-row {
       display: flex;
       align-items: center;
       margin-bottom: 12px;
 
-      &.checkbox-row {
-        label { width: 140px; }
-        input { transform: scale(1.2); }
+      label {
+        width: 120px;
+        font-weight: 600;
       }
 
-      label {
-        width: 140px;
-        font-weight: 500;
-      }
       input, select {
         flex: 1;
         padding: 6px 10px;
@@ -67,21 +72,21 @@
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      margin-top: 15px;
 
       button {
         padding: 6px 14px;
-        border-radius: 4px;
         border: none;
+        border-radius: 4px;
         cursor: pointer;
+        font-weight: 500;
+
         &:first-child {
           background: #52c41a;
           color: #fff;
-          &:hover { background: #389e0d; }
         }
         &:last-child {
-          background: #f5f5f5;
-          &:hover { background: #e1e1e1; }
+          background: #f5222d;
+          color: #fff;
         }
       }
     }
@@ -93,24 +98,40 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95rem;
+      background: #fff;
 
       th, td {
-        padding: 10px 12px;
-        border: 1px solid #f0f0f0;
-        text-align: left;
+        border: 1px solid #e8e8e8;
+        padding: 10px;
+        text-align: center;
+        font-size: 14px;
       }
-      thead { background: #fafafa; }
-      tbody tr:hover { background: #fafafa; }
+
+      th {
+        background: #fafafa;
+        font-weight: 600;
+      }
+
+      tbody tr:hover {
+        background: #f0f7ff;
+      }
 
       button {
-        margin-right: 6px;
-        padding: 4px 10px;
+        margin: 0 4px;
+        padding: 4px 8px;
+        font-size: 12px;
         border: none;
-        border-radius: 4px;
+        border-radius: 3px;
         cursor: pointer;
-        &:first-of-type { background: #ffe58f; }
-        &:last-of-type  { background: #ff7875; color: #fff; }
+
+        &:first-of-type {
+          background: #1890ff;
+          color: #fff;
+        }
+        &:last-of-type {
+          background: #f5222d;
+          color: #fff;
+        }
       }
     }
   }

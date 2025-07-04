@@ -1,0 +1,9 @@
+.status-badge {
+  padding:2px 6px; border-radius:4px; font-size:.75rem; font-weight:600;
+  &.pending   { background:#fffbe6; color:#ad8b00; }
+  &.confirmed { background:#e6f7ff; color:#0050b3; }
+  &.shipping  { background:#fff1e6; color:#ad4e00; }
+  &.delivered { background:#f6ffed; color:#237804; }
+  &.cancelled { background:#fff1f0; color:#a8071a; }
+  &.returned  { background:#f0f0f0; color:#595959; }
+}
