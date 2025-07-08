@@ -16,7 +16,8 @@ import {
   FaChartPie,
   FaCalendarDay,
   FaCalendarAlt,
-  FaCalendar
+  FaCalendar,
+  FaTruck,
 } from 'react-icons/fa';
 import { ENUM_PAGE } from '../ENUM/enum.ts';
 
@@ -74,6 +75,12 @@ const Sidebar = () => {
        >
          <FaUndo /> <span>Quản lý hoàn trả</span>
        </div>
+       <div
+        className="sidebar-item"
+        onClick={() => navigate(ENUM_PAGE.ShipmentManagement)}
+      >
+        <FaTruck /> <span>Quản lý giao hàng</span>
+      </div>
       <div
         className="sidebar-item"
         onClick={() => navigate(ENUM_PAGE.CustomerManagement)}

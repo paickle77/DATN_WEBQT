@@ -14,5 +14,6 @@ export enum ENUM_PAGE {
   BranchManagement = "/BranchManagement",
   NotificationManagement = "/NotificationManagement",
   LogManagement = "/LogManagement",
-  StatisticReport = "/StatisticReport"
+  StatisticReport = "/StatisticReport",
+  ShipmentManagement = "/ShipmentManagement"
 }

@@ -1,0 +1,119 @@
+.shipment-management {
+  /* nền xám và full-height để TabBarr nổi lên giống ProductManagement */
+  background: #f5f5f5;
+  min-height: 100vh;
+
+  /* khu vực nội dung trắng bo góc */
+  .shipment-content {
+    margin-top: 80px;
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      color: #1890ff;
+      font-weight: 600;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+
+        thead {
+          background: #fafafa;
+          th {
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e8e8e8;
+            text-align: left;
+          }
+        }
+
+        tbody {
+          tr {
+            transition: background .2s;
+            &:nth-of-type(even) { background: #f9f9f9; }
+            &:hover { background: #f5f5f5; }
+          }
+          td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #444;
+
+            select {
+              padding: 6px 8px;
+              font-size: .95rem;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              transition: border-color .2s, box-shadow .2s;
+              &:focus {
+                outline: none;
+                border-color: #1890ff;
+                box-shadow: 0 0 5px rgba(24,144,255,0.3);
+              }
+            }
+
+            .status-badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: .875rem;
+              font-weight: 500;
+              text-transform: uppercase;
+              &.Đang-giao  { background: #fffbe6; color: #d48806; }
+              &.Hoàn-thành { background: #f6ffed; color: #389e0d; }
+            }
+
+            > button {
+              margin-right: 8px;
+              padding: 6px 14px;
+              font-size: .9rem;
+              font-weight: 500;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              transition: background .2s, transform .1s;
+              &:disabled {
+                opacity: .6;
+                cursor: not-allowed;
+              }
+              &:first-of-type {
+                background: #fffbe6; color: #d48806;
+                &:hover:not(:disabled) { background: #fff1b8; }
+              }
+              &:last-of-type {
+                background: #f6ffed; color: #389e0d;
+                &:hover:not(:disabled) { background: #b7eb8f; }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 10px;
+    .shipment-content {
+      padding: 16px;
+      .table-wrapper table {
+        min-width: 0;
+        font-size: .875rem;
+        th, td { padding: 8px 10px; }
+      }
+    }
+  }
+}

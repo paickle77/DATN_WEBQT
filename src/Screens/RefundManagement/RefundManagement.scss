@@ -1,116 +1,101 @@
 .refund-management {
-  padding: 2rem;
-  background: #fafafa;
-  min-height: 100%;
+  background: #f5f5f5;
+  min-height: 100vh;
 
-  h2 {
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-    font-size: 1.75rem;
-    font-weight: 600;
-    border-left: 4px solid #3498db;
-    padding-left: 0.75rem;
-  }
-
-  .table-wrapper {
-    overflow-x: auto;
+  .refund-content {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
     background: #fff;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      color: #1890ff;
+      font-weight: 600;
+    }
 
-      thead {
-        background: #3498db;
-        th {
-          padding: 0.75rem 1rem;
-          color: #fff;
-          text-transform: uppercase;
-          font-size: 0.875rem;
-          letter-spacing: 0.05em;
-          position: sticky;
-          top: 0;
-        }
-      }
+    .table-wrapper {
+      overflow-x: auto;
 
-      tbody {
-        tr {
-          &:nth-child(odd) {
-            background: #f9f9f9;
-          }
-          &:hover {
-            background: #ecf0f1;
-          }
-        }
-        td {
-          padding: 0.75rem 1rem;
-          color: #34495e;
-          vertical-align: middle;
-          font-size: 0.9rem;
-        }
-      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
 
-      /* Responsive fallback */
-      @media (max-width: 768px) {
         thead {
-          display: none;
+          background: #fafafa;
+
+          th {
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e8e8e8;
+            text-align: left;
+          }
         }
+
         tbody {
           tr {
-            display: block;
-            margin-bottom: 1rem;
-            background: #fff;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            padding: 0.75rem;
+            transition: background .2s;
+            &:nth-of-type(even) { background: #f9f9f9; }
+            &:hover { background: #f5f5f5; }
           }
+
           td {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            &::before {
-              content: attr(data-label);
-              font-weight: 600;
-              color: #7f8c8d;
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #444;
+
+            .btn-group {
+              display: flex;
+              gap: 8px;
+
+              button {
+                padding: 6px 14px;
+                font-size: .9rem;
+                font-weight: 500;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background .2s;
+
+                &.approve {
+                  background: #f6ffed;
+                  color: #389e0d;
+                  &:hover { background: #b7eb8f; }
+                }
+
+                &.reject {
+                  background: #fff1f0;
+                  color: #cf1322;
+                  &:hover { background: #ffa39e; }
+                }
+              }
             }
           }
         }
       }
     }
+  }
 
-    .btn-group {
-      display: flex;
-      gap: 0.5rem;
-    }
+  @media (max-width: 768px) {
+    padding: 0 10px;
 
-    button {
-      padding: 0.4rem 0.8rem;
-      border: none;
-      border-radius: 0.25rem;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+    .refund-content {
+      padding: 16px;
 
-      &.approve {
-        background: #2ecc71;
-        color: #fff;
-        &:hover {
-          background: darken(#2ecc71, 5%);
-          transform: translateY(-1px);
-        }
-      }
+      .table-wrapper table {
+        min-width: 0;
+        font-size: .875rem;
 
-      &.reject {
-        background: #e74c3c;
-        color: #fff;
-        &:hover {
-          background: darken(#e74c3c, 5%);
-          transform: translateY(-1px);
+        th, td {
+          padding: 8px 10px;
         }
       }
     }
