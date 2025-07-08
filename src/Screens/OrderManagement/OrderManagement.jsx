@@ -45,11 +45,8 @@ const OrderManagement = () => {
   const lookupVoucher = id => vouchers.find(v => v._id === id)?.code || '—';
 
   const filtered = orders.filter(o => {
-    // Nếu filterStatus === 'all', chỉ show 2 trạng thái mặc định
     if (filterStatus === 'all' && !ALLOWED_STATUSES.includes(o.status)) return false;
-    // Nếu chọn trạng thái cụ thể
     if (filterStatus !== 'all' && o.status !== filterStatus) return false;
-    // Search theo tên khách
     if (searchTerm && !lookupUser(o.user_id).toLowerCase().includes(searchTerm.toLowerCase())) return false;
     const d = new Date(o.created_at);
     if (fromDate && d < fromDate) return false;
@@ -62,17 +59,27 @@ const OrderManagement = () => {
     try {
       const { data: res } = await api.get(`/orders/${o._id}?_=${Date.now()}`);
       const order = res.data;
+      const items = order.items || [];
+      const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      const v = vouchers.find(v => v._id === order.voucher_id);
+      const discountPercent = v?.discount_percent || 0;
+      const discountAmount = Math.round(subtotal * discountPercent / 100);
+      const finalTotal = subtotal - discountAmount;
       const userName   = lookupUser(order.user_id);
       const addressStr = lookupAddress(order.address_id);
-      const voucherCode   = lookupVoucher(order.voucher_id);
-      const discountAmount = order.voucher_amount || 0;
+      const voucherCode = lookupVoucher(order.voucher_id);
+
       setCurrentOrder({
         ...order,
+        items,
         userName,
         addressStr,
         voucherCode,
-        discountAmount
+        subtotal,
+        discountAmount,
+        finalTotal
       });
+
       setShowModal(true);
     } catch (err) {
       console.error(err);
@@ -83,12 +90,15 @@ const OrderManagement = () => {
   const printPackingSlip = async orderId => {
     try {
       const { data: res } = await api.get(`/orders/${orderId}?_=${Date.now()}`);
-      const order       = res.data;
-      const customer    = lookupUser(order.user_id);
+      const order = res.data;
+      const items = order.items || [];
+      const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      const v = vouchers.find(v => v._id === order.voucher_id);
+      const discountPercent = v?.discount_percent || 0;
+      const discountAmount = Math.round(subtotal * discountPercent / 100);
+      const finalTotal = subtotal - discountAmount;
+      const customer = lookupUser(order.user_id);
       const addressText = lookupAddress(order.address_id);
-      const subtotal    = (order.items || []).reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-      const discount    = order.voucher_amount || 0;
-      const finalTotal  = order.total_price;
       const voucherCode = lookupVoucher(order.voucher_id);
 
       const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
@@ -101,11 +111,11 @@ const OrderManagement = () => {
       doc.text(`Khách hàng: ${customer}`, 14, 28);
       doc.text(`Địa chỉ: ${addressText}`, 14, 34);
       doc.text(`Voucher: ${voucherCode}`, 14, 46);
-      if (discount > 0) {
-        doc.text(`Giảm giá: -${discount.toLocaleString('vi-VN')} đ`, 14, 52);
+      if (discountAmount > 0) {
+        doc.text(`Giảm giá: -${discountAmount.toLocaleString('vi-VN')} đ`, 14, 52);
       }
-      const startY = discount > 0 ? 58 : 52;
-      const tableData = (order.items || []).map((it, i) => [
+      const startY = discountAmount > 0 ? 58 : 52;
+      const tableData = items.map((it, i) => [
         i + 1,
         it.productName,
         it.quantity,
