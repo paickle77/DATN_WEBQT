@@ -230,7 +230,7 @@ const OrderManagement = () => {
                 <td><StatusBadge status={o.status} /></td>
                 <td>
                   <button onClick={() => openModal(o)}>Chi tiết</button>
-                  <button onClick={() => printPackingSlip(o._id)}>In slip</button>
+                  <button onClick={() => printPackingSlip(o._id)}>In PDF</button>
                   <button onClick={() => deleteOrder(o._id)}>Xóa</button>
                 </td>
               </tr>

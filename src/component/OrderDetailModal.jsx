@@ -42,7 +42,7 @@ const finalTotal = order.total_price;
             </div>
 
         <div className="actions">
-          <button onClick={onPrint}>In Packing Slip</button>
+          <button onClick={onPrint}>In PDF</button>
           <button onClick={onClose}>Đóng</button>
         </div>
       </div>
