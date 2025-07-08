@@ -1,4 +1,3 @@
-// src/Screens/OrderManagement/OrderManagement.jsx
 import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -11,6 +10,9 @@ import RobotoRegular from '../../fonts/RobotoRegular.js';
 
 import StatusBadge from '../../component/StatusBadge';
 import OrderDetailModal from '../../component/OrderDetailModal';
+
+// Chỉ hiển thị đơn "Đang xử lý" và "Đã xác nhận"
+const ALLOWED_STATUSES = ['Đang xử lý', 'Đã xác nhận'];
 
 const OrderManagement = () => {
   const [orders, setOrders]           = useState([]);
@@ -43,7 +45,11 @@ const OrderManagement = () => {
   const lookupVoucher = id => vouchers.find(v => v._id === id)?.code || '—';
 
   const filtered = orders.filter(o => {
+    // Nếu filterStatus === 'all', chỉ show 2 trạng thái mặc định
+    if (filterStatus === 'all' && !ALLOWED_STATUSES.includes(o.status)) return false;
+    // Nếu chọn trạng thái cụ thể
     if (filterStatus !== 'all' && o.status !== filterStatus) return false;
+    // Search theo tên khách
     if (searchTerm && !lookupUser(o.user_id).toLowerCase().includes(searchTerm.toLowerCase())) return false;
     const d = new Date(o.created_at);
     if (fromDate && d < fromDate) return false;
@@ -59,14 +65,13 @@ const OrderManagement = () => {
       const userName   = lookupUser(order.user_id);
       const addressStr = lookupAddress(order.address_id);
       const voucherCode   = lookupVoucher(order.voucher_id);
-      // Giả sử API trả về order.voucher_amount là số tiền được giảm
       const discountAmount = order.voucher_amount || 0;
-            setCurrentOrder({
+      setCurrentOrder({
         ...order,
         userName,
         addressStr,
-       voucherCode,
-       discountAmount
+        voucherCode,
+        discountAmount
       });
       setShowModal(true);
     } catch (err) {
@@ -78,18 +83,15 @@ const OrderManagement = () => {
   const printPackingSlip = async orderId => {
     try {
       const { data: res } = await api.get(`/orders/${orderId}?_=${Date.now()}`);
-       const order       = res.data;
-       const customer    = lookupUser(order.user_id);
-       const addressText = lookupAddress(order.address_id);
-     // --- THÊM: tính subtotal, discount, finalTotal và voucherCode ---
-     const subtotal    = (order.items || []).reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-     const discount    = order.voucher_amount || 0;
-     const finalTotal  = order.total_price;
-     const voucherCode = lookupVoucher(order.voucher_id);
+      const order       = res.data;
+      const customer    = lookupUser(order.user_id);
+      const addressText = lookupAddress(order.address_id);
+      const subtotal    = (order.items || []).reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      const discount    = order.voucher_amount || 0;
+      const finalTotal  = order.total_price;
+      const voucherCode = lookupVoucher(order.voucher_id);
 
       const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
-
-      // Load và set font Unicode
       doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
       doc.addFont('Roboto-Regular.ttf','Roboto','normal');
       doc.setFont('Roboto','normal');
@@ -98,15 +100,11 @@ const OrderManagement = () => {
       doc.setFontSize(12);
       doc.text(`Khách hàng: ${customer}`, 14, 28);
       doc.text(`Địa chỉ: ${addressText}`, 14, 34);
-      
-     // --- THÊM: in voucher và giảm giá nếu có ---
-     doc.text(`Voucher: ${voucherCode}`, 14, 46);
-     if (discount > 0) {
-       doc.text(`Giảm giá: -${discount.toLocaleString('vi-VN')} đ`, 14, 52);
-     }
-
-     // --- CHỈNH: động hóa vị trí startY cho bảng ---
-     const startY = discount > 0 ? 58 : 52;
+      doc.text(`Voucher: ${voucherCode}`, 14, 46);
+      if (discount > 0) {
+        doc.text(`Giảm giá: -${discount.toLocaleString('vi-VN')} đ`, 14, 52);
+      }
+      const startY = discount > 0 ? 58 : 52;
       const tableData = (order.items || []).map((it, i) => [
         i + 1,
         it.productName,
@@ -114,40 +112,34 @@ const OrderManagement = () => {
         it.unitPrice.toLocaleString('vi-VN'),
         (it.quantity * it.unitPrice).toLocaleString('vi-VN')
       ]);
-        autoTable(doc, {
-          head: [['#','Tên sản phẩm','SL','Đơn giá','Thành tiền']],
-          body: tableData,
-          startY,
-          styles: {
-            font: 'Roboto',
-            fontStyle: 'normal',
-            fontSize: 10,
-            cellPadding: 3
-          },
-          headStyles: {
-            fillColor: [41,128,185],
-            font: 'Roboto',
-            fontStyle: 'normal'
-          }
-        });
-
-
-    // --- THÊM: in Tạm tính và Tổng thanh toán ngay dưới bảng ---
-    const yAfterTable = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(12);
-    // Dòng Tạm tính
-    doc.text(
-      `Tạm tính: ${subtotal.toLocaleString('vi-VN')} đ`,
-      14,
-      yAfterTable
-    );
-    // Dòng Tổng thanh toán, cách Tạm tính 6px
-    doc.text(
-      `Tổng thanh toán: ${finalTotal.toLocaleString('vi-VN')} đ`,
-      14,
-      yAfterTable + 6
-    );
-
+      autoTable(doc, {
+        head: [['#','Tên sản phẩm','SL','Đơn giá','Thành tiền']],
+        body: tableData,
+        startY,
+        styles: {
+          font: 'Roboto',
+          fontStyle: 'normal',
+          fontSize: 10,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [41,128,185],
+          font: 'Roboto',
+          fontStyle: 'normal'
+        }
+      });
+      const yAfterTable = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.text(
+        `Tạm tính: ${subtotal.toLocaleString('vi-VN')} đ`,
+        14,
+        yAfterTable
+      );
+      doc.text(
+        `Tổng thanh toán: ${finalTotal.toLocaleString('vi-VN')} đ`,
+        14,
+        yAfterTable + 6
+      );
       doc.save(`PackingSlip_${order._id}.pdf`);
     } catch (err) {
       console.error(err);
@@ -155,18 +147,17 @@ const OrderManagement = () => {
     }
   };
 
-      // --- Mới: hàm xóa đơn hàng ---
-      const deleteOrder = async orderId => {
-        if (!window.confirm('Bạn có chắc muốn xóa đơn hàng này?')) return;
-        try {
-          await api.delete(`/orders/${orderId}`);
-          alert('Xóa đơn hàng thành công.');
-          fetchAll();
-        } catch (err) {
-          console.error(err);
-          alert('Xóa đơn hàng thất bại. Vui lòng thử lại.');
-        }
-      };
+  const deleteOrder = async orderId => {
+    if (!window.confirm('Bạn có chắc muốn xóa đơn hàng này?')) return;
+    try {
+      await api.delete(`/orders/${orderId}`);
+      alert('Xóa đơn hàng thành công.');
+      fetchAll();
+    } catch (err) {
+      console.error(err);
+      alert('Xóa đơn hàng thất bại. Vui lòng thử lại.');
+    }
+  };
 
   return (
     <div className="order-management">
@@ -181,13 +172,9 @@ const OrderManagement = () => {
           onChange={e => setSearchTerm(e.target.value)}
         />
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="all">Tất cả trạng thái</option>
+          <option value="all">Đang xử lý & Đã xác nhận</option>
           <option value="Đang xử lý">Đang xử lý</option>
           <option value="Đã xác nhận">Đã xác nhận</option>
-          <option value="Đang giao">Đang giao</option>
-          <option value="Đã nhận hàng">Đã nhận hàng</option>
-          <option value="Đã hủy">Đã hủy</option>
-          <option value="Đã trả hàng">Đã trả hàng</option>
         </select>
         <DatePicker
           selected={fromDate}

@@ -16,18 +16,25 @@ export default function RefundManagement() {
       const res = await api.get('/refund_requests');
       setRequests(res.data.data);
     } catch (err) {
-      console.error(err.response || err);
+      console.error(err);
       alert('Không tải được danh sách hoàn trả.');
     }
   };
 
   const handleDecision = async (id, approve) => {
-    if (!window.confirm(`Xác nhận ${approve ? 'chấp nhận' : 'từ chối'} hoàn trả?`))
-      return;
+    const req = requests.find(r => r._id === id);
+    if (!window.confirm(`Xác nhận ${approve ? 'chấp nhận' : 'từ chối'} hoàn trả?`)) return;
     try {
+      // 1) Cập nhật refund request
       await api.put(`/refund_requests/${id}`, {
         status: approve ? 'Đã chấp nhận' : 'Đã từ chối'
       });
+      // 2) Nếu chấp nhận, cập nhật order tương ứng
+      if (approve && req?.order_id?._id) {
+        await api.put(`/orders/${req.order_id._id}`, {
+          status: 'Đã trả hàng'
+        });
+      }
       alert('Cập nhật thành công.');
       fetchRefunds();
     } catch (err) {
@@ -38,52 +45,45 @@ export default function RefundManagement() {
 
   return (
     <div className="refund-management">
-      {/* Header giống ProductManagement, ShipmentManagement */}
       <TabBar />
-
-      {/* Nội dung chính */}
       <div className="refund-content">
         <h2>Quản lý hoàn trả</h2>
-
         <div className="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>#</th>
                 <th>ID Đơn</th>
+                <th>Số tiền hoàn</th>
                 <th>Khách</th>
                 <th>Lý do</th>
                 <th>Trạng thái</th>
                 <th>Hành động</th>
               </tr>
             </thead>
-
             <tbody>
               {requests.length > 0 ? (
                 requests.map((r, i) => (
                   <tr key={r._id}>
                     <td>{i + 1}</td>
-                    <td>
-                      {r.order_id && r.order_id._id
-                        ? r.order_id._id
-                        : r.order_id || '-'}
-                    </td>
+                    <td>{r.order_id?._id || '-'}</td>
+                    <td>{r.refund_amount?.toLocaleString('vi-VN')} đ</td>
                     <td>{r.customer_name}</td>
                     <td>{r.reason}</td>
-                    <td>
-                      <StatusBadge status={r.status} />
-                    </td>
+                    <td><StatusBadge status={r.status} /></td>
                     <td>
                       <div className="btn-group">
                         <button
                           className="approve"
                           onClick={() => handleDecision(r._id, true)}
+                          disabled={r.status === 'Đã chấp nhận'}
                         >
                           Chấp nhận
                         </button>
                         <button
                           className="reject"
                           onClick={() => handleDecision(r._id, false)}
+                          disabled={r.status === 'Đã từ chối'}
                         >
                           Từ chối
                         </button>
@@ -93,7 +93,7 @@ export default function RefundManagement() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6">Không có yêu cầu hoàn trả.</td>
+                  <td colSpan="7">Không có yêu cầu hoàn trả.</td>
                 </tr>
               )}
             </tbody>
