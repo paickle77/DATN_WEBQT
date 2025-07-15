@@ -1,47 +1,186 @@
 /* src/Screens/NotificationManagement/NotificationManagement.scss */
+
 .notification-management {
-  padding: 20px;
-  background: #f5f5f5;
-  min-height: 100vh;
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
 
-  .notify-form {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-
-    input {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button {
-      padding: 8px 16px;
-      background: #1890ff;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-    }
+  h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #444;
   }
 
-  .notify-table {
-    width: 100%;
-    border-collapse: collapse;
+  // Form gửi thông báo
+  .notify-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.05);
 
-    th, td {
-      border: 1px solid #eee;
-      padding: 8px;
-      text-align: center;
+    select, input {
+      flex: 1;
+      min-width: 150px;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      transition: border-color .2s;
+      &:focus {
+        outline: none;
+        border-color: #1890ff;
+        box-shadow: 0 0 5px rgba(24,144,255,.3);
+      }
     }
-    tr.read {
-      background: #fafafa;
-    }
+
     button {
-      padding: 4px 8px;
-      background: #52c41a;
+      padding: 8px 16px;
+      font-size: 1rem;
+      font-weight: 600;
       color: #fff;
+      background: #1890ff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      transition: background .2s, transform .1s;
+      &:hover { background: #096dd9; }
+      &:active { transform: scale(.98); }
+    }
+  }
+
+  // Thanh lọc / tìm kiếm
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+
+    input, select {
+      padding: 6px 10px;
+      font-size: .95rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      transition: border-color .2s;
+      &:focus {
+        outline: none;
+        border-color: #1890ff;
+      }
+    }
+
+    .bulk-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+
+      button {
+        padding: 6px 12px;
+        font-size: .9rem;
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+        transition: background .2s;
+
+        &:first-child {
+          background: #fffbe6;
+          color: #d48806;
+          &:hover { background: #fff1b8; }
+        }
+        &:last-child {
+          background: #fff1f0;
+          color: #cf1322;
+          &:hover { background: #ffccc7; }
+        }
+      }
+    }
+  }
+
+  // Bảng thông báo
+  .notify-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,.03);
+
+    thead {
+      background: #fafafa;
+      th {
+        padding: 12px 15px;
+        font-weight: 600;
+        color: #555;
+        border-bottom: 2px solid #e8e8e8;
+        text-align: left;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background .2s;
+        &.read {
+          background: #f5f5f5;
+        }
+        &:hover {
+          background: #fafafa;
+        }
+      }
+      td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        color: #444;
+
+        input[type="checkbox"] {
+          transform: scale(1.1);
+        }
+
+        button {
+          margin-right: 6px;
+          padding: 6px 10px;
+          font-size: .9rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background .2s;
+
+          &:first-of-type {
+            background: #e6fffb;
+            color: #08979c;
+            &:hover { background: #b5f5ec; }
+          }
+          &:last-of-type {
+            background: #fff1f0;
+            color: #cf1322;
+            &:hover { background: #ffccc7; }
+          }
+        }
+      }
+    }
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    .notify-form,
+    .filter-bar {
+      flex-direction: column;
+      button { width: 100%; }
+    }
+    .filter-bar .bulk-actions {
+      margin-left: 0;
+      justify-content: space-between;
+    }
+    .notify-table th,
+    .notify-table td {
+      padding: 8px 10px;
     }
   }
 }
