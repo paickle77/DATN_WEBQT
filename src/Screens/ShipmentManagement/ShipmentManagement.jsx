@@ -59,7 +59,7 @@ export default function ShipmentManagement() {
                     <td>
                       <select
                         value={s.assignedTo?._id || ''}
-                        disabled={orderStatus !== 'Đã xác nhận'}
+                        disabled={orderStatus !== 'Chờ giao hàng'}
                         onChange={e =>
                           updateShipment(s._id, { assignedTo: e.target.value })
                         }
@@ -78,20 +78,29 @@ export default function ShipmentManagement() {
                       <StatusBadge status={s.status} className={`status-badge ${s.status.replace(' ', '-')}`} />
                     </td>
                     <td>
-                      {['Đang giao', 'Hoàn thành'].map(st => (
-                        <button
-                          key={st}
-                          disabled={
-                            // Không cho chuyển sang Đang giao trừ khi đơn đã xác nhận
-                            (st === 'Đang giao' && orderStatus !== 'Đã xác nhận') ||
-                            // Không cho bấm nếu đã ở trạng thái đó
-                            s.status === st
+                        {['Đang giao', 'Hoàn thành'].map(st => {
+                          // Xác định khi nào nút được enable
+                          let disabled = false;
+                          if (st === 'Đang giao') {
+                            // Chỉ enable nếu order ở “Chờ giao hàng”
+                            disabled = orderStatus !== 'Chờ giao hàng';
+                          } else if (st === 'Hoàn thành') {
+                            // Chỉ enable nếu shipment đã là “Đang giao”
+                            disabled = s.status !== 'Đang giao';
                           }
-                          onClick={() => updateShipment(s._id, { status: st })}
-                        >
-                          {st}
-                        </button>
-                      ))}
+                          // Và luôn disable nếu đã ở đúng trạng thái đó rồi
+                          if (s.status === st) disabled = true;
+
+                          return (
+                            <button
+                              key={st}
+                              disabled={disabled}
+                              onClick={() => updateShipment(s._id, { status: st })}
+                            >
+                              {st}
+                            </button>
+                          );
+                        })}
                     </td>
                   </tr>
                 );

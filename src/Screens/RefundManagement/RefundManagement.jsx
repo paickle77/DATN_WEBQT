@@ -29,12 +29,13 @@ export default function RefundManagement() {
       await api.put(`/refund_requests/${id}`, {
         status: approve ? 'Đã chấp nhận' : 'Đã từ chối'
       });
-      // 2) Nếu chấp nhận, cập nhật order tương ứng
-      if (approve && req?.order_id?._id) {
-        await api.put(`/orders/${req.order_id._id}`, {
-          status: 'Đã trả hàng'
-        });
-      }
+       // 2) Nếu chấp nhận, đánh dấu đơn gốc đã hủy để khách không thấy nữa
+       if (approve && req?.order_id?._id) {
+         await api.put(`/orders/${req.order_id._id}`, {
+           status: 'Đã hủy',
+           cancel_note: req.reason
+         });
+       }
       alert('Cập nhật thành công.');
       fetchRefunds();
     } catch (err) {
@@ -42,6 +43,20 @@ export default function RefundManagement() {
       alert('Không thể cập nhật trạng thái.');
     }
   };
+
+      // controllers/RefundManagement.jsx, ngay phía trên return(...)
+    const handleCreateReplacement = async (orderId) => {
+      if (!window.confirm('Tạo đơn mới thay thế cho đơn này?')) return;
+      try {
+        await api.post(`/orders/${orderId}/replace`);
+        alert('Đã tạo đơn mới thành công');
+        fetchRefunds();
+      } catch (err) {
+        console.error(err);
+        alert('Không thể tạo đơn mới');
+      }
+    };
+
 
   return (
     <div className="refund-management">
@@ -87,6 +102,15 @@ export default function RefundManagement() {
                         >
                           Từ chối
                         </button>
+                        {/* ===== NÚT TẠO ĐƠN MỚI ===== */}
+                        {r.status === 'Đã chấp nhận' && !r.order_id?.replacement_of && (
+                          <button
+                            className="create-replacement"
+                            onClick={() => handleCreateReplacement(r.order_id._id)}
+                          >
+                            Tạo đơn mới
+                          </button>
+                              )}
                       </div>
                     </td>
                   </tr>

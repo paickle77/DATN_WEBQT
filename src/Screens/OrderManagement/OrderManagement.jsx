@@ -10,9 +10,11 @@ import RobotoRegular from '../../fonts/RobotoRegular.js';
 
 import StatusBadge from '../../component/StatusBadge';
 import OrderDetailModal from '../../component/OrderDetailModal';
+import ReplaceOrderModal from './component/ReplaceOrderModal';
 
-// Chỉ hiển thị đơn "Đang xử lý" và "Đã xác nhận"
-const ALLOWED_STATUSES = ['Đang xử lý', 'Đã xác nhận'];
+
+// Chỉ show đơn mới đặt, đang chờ admin xác nhận
+const ALLOWED_STATUSES = ['Chờ xác nhận'];
 
 const OrderManagement = () => {
   const [orders, setOrders]           = useState([]);
@@ -25,6 +27,33 @@ const OrderManagement = () => {
   const [toDate, setToDate]           = useState(null);
   const [showModal, setShowModal]     = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
+      // ----- START: state & handlers cho Đổi hàng -----
+    const [showReplaceModal, setShowReplaceModal] = useState(false);
+    const [replaceOrderData, setReplaceOrderData] = useState(null);
+
+    const openReplaceModal = async (order) => {
+      try {
+        const { data: res } = await api.get(`/orders/${order._id}?_=${Date.now()}`);
+        setReplaceOrderData(res.data);
+        setShowReplaceModal(true);
+      } catch (err) {
+        console.error(err);
+        alert('Không thể tải dữ liệu đơn để đổi hàng.');
+      }
+    };
+
+    const handleSaveReplace = async (editedPayload) => {
+      try {
+        await api.post(`/orders/${replaceOrderData._id}/replace`, editedPayload);
+        alert('Tạo đơn thay thế thành công');
+        setShowReplaceModal(false);
+        fetchAll();
+      } catch (err) {
+        console.error(err);
+        alert('Lỗi khi tạo đơn thay thế.');
+      }
+    };
+    // ----- END: state & handlers cho Đổi hàng -----
 
   useEffect(() => {
     fetchAll();
@@ -168,6 +197,22 @@ const OrderManagement = () => {
       alert('Xóa đơn hàng thất bại. Vui lòng thử lại.');
     }
   };
+    // ===== START: Xác nhận đơn, chuyển sang "Chờ giao hàng" =====
+  const handleConfirm = async orderId => {
+    if (!window.confirm('Bạn có chắc muốn xác nhận đơn này?')) return;
+    try {
+      // update status
+      await api.put(`/orders/${orderId}`, { status: 'Chờ giao hàng' });
+      // tạo luôn shipment record (nếu muốn)
+      await api.post('/shipments', { order_id: orderId });
+      // load lại dữ liệu
+      fetchAll();
+    } catch (err) {
+      console.error(err);
+      alert('Xác nhận đơn thất bại. Vui lòng thử lại.');
+    }
+  };
+  // ===== END: Xác nhận đơn =====
 
   return (
     <div className="order-management">
@@ -181,11 +226,10 @@ const OrderManagement = () => {
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="all">Đang xử lý & Đã xác nhận</option>
-          <option value="Đang xử lý">Đang xử lý</option>
-          <option value="Đã xác nhận">Đã xác nhận</option>
-        </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="all">Tất cả</option>
+            <option value="Chờ xác nhận">Chờ xác nhận</option>
+          </select>
         <DatePicker
           selected={fromDate}
           onChange={setFromDate}
@@ -223,12 +267,24 @@ const OrderManagement = () => {
                 <td>{new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
                 <td>{lookupAddress(o.address_id)}</td>
                 <td>{lookupVoucher(o.voucher_id)}</td>
-                <td>{o.total_price.toLocaleString('vi-VN')} đ</td>
+                <td>{(o.total_price ?? 0).toLocaleString('vi-VN')} đ</td>
                 <td><StatusBadge status={o.status} /></td>
                 <td>
                   <button onClick={() => openModal(o)}>Chi tiết</button>
                   <button onClick={() => printPackingSlip(o._id)}>In PDF</button>
                   <button onClick={() => deleteOrder(o._id)}>Xóa</button>
+
+                  {o.status === 'Chờ xác nhận' && (
+                      <button onClick={() => handleConfirm(o._id)}>
+                        Xác nhận
+                      </button>
+                    )}
+
+                  {ALLOWED_STATUSES.includes(o.status) && (
+                    <button onClick={() => openReplaceModal(o)}>
+                      Đổi hàng
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -246,6 +302,15 @@ const OrderManagement = () => {
           onPrint={() => printPackingSlip(currentOrder._id)}
         />
       )}
+
+      {showReplaceModal && replaceOrderData && (
+        <ReplaceOrderModal
+          order={replaceOrderData}
+          onClose={() => setShowReplaceModal(false)}
+          onSave={handleSaveReplace}
+        />
+      )}
+
     </div>
   );
 };
