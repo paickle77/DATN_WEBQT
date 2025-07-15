@@ -14,6 +14,11 @@ const defaultSizesMap = {
     { size: '100g', quantity: 0, price_increase: 0 },
     { size: '200g', quantity: 0, price_increase: 0 },
     { size: '300g', quantity: 0, price_increase: 0 }
+  ],
+  '64b1e1e18d28e450e97d8d03': [  // Bánh bông lan
+    { size: '10cm', quantity: 0, price_increase: 0 },
+    { size: '15cm', quantity: 0, price_increase: 0 },
+    { size: '20cm', quantity: 0, price_increase: 0 }
   ]
 };
 // Form mặc định, bao gồm sizes với price_increase và ingredient_ids
@@ -38,6 +43,7 @@ const ProductManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [showForm, setShowForm] = useState(false);
+  const [originalSizeIds, setOriginalSizeIds] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
 
@@ -109,6 +115,7 @@ const ProductManagement = () => {
         quantity: s.quantity,
         price_increase: s.price_increase
       }));
+    setOriginalSizeIds(currentSizes.map(s => s._id));
     setEditingId(p._id);
     setFormData({
       name: p.name,
@@ -137,6 +144,14 @@ const ProductManagement = () => {
 
     req.then(res => {
       const prodId = editingId || res.data.data._id;
+       // ✨ XÓA những size đã remove
+       if (editingId) {
+         const formIds = sizes.filter(s => s._id).map(s => s._id);
+         const toDelete = originalSizeIds.filter(id => !formIds.includes(id));
+         toDelete.forEach(id => {
+           api.delete(`/sizes/${id}`).catch(console.error);
+         });
+       }
       sizes.forEach(s => {
         const payload = { ...s, product_id: prodId };
         if (s._id) {
@@ -147,6 +162,7 @@ const ProductManagement = () => {
       });
       fetchAll();
       setShowForm(false);
+      setOriginalSizeIds([]);
     })
     .catch(err => alert(err.response?.data?.msg || err.message));
   };
