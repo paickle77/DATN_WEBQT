@@ -5,6 +5,14 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../../utils/api';
 
+  // ─── Helper kiểm tra voucher còn hiệu lực hay không ───
+  const isVoucherValid = v => {
+    const now = new Date();
+    return v.start_date && v.end_date
+      ? now >= new Date(v.start_date) && now <= new Date(v.end_date)
+      : false;
+  };
+
 const emptyVoucher = {
   code: '',
   description: '',
@@ -157,27 +165,45 @@ const VoucherManagement = () => {
               <th>Discount (%)</th>
               <th>Start Date</th>
               <th>End Date</th>
+              <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
           </thead>
-          <tbody>
-            {filtered.length > 0 ? filtered.map((v,i) => (
-              <tr key={v._id}>
-                <td>{i+1}</td>
-                <td>{v.code}</td>
-                <td>{v.description}</td>
-                <td>{v.discount_percent}</td>
-                <td>{v.start_date ? new Date(v.start_date).toLocaleDateString() : ''}</td>
-                <td>{v.end_date   ? new Date(v.end_date).toLocaleDateString()   : ''}</td>
-                <td>
-                  <button onClick={() => handleEdit(v)}>Sửa</button>
-                  <button onClick={() => handleDelete(v._id)}>Xóa</button>
-                </td>
-              </tr>
-            )) : (
-              <tr><td colSpan="7">Không tìm thấy khuyến mãi.</td></tr>
-            )}
-          </tbody>
+            <tbody>
+              {filtered.length > 0 ? filtered.map((v, i) => {
+                const valid = isVoucherValid(v);
+                return (
+                  <tr key={v._id} className={valid ? '' : 'expired'}>
+                    <td>{i + 1}</td>
+                    <td>{v.code}</td>
+                    <td>{v.description}</td>
+                    <td>{v.discount_percent}</td>
+                    <td>{v.start_date ? new Date(v.start_date).toLocaleDateString() : ''}</td>
+                    <td>{v.end_date   ? new Date(v.end_date).toLocaleDateString()   : ''}</td>
+                    {/* Cột Trạng thái */}
+                    <td>{valid ? 'Còn hạn' : 'Hết hạn'}</td>
+                    {/* Cột Hành động */}
+                    <td>
+                      <button
+                        onClick={() => handleEdit(v)}
+                        disabled={!valid}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(v._id)}
+                        disabled={!valid}
+                      >
+                        Xóa
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan="8">Không tìm thấy khuyến mãi.</td></tr>
+              )}
+            </tbody>
+
         </table>
       </div>
     </div>
