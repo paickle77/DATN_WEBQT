@@ -148,6 +148,8 @@ const CustomerManagement = () => {
       </div>
 
       {showForm && (
+        <div className="modal-overlay">
+        <div className="modal-box">
         <form className="customer-form" onSubmit={handleSubmit}>
           <h3>{editingId ? 'Sửa khách hàng' : 'Thêm khách hàng'}</h3>
           <div className="form-row">
@@ -198,7 +200,9 @@ const CustomerManagement = () => {
             <button type="button" onClick={() => setShowForm(false)}>Hủy</button>
           </div>
         </form>
-      )}
+            </div>
+          </div>
+        )}
 
       <div className="table-wrapper">
         <table>

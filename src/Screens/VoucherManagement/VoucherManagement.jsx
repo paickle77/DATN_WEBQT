@@ -107,6 +107,8 @@ const VoucherManagement = () => {
       </div>
 
       {showForm && (
+        <div className="modal-overlay">
+        <div className="modal-box">
         <form className="voucher-form" onSubmit={handleSubmit}>
           <h3>{editingId ? 'Sửa khuyến mãi' : 'Thêm khuyến mãi'}</h3>
           <div className="form-row">
@@ -153,6 +155,8 @@ const VoucherManagement = () => {
             <button type="button" onClick={() => setShowForm(false)}>Hủy</button>
           </div>
         </form>
+          </div>
+        </div>
       )}
 
       <div className="table-wrapper">

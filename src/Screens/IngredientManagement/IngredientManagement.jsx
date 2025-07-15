@@ -43,6 +43,8 @@ const IngredientManagement = () => {
         <button onClick={handleAdd}>+ Thêm nguyên liệu</button>
       </div>
       {showForm && (
+        <div className="modal-overlay">
+        <div className="modal-box">
         <form className="ingredient-form" onSubmit={handleSubmit}>
           <h3>{editingId ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu'}</h3>
           {['name','unit','stock_quantity','price_per_unit'].map(key=> (
@@ -61,7 +63,9 @@ const IngredientManagement = () => {
             <button type="button" onClick={()=>setShowForm(false)}>Hủy</button>
           </div>
         </form>
-      )}
+            </div>
+          </div>
+        )}
       <div className="table-wrapper">
         <table>
             <thead>
