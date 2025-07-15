@@ -64,15 +64,30 @@ const IngredientManagement = () => {
       )}
       <div className="table-wrapper">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Unit</th><th>Stock</th><th>Price/unit</th><th>Updated</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên</th>
+                <th>Đơn vị</th>
+                <th>Kho (SL)</th>
+                <th>Giá ĐV (đ)</th>            {/* sửa header */}
+                <th>Giá trị tồn kho</th>      {/* thêm header */}
+                <th>Cập nhật</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
           <tbody>{filtered.map((ing,i)=>(
             <tr key={ing._id}>
               <td>{i+1}</td>
-              <td>{ing.name}</td>
-              <td>{ing.unit}</td>
-              <td>{ing.stock_quantity}</td>
-              <td>{ing.price_per_unit.toLocaleString()}</td>
-              <td>{new Date(ing.updated_at).toLocaleDateString()}</td>
+                <td>{ing.name}</td>
+                <td>{ing.unit}</td>
+                <td>{ing.stock_quantity}</td>
+                <td>{ing.price_per_unit.toLocaleString('vi-VN')} đ</td>  {/* format VNĐ */}
+                <td>
+                  {(ing.stock_quantity * ing.price_per_unit)
+                    .toLocaleString('vi-VN')} đ        {/* giá trị tồn kho */}
+                </td>
+                <td>{new Date(ing.updated_at).toLocaleDateString()}</td>
               <td>
                 <button onClick={()=>handleEdit(ing)}>Sửa</button>
                 <button onClick={()=>handleDelete(ing._id)}>Xóa</button>
