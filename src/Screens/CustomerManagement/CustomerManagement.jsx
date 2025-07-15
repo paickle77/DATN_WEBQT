@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import './CustomerManagement.scss';
 import TabBarr from '../../component/tabbar/TabBar';
+// Excel export
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import api from '../../utils/api';
 
 const emptyCustomer = {
@@ -24,6 +27,42 @@ const CustomerManagement = () => {
   useEffect(() => {
     fetchAll();
   }, []);
+
+    // ✨ hàm xuất Excel
+    const exportToExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Khách hàng');
+
+      // Header
+      sheet.addRow(['#', 'Tên', 'Email', 'SĐT', 'Địa chỉ', 'Trạng thái']);
+      sheet.getRow(1).font = { bold: true };
+  
+      // Dữ liệu
+      customers.forEach((c, i) => {
+        sheet.addRow([
+          i + 1,
+          c.name,
+          c.email,
+          c.phone,
+          lookupAddress(c.address_id),
+          c.is_lock ? 'Đã khóa' : 'Hoạt động'
+        ]);
+      });
+    
+      // Tự động co cột
+      sheet.columns.forEach(col => {
+        let maxLen = 10;
+        col.eachCell(cell => {
+          const v = cell.value?.toString() || '';
+          if (v.length > maxLen) maxLen = v.length;
+        });
+        col.width = maxLen + 2;
+      });
+    
+      // Xuất file
+      const buf = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buf]), `KhachHang_${new Date().toISOString().slice(0,10)}.xlsx`);
+    };
 
   const fetchAll = () => {
     api.get('/users').then(r => setCustomers(r.data.data));
@@ -104,7 +143,8 @@ const CustomerManagement = () => {
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
-        <button onClick={handleAdd}>+ Thêm khách hàng</button>
+          <button onClick={handleAdd}>+ Thêm khách hàng</button>
+          <button onClick={exportToExcel}>Xuất Excel</button>
       </div>
 
       {showForm && (
