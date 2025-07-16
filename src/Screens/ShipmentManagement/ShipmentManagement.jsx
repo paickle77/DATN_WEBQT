@@ -59,17 +59,15 @@ export default function ShipmentManagement() {
                     <td>
                       <select
                         value={s.assignedTo?._id || ''}
-                        disabled={orderStatus !== 'Chờ giao hàng'}
-                        onChange={e =>
-                          updateShipment(s._id, { assignedTo: e.target.value })
-                        }
+                        // disabled={orderStatus !== 'Chờ giao hàng'}
+                        onChange={e => updateShipment(s._id, { assignedTo: e.target.value })}
                       >
                         <option value="">— Chọn —</option>
-                        {staff.map(u => (
-                          <option key={u._id} value={u._id}>
-                            {u.name}
-                          </option>
-                        ))}
+                         {staff.map(u => (
+                           <option key={u._id} value={u._id}>
+                             {u.name}
+                           </option>
+                         ))}
                       </select>
                     </td>
                     <td>{new Date(s.shippedDate).toLocaleDateString('vi-VN')}</td>

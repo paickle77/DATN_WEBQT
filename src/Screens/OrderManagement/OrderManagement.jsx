@@ -267,7 +267,7 @@ const OrderManagement = () => {
                 <td>{new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
                 <td>{lookupAddress(o.address_id)}</td>
                 <td>{lookupVoucher(o.voucher_id)}</td>
-                <td>{(o.total_price ?? 0).toLocaleString('vi-VN')} đ</td>
+                <td>{ (o.total_price ?? 0).toLocaleString('vi-VN') } đ</td>
                 <td><StatusBadge status={o.status} /></td>
                 <td>
                   <button onClick={() => openModal(o)}>Chi tiết</button>

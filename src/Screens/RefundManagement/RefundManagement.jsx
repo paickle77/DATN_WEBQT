@@ -48,7 +48,27 @@ export default function RefundManagement() {
     const handleCreateReplacement = async (orderId) => {
       if (!window.confirm('Tạo đơn mới thay thế cho đơn này?')) return;
       try {
-        await api.post(`/orders/${orderId}/replace`);
+     // 1) Lấy chi tiết order gốc
+      const response = await api.get(`/orders/${orderId}?_=${Date.now()}`);
+      // axios trả về response.data = { msg, data: order }
+      const orig = response.data.data;
+        
+     // 2) Chuẩn bị payload: clone mọi item
+     const items = orig.items.map(i => ({
+       product_id: i.product_id,
+       quantity:   i.quantity,
+       price:      i.unitPrice
+     }));
+   
+     // 3) Gọi replace kèm payload để controller chèn đúng OrderDetail
+     await api.post(`/orders/${orderId}/replace`, {
+       items,
+       address_id:      orig.address_id,
+       voucher_id:      orig.voucher_id,
+       payment_method:  orig.payment_method,
+       shipping_method: orig.shipping_method,
+       note:            orig.note
+     });
         alert('Đã tạo đơn mới thành công');
         fetchRefunds();
       } catch (err) {
