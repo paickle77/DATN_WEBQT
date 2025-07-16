@@ -57,7 +57,7 @@ export default function RefundManagement() {
      const items = orig.items.map(i => ({
        product_id: i.product_id,
        quantity:   i.quantity,
-       price:      i.unitPrice
+       price:      i.price
      }));
    
      // 3) Gọi replace kèm payload để controller chèn đúng OrderDetail
@@ -103,7 +103,7 @@ export default function RefundManagement() {
                     <td>{i + 1}</td>
                     <td>{r.order_id?._id || '-'}</td>
                     <td>{r.refund_amount?.toLocaleString('vi-VN')} đ</td>
-                    <td>{r.customer_name}</td>
+                    <td>{r.customer_id?.name || '-'}</td>
                     <td>{r.reason}</td>
                     <td><StatusBadge status={r.status} /></td>
                     <td>
