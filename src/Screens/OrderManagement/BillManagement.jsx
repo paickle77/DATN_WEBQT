@@ -1,4 +1,3 @@
-// src/Screens/OrderManagement/BillManagement.jsx
 import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -17,8 +16,7 @@ import ReplaceBillModal from './component/ReplaceBillModal';
 const ALLOWED_STATUSES = ['Chờ xác nhận'];
 
 const BillManagement = () => {
-  // ... các state và hàm khác giữ nguyên như trước ...
-
+  // State chính
   const [bills, setBills]             = useState([]);
   const [users, setUsers]             = useState([]);
   const [addresses, setAddresses]     = useState([]);
@@ -76,23 +74,25 @@ const BillManagement = () => {
   };
   const lookupVoucher = id => vouchers.find(v => v._id === id)?.code || '—';
 
-  // ==== CHỈNH LẠI FILTER ====  
+  // ==== CHỈNH LẠI FILTER: chỉ show status = 'doing' và các filter khác ====  
   const filtered = bills.filter(b => {
-    // 1) filterStatus = 'all' => show tất cả, ngược lại chỉ show đúng status
+    // Chỉ show hóa đơn trạng thái doing
+    if (b.status !== 'doing') return false;
+    // filterStatus = 'all' => show tất cả doing, nếu khác và không khớp thì bỏ
     if (filterStatus !== 'all' && b.status !== filterStatus) {
       return false;
     }
-    // 2) tìm theo tên
+    // tìm theo tên
     if (searchTerm && !lookupUser(b.user_id).toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    // 3) filter theo khoảng ngày (dùng createdAt)
+    // filter theo khoảng ngày (dùng createdAt)
     const d = new Date(b.createdAt);
     if (fromDate && d < fromDate) return false;
     if (toDate   && d > toDate)   return false;
     return true;
   });
-  // ==== END FILTER ====
+  // ==== END FILTER ====  
 
   // fetch full bill (với items) rồi mở modal
   const openModal = async b => {
@@ -199,19 +199,25 @@ const BillManagement = () => {
     }
   };
 
-  // ===== START: Xác nhận hóa đơn, chuyển sang "Chờ giao hàng" =====
+  // ===== START: Xác nhận giao hàng từ doing sang shipping =====
   const handleConfirm = async billId => {
-    if (!window.confirm('Bạn có chắc muốn xác nhận hóa đơn này?')) return;
+    if (!window.confirm('Bạn có chắc muốn xác nhận giao hàng cho hóa đơn này?')) return;
     try {
-      await api.put(`/bills/${billId}`, { status: 'Chờ giao hàng' });
-      await api.post('/shipments', { order_id: billId });
+      // Cập nhật hóa đơn sang shipping
+      await api.put(`/bills/${billId}`, { status: 'shipping' });
+      // Tạo bản ghi shipment mới
+      await api.post('/shipments', {
+        bill_id: billId,
+        status: 'shipping',
+        shippedDate: new Date().toISOString()
+      });
       fetchAll();
     } catch (err) {
       console.error(err);
-      alert('Xác nhận hóa đơn thất bại. Vui lòng thử lại.');
+      alert('Xác nhận giao hàng thất bại. Vui lòng thử lại.');
     }
   };
-  // ===== END: Xác nhận hóa đơn =====
+  // ===== END: Xác nhận giao hàng =====
 
   return (
     <div className="bill-management">
@@ -231,7 +237,6 @@ const BillManagement = () => {
           <option value="Chờ giao hàng">Chờ giao hàng</option>
           <option value="Đã giao">Đã giao</option>
           <option value="Đã hủy">Đã hủy</option>
-          {/* thêm các status khác nếu cần */}
         </select>
 
         <DatePicker
@@ -268,7 +273,6 @@ const BillManagement = () => {
               <tr key={b._id}>
                 <td>{i + 1}</td>
                 <td>{lookupUser(b.user_id)}</td>
-                {/* DÙNG createdAt cho thống nhất */}
                 <td>{new Date(b.createdAt).toLocaleDateString('vi-VN')}</td>
                 <td>{lookupAddress(b.address_id)}</td>
                 <td>{lookupVoucher(b.voucher_id)}</td>
@@ -278,8 +282,8 @@ const BillManagement = () => {
                   <button onClick={() => openModal(b)}>Chi tiết</button>
                   <button onClick={() => printPackingSlip(b._id)}>In PDF</button>
                   <button onClick={() => deleteBill(b._id)}>Xóa</button>
-                  {b.status === 'Chờ xác nhận' && (
-                    <button onClick={() => handleConfirm(b._id)}>Xác nhận</button>
+                  {b.status === 'doing' && (
+                    <button onClick={() => handleConfirm(b._id)}>Xác nhận giao hàng</button>
                   )}
                   {ALLOWED_STATUSES.includes(b.status) && (
                     <button onClick={() => openReplaceModal(b)}>Đổi hàng</button>
