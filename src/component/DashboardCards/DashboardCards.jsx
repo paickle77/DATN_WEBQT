@@ -37,13 +37,21 @@ const DashboardCards = () => {
   }, []);
 
   const cards = [
+    // {
+    //   key: 'employees',
+    //   count: employees.length,
+    //   label: 'Nhân viên',
+    //   color: 'blue',
+    //   columns: ['name','email','phone'],
+    //   icon: <FaUserTie />
+    // },
     {
-      key: 'employees',
+      key: 'accounts',
       count: employees.length,
-      label: 'Nhân viên',
+      label: 'Người dùng',
       color: 'blue',
       columns: ['name','email','phone'],
-      icon: <FaUserTie />
+      icon: <FaUser />
     },
     {
       key: 'branches',
@@ -52,14 +60,6 @@ const DashboardCards = () => {
       color: 'orange',
       columns: ['name','address','phone'],
       icon: <FaWarehouse />
-    },
-    {
-      key: 'accounts',
-      count: employees.length,
-      label: 'Người dùng',
-      color: 'amber',
-      columns: ['name','email','phone'],
-      icon: <FaUser />
     },
     {
       key: 'lockedUsers',
@@ -84,13 +84,13 @@ const DashboardCards = () => {
       color: 'purple',
       icon: <FaFileExcel />
     },
-    {
-      key: 'salary',
-      count: '',
-      label: 'Bảng lương',
-      color: 'green',
-      icon: <FaMoneyBillWave />
-    },
+    // {
+    //   key: 'salary',
+    //   count: '',
+    //   label: 'Bảng lương',
+    //   color: 'green',
+    //   icon: <FaMoneyBillWave />
+    // },
   ];
 
   const dataMap = { employees, branches, accounts: employees, lockedUsers, vouchers };
