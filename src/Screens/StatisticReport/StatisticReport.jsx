@@ -21,25 +21,25 @@ const StatisticReport = () => {
       return;
     }
     try {
-      const [odRes, oRes] = await Promise.all([
-        api.get('/orderDetails'),
-        api.get('/orders'),
+      const [bdRes, bRes] = await Promise.all([
+        api.get('/billdetails'),
+        api.get('/bills'),
       ]);
-      const allDetails = odRes.data.data;
-      const allOrders  = oRes.data.data;
+      const allDetails = bdRes.data.data;
+      const allBills   = bRes.data.data;
 
-      // lọc đơn hàng theo ngày
-      const ordersInRange = allOrders.filter(o => {
-        const d = new Date(o.created_at);
+      // lọc hóa đơn theo ngày
+      const billsInRange = allBills.filter(b => {
+        const d = new Date(b.created_at);
         return d >= fromDate && d <= toDate;
       });
-      const totalOrders    = ordersInRange.length;
-      const orderIdSet     = new Set(ordersInRange.map(o => o._id));
-      const detailsInRange = allDetails.filter(d => orderIdSet.has(d.order_id));
-      const totalRevenue   = detailsInRange.reduce((sum, d) => sum + d.price * d.quantity, 0);
-      const totalCustomers = new Set(ordersInRange.map(o => o.user_id)).size;
+      const totalBills       = billsInRange.length;
+      const billIdSet        = new Set(billsInRange.map(b => b._id));
+      const detailsInRange   = allDetails.filter(d => billIdSet.has(d.bill_id));
+      const totalRevenue     = detailsInRange.reduce((sum, d) => sum + d.price * d.quantity, 0);
+      const totalCustomers   = new Set(billsInRange.map(b => b.user_id)).size;
 
-      setReport({ totalRevenue, totalOrders, totalCustomers, details: detailsInRange });
+      setReport({ totalRevenue, totalBills, totalCustomers, details: detailsInRange });
     } catch (err) {
       console.error(err);
       alert('Có lỗi khi tạo báo cáo');
@@ -58,7 +58,6 @@ const StatisticReport = () => {
     // --- Bảng Tổng quan (Metrics) ở cột A,B
     sheet.getCell('A1').value = 'Metric';
     sheet.getCell('B1').value = 'Value';
-    // style header
     sheet.getRow(1).eachCell(cell => {
       cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
@@ -70,24 +69,20 @@ const StatisticReport = () => {
         right:  { style: 'thin' }
       };
     });
-    // dữ liệu
     sheet.getCell('A2').value = 'Tổng doanh thu (₫)';
     sheet.getCell('B2').value = report.totalRevenue;
     sheet.getCell('B2').numFmt  = '#,##0';
-    sheet.getCell('A3').value = 'Tổng đơn hàng';
-    sheet.getCell('B3').value = report.totalOrders;
+    sheet.getCell('A3').value = 'Tổng hóa đơn';
+    sheet.getCell('B3').value = report.totalBills;
     sheet.getCell('A4').value = 'Tổng khách hàng';
     sheet.getCell('B4').value = report.totalCustomers;
 
     // --- Bảng Chi tiết đơn ở cột D-H
     const startCol    = 4;  // D
-    const headers     = ['#','Order ID','Quantity','Unit Price','Total (₫)'];
-    // header
+    const headers     = ['#','Bill ID','Quantity','Unit Price','Total (₫)'];
     headers.forEach((h, i) => {
-      const cell = sheet.getCell(1, startCol + i);
-      cell.value = h;
+      sheet.getCell(1, startCol + i).value = h;
     });
-    // style header
     sheet.getRow(1).eachCell((cell, colNum) => {
       if (colNum >= startCol && colNum < startCol + headers.length) {
         cell.font      = { bold: true };
@@ -101,20 +96,17 @@ const StatisticReport = () => {
         };
       }
     });
-    // rows
     report.details.forEach((d, i) => {
       const rowIdx = i + 2;
       sheet.getCell(rowIdx, startCol + 0).value = i + 1;
-      sheet.getCell(rowIdx, startCol + 1).value = d.order_id;
+      sheet.getCell(rowIdx, startCol + 1).value = d.bill_id;
       sheet.getCell(rowIdx, startCol + 2).value = d.quantity;
       sheet.getCell(rowIdx, startCol + 3).value = d.price;
       sheet.getCell(rowIdx, startCol + 4).value = d.quantity * d.price;
-      // format tiền
       sheet.getCell(rowIdx, startCol + 3).numFmt = '#,##0';
       sheet.getCell(rowIdx, startCol + 4).numFmt = '#,##0';
     });
 
-    // Xuất file
     const buf      = await workbook.xlsx.writeBuffer();
     const filename = `BaoCao_${fromDate.toISOString().slice(0,10)}_${toDate.toISOString().slice(0,10)}.xlsx`;
     saveAs(new Blob([buf]), filename);
@@ -123,9 +115,7 @@ const StatisticReport = () => {
   return (
     <div className="statistic-report">
       <TabBarr />
-
       <h2>Thống kê & Báo cáo</h2>
-
       <div className="filter-section">
         <div>
           <label>Từ ngày:</label>
@@ -148,11 +138,8 @@ const StatisticReport = () => {
           />
         </div>
         <button onClick={handleGenerate}>Tạo báo cáo</button>
-        <button className="excel-btn" onClick={exportToExcel}>
-          Xuất Excel
-        </button>
+        <button className="excel-btn" onClick={exportToExcel}>Xuất Excel</button>
       </div>
-
       {report && (
         <div className="report-result">
           <div className="report-box blue">
@@ -160,8 +147,8 @@ const StatisticReport = () => {
             <p>{report.totalRevenue.toLocaleString('vi-VN')} đ</p>
           </div>
           <div className="report-box green">
-            <h3>Tổng đơn hàng</h3>
-            <p>{report.totalOrders}</p>
+            <h3>Tổng hóa đơn</h3>
+            <p>{report.totalBills}</p>
           </div>
           <div className="report-box orange">
             <h3>Tổng khách hàng</h3>
