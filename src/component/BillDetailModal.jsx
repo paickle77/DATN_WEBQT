@@ -1,26 +1,22 @@
 import React from 'react';
-import './OrderDetailModal.scss';
+import './BillDetailModal.scss';
 
-const OrderDetailModal = ({ order, onClose, onPrint }) => {
-  // luôn fallback thành [] nếu order.items undefined
-  const items = order.items || [];
-  // 1) Tính subtotal
+const BillDetailModal = ({ bill, onClose, onPrint }) => {
+  const items = bill.items || [];
   const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  // 2) Lấy discountAmount đã tính bởi openModal (nếu có), ngược lại 0
-  const discount = order.discountAmount || 0;
-  // 3) Tổng cuối cùng đã tính bởi openModal, ngược lại tính lại
-  const finalTotal = order.finalTotal !== undefined
-    ? order.finalTotal
+  const discount = bill.discountAmount || 0;
+  const finalTotal = bill.finalTotal !== undefined
+    ? bill.finalTotal
     : subtotal - discount;
 
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h3>Chi tiết Đơn {order._id}</h3>
-        <p><strong>Khách hàng:</strong> {order.userName}</p>
-        <p><strong>Địa chỉ:</strong> {order.addressStr}</p>
+        <h3>Chi tiết Hóa đơn {bill._id}</h3>
+        <p><strong>Khách hàng:</strong> {bill.userName}</p>
+        <p><strong>Địa chỉ:</strong> {bill.addressStr}</p>
         <p>
-          <strong>Voucher:</strong> {order.voucherCode}
+          <strong>Voucher:</strong> {bill.voucherCode}
           {discount > 0 && <> (-{discount.toLocaleString('vi-VN')} đ)</>}
         </p>
         <table>
@@ -57,4 +53,4 @@ const OrderDetailModal = ({ order, onClose, onPrint }) => {
   );
 };
 
-export default OrderDetailModal;
+export default BillDetailModal;

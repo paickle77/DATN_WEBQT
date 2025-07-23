@@ -51,7 +51,7 @@ export default function ShipmentManagement() {
             </thead>
             <tbody>
               {shipments.map((s, i) => {
-                const orderStatus = s.order_id?.status;
+                const orderStatus = s.bill_id?.status;
                 return (
                   <tr key={s._id}>
                     <td>{i + 1}</td>

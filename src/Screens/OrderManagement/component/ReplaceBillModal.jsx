@@ -1,24 +1,23 @@
-// src/Screens/OrderManagement/component/ReplaceOrderModal.jsx
 import React, { useState, useEffect } from 'react';
-import './ReplaceOrderModal.scss';
+import './ReplaceBillModal.scss';
 import api from '../../../utils/api';
 
-const ReplaceOrderModal = ({ order, onClose, onSave }) => {
+const ReplaceBillModal = ({ bill, onClose, onSave }) => {
   const [products, setProducts] = useState([]);
   useEffect(() => {
     // tải danh sách sản phẩm để select
     api.get('/products').then(r => setProducts(r.data.data));
   }, []);
 
-  const initialItems = (order.items || []).map(it => ({
+  const initialItems = (bill.items || []).map(it => ({
     product_id:  it.product_id,
     productName: it.productName,
     quantity:    it.quantity,
     unitPrice:   it.unitPrice
   }));
   const [items, setItems]         = useState(initialItems);
-  const [addressId, setAddressId] = useState(order.address_id);
-  const [voucherId, setVoucherId] = useState(order.voucher_id);
+  const [addressId, setAddressId] = useState(bill.address_id);
+  const [voucherId, setVoucherId] = useState(bill.voucher_id);
 
   const handleFieldChange = (idx, field, value) => {
     setItems(items.map((it,i) =>
@@ -44,7 +43,7 @@ const ReplaceOrderModal = ({ order, onClose, onSave }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h3>Đổi hàng – Đơn {order._id}</h3>
+        <h3>Đổi hàng – Hóa đơn {bill._id}</h3>
         <table>
           <thead>
             <tr>
@@ -58,8 +57,6 @@ const ReplaceOrderModal = ({ order, onClose, onSave }) => {
             {items.map((it, i) => (
               <tr key={i}>
                 <td>{i+1}</td>
-
-                {/* Select sản phẩm */}
                 <td>
                   <select
                     value={it.product_id}
@@ -70,8 +67,6 @@ const ReplaceOrderModal = ({ order, onClose, onSave }) => {
                     ))}
                   </select>
                 </td>
-
-                {/* Thay đổi giá */}
                 <td>
                   <input
                     type="number"
@@ -80,8 +75,6 @@ const ReplaceOrderModal = ({ order, onClose, onSave }) => {
                     onChange={e => handleFieldChange(i, 'unitPrice', e.target.value)}
                   />
                 </td>
-
-                {/* Thay đổi số lượng */}
                 <td>
                   <input
                     type="number"
@@ -107,4 +100,4 @@ const ReplaceOrderModal = ({ order, onClose, onSave }) => {
   );
 };
 
-export default ReplaceOrderModal;
+export default ReplaceBillModal;

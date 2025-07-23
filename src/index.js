@@ -14,7 +14,7 @@ import RevenueByDate      from './Screens/Revenue/RevenueByDate.jsx';
 import RevenueByMonth     from './Screens/Revenue/RevenueByMonth.jsx';
 import RevenueByYear      from './Screens/Revenue/RevenueByYear.jsx';
 import ProductManagement  from './Screens/ProductManagement/ProductManagement';
-import OrderManagement    from './Screens/OrderManagement/OrderManagement';
+import OrderManagement    from './Screens/OrderManagement/BillManagement.jsx';
 import RefundManagement   from './Screens/RefundManagement/RefundManagement';
 import ShipmentManagement from './Screens/ShipmentManagement/ShipmentManagement';
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';

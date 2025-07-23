@@ -101,7 +101,7 @@ export default function RefundManagement() {
                 requests.map((r, i) => (
                   <tr key={r._id}>
                     <td>{i + 1}</td>
-                    <td>{r.order_id?._id || '-'}</td>
+                    <td>{r.bill_id?._id || '-'}</td>
                     <td>{r.refund_amount?.toLocaleString('vi-VN')} đ</td>
                     <td>{r.customer_id?.name || '-'}</td>
                     <td>{r.reason}</td>

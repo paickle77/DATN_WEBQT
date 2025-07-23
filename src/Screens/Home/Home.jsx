@@ -26,26 +26,27 @@ const Home = () => {
   const [statusData, setStatusData] = useState([]);
   const [stockData, setStockData]   = useState([]);
 
-  // Load locked users + KPI datasets
+  // Load locked users
   useEffect(() => {
-    // 1. Khóa người dùng
     api.get('/users')
       .then(res => {
         const all = res.data.data || [];
         setLockedUsers(all.filter(u => u.is_lock));
       })
       .catch(console.error);
+  }, []);
 
-    // 2. KPI charts: orders, details, ingredients
+  // Load KPI charts: bills, billdetails, ingredients
+  useEffect(() => {
     Promise.all([
-      api.get('/orders'),
-      api.get('/orderDetails'),
+      api.get('/bills'),
+      api.get('/billdetails'),
       api.get('/ingredients')
     ])
-      .then(([oRes, dRes, ingRes]) => {
-        const orders  = oRes.data.data || [];
-        const details = dRes.data.data || [];
-        const ing     = ingRes.data.data || [];
+      .then(([bRes, bdRes, ingRes]) => {
+        const bills       = bRes.data.data || [];
+        const billDetails = bdRes.data.data || [];
+        const ing         = ingRes.data.data || [];
 
         // a) Doanh thu 7 ngày gần nhất
         const today = new Date();
@@ -57,20 +58,22 @@ const Home = () => {
           acc[day] = 0;
           return acc;
         }, {});
-        orders.forEach(o => {
-          const d = format(new Date(o.created_at), 'dd/MM');
+        bills.forEach(b => {
+          const d = format(new Date(b.createdAt || b.created_at), 'dd/MM');
           if (revenueMap[d] !== undefined) {
-            details
-              .filter(dt => dt.order_id === o._id)
-              .forEach(dt => { revenueMap[d] += dt.price * dt.quantity; });
+            billDetails
+              .filter(dt => dt.bill_id._id === b._id)
+              .forEach(dt => {
+                revenueMap[d] += dt.price * dt.quantity;
+              });
           }
         });
         setRevData(days.map(day => ({ day, revenue: revenueMap[day] })));
 
-        // b) Tỷ lệ trạng thái đơn
+        // b) Tỷ lệ trạng thái hóa đơn
         const statusCount = {};
-        orders.forEach(o => {
-          statusCount[o.status] = (statusCount[o.status] || 0) + 1;
+        bills.forEach(b => {
+          statusCount[b.status] = (statusCount[b.status] || 0) + 1;
         });
         setStatusData(
           Object.entries(statusCount).map(([name, value]) => ({ name, value }))
@@ -91,10 +94,10 @@ const Home = () => {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        // Đơn mới
-        const oRes = await api.get('/orders?status=pending');
+        // Hóa đơn mới chờ xử lý
+        const oRes = await api.get('/bills?status=pending');
         if (oRes.data.data.length) {
-          toast.info(`Có ${oRes.data.data.length} đơn mới chờ xử lý`);
+          toast.info(`Có ${oRes.data.data.length} hóa đơn mới chờ xử lý`);
         }
 
         // Stock thấp
@@ -153,7 +156,7 @@ const Home = () => {
             </div>
 
             <div className="chart-box">
-              <h3>Tỷ lệ trạng thái đơn</h3>
+              <h3>Tỷ lệ trạng thái hóa đơn</h3>
               <PieChart width={400} height={250}>
                 <Pie
                   data={statusData}
