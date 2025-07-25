@@ -91,7 +91,13 @@ const Sidebar = () => {
         className="sidebar-item"
         onClick={() => navigate(ENUM_PAGE.VoucherManagement)}
       >
-        <FaTicketAlt /> <span>Quản lý khuyến mãi</span>
+        <FaTicketAlt /> <span>Quản lý voucher</span>
+      </div>
+      <div
+        className="sidebar-item"
+        onClick={() => navigate(ENUM_PAGE.VoucherUserManagement)}
+      >
+        <FaUsers /> <span>Quản lý voucher người dùng</span>
       </div>
       <div
         className="sidebar-item"

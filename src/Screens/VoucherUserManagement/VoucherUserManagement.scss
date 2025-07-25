@@ -1,0 +1,129 @@
+/* src/Screens/VoucherUserManagement/VoucherUserManagement.scss */
+
+.voucher-user-management {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Segoe UI', Verdana, sans-serif;
+  color: #333;
+
+  h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 500;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+
+    input {
+      flex: 1 1 200px;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    select {
+      flex: 0 0 160px;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button {
+      flex: 0 0 auto;
+      padding: 8px 16px;
+      background: #f0f0f0;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #e1e1e1;
+      }
+    }
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+
+      th,
+      td {
+        padding: 10px 12px;
+        border: 1px solid #f0f0f0;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      thead {
+        background: #fafafa;
+
+        th {
+          font-weight: 600;
+          color: #555;
+        }
+      }
+
+      tbody {
+        tr {
+          &:hover {
+            background: #fafafa;
+          }
+          &.expired {
+            opacity: 0.6;
+          }
+        }
+      }
+
+      select {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      button {
+        margin-right: 6px;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+
+        background: #ff7875;
+        color: #fff;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #ff4d4f;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .controls {
+      flex-direction: column;
+
+      input,
+      select,
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

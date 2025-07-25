@@ -20,6 +20,7 @@ import ShipmentManagement from './Screens/ShipmentManagement/ShipmentManagement'
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';
 import StatisticReport    from './Screens/StatisticReport/StatisticReport';
 import VoucherManagement  from './Screens/VoucherManagement/VoucherManagement';
+import VoucherUserManagement from './Screens/VoucherUserManagement/VoucherUserManagement';
 import IngredientManagement from './Screens/IngredientManagement/IngredientManagement';
 import BranchManagement   from './Screens/BranchManagement/BranchManagement';
 import LogManagement       from './Screens/LogManagement/LogManagement';
@@ -149,6 +150,14 @@ root.render(
           element={
             <PrivateRoute>
               <VoucherManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.VoucherUserManagement}
+          element={
+            <PrivateRoute>
+              <VoucherUserManagement />
             </PrivateRoute>
           }
         />

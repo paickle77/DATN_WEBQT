@@ -10,6 +10,7 @@ export enum ENUM_PAGE {
   RefundManagement    = "/RefundManagement",
   CustomerManagement = "/CustomerManagement",
   VoucherManagement = "/VoucherManagement",
+  VoucherUserManagement = "/VoucherUserManagement",
   IngredientManagement = "/IngredientManagement",
   BranchManagement = "/BranchManagement",
   NotificationManagement = "/NotificationManagement",
