@@ -142,29 +142,27 @@ const ProductManagement = () => {
       ? api.put(`/products/${editingId}`, productPayload)
       : api.post('/products', productPayload);
 
-    req.then(res => {
-      const prodId = editingId || res.data.data._id;
-       // ✨ XÓA những size đã remove
-       if (editingId) {
-         const formIds = sizes.filter(s => s._id).map(s => s._id);
-         const toDelete = originalSizeIds.filter(id => !formIds.includes(id));
-         toDelete.forEach(id => {
-           api.delete(`/sizes/${id}`).catch(console.error);
-         });
-       }
-      sizes.forEach(s => {
-        const payload = { ...s, product_id: prodId };
-        if (s._id) {
-          api.put(`/sizes/${s._id}`, payload).catch(console.error);
-        } else {
-          api.post('/sizes', payload).catch(console.error);
-        }
-      });
-      fetchAll();
-      setShowForm(false);
-      setOriginalSizeIds([]);
-    })
-    .catch(err => alert(err.response?.data?.msg || err.message));
+req.then(async res => {
+  const prodId = editingId || res.data.data._id;
+   // ✨ XÓA những size đã remove
+   if (editingId) {
+     const formIds = sizes.filter(s => s._id).map(s => s._id);
+     const toDelete = originalSizeIds.filter(id => !formIds.includes(id));
+     toDelete.forEach(id => {
+       api.delete(`/sizes/${id}`).catch(console.error);
+     });
+   }
+  await Promise.all(sizes.map(s => {
+    const payload = { ...s, product_id: prodId };
+    return s._id 
+      ? api.put(`/sizes/${s._id}`, payload)
+      : api.post('/sizes', payload);
+  }));
+  fetchAll();
+  setShowForm(false);
+  setOriginalSizeIds([]);
+})
+.catch(err => alert(err.response?.data?.msg || err.message));
   };
 
   return (
