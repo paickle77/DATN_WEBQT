@@ -6,9 +6,9 @@ import api from '../../utils/api';
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,21 +34,31 @@ const LoginForm = () => {
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
         <h2>Đăng nhập</h2>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Mật khẩu"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
+        
+        <div className="input-group">
+          <div className="input-icon">📧</div>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="input-group">
+          <div className="input-icon">🔒</div>
+          <input
+            type="password"
+            placeholder="Mật khẩu"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
         <button type="submit" disabled={loading}>
+          {loading && <div className="loading-spinner"></div>}
           {loading ? 'Đang xử lý…' : 'Đăng nhập'}
         </button>
       </form>

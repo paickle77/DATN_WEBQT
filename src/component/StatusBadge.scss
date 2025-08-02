@@ -1,9 +1,118 @@
 .status-badge {
-  padding:2px 6px; border-radius:4px; font-size:.75rem; font-weight:600;
-  &.pending   { background:#fffbe6; color:#ad8b00; }
-  &.confirmed { background:#e6f7ff; color:#0050b3; }
-  &.shipping  { background:#fff1e6; color:#ad4e00; }
-  &.delivered { background:#f6ffed; color:#237804; }
-  &.cancelled { background:#fff1f0; color:#a8071a; }
-  &.returned  { background:#f0f0f0; color:#595959; }
-}
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: none;
+  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    
+    &::before {
+      left: 100%;
+    }
+  }
+
+  .status-icon {
+    font-size: 0.9rem;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+  }
+
+  .status-text {
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+  }
+
+  // Pending status
+  &.pending {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-color: #f59e0b;
+    
+    &:hover {
+      background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+  }
+
+  // Doing status  
+  &.doing {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border-color: #3b82f6;
+    
+    &:hover {
+      background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  // Confirmed status
+  &.confirmed {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0369a1;
+    border-color: #0ea5e9;
+    
+    &:hover {
+      background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+  }
+
+  // Shipping status
+  &.shipping {
+    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    color: #c2410c;
+    border-color: #ea580c;
+    
+    &:hover {
+      background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%);
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+    }
+  }
+
+  // Delivered status
+  &.delivered {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+    border-color: #22c55e;
+    
+    &:hover {
+      background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+  }
+
+  // Cancelled status
+  &.cancelled {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
+    border-color: #ef4444;
+    
+    &:hover {
+      background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          }
+  }}

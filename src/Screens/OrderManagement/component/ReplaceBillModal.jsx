@@ -4,6 +4,7 @@ import api from '../../../utils/api';
 
 const ReplaceBillModal = ({ bill, onClose, onSave }) => {
   const [products, setProducts] = useState([]);
+  
   useEffect(() => {
     // tải danh sách sản phẩm để select
     api.get('/products').then(r => setProducts(r.data.data));
@@ -15,6 +16,7 @@ const ReplaceBillModal = ({ bill, onClose, onSave }) => {
     quantity:    it.quantity,
     unitPrice:   it.unitPrice
   }));
+  
   const [items, setItems]         = useState(initialItems);
   const [addressId, setAddressId] = useState(bill.address_id);
   const [voucherId, setVoucherId] = useState(bill.voucher_id);
@@ -43,57 +45,82 @@ const ReplaceBillModal = ({ bill, onClose, onSave }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h3>Đổi hàng – Hóa đơn {bill._id}</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Sản phẩm</th>
-              <th>Giá (đ)</th>
-              <th>SL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it, i) => (
-              <tr key={i}>
-                <td>{i+1}</td>
-                <td>
-                  <select
-                    value={it.product_id}
-                    onChange={e => handleFieldChange(i, 'product_id', e.target.value)}
-                  >
-                    {products.map(p => (
-                      <option key={p._id} value={p._id}>{p.name}</option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    value={it.unitPrice}
-                    min="0"
-                    onChange={e => handleFieldChange(i, 'unitPrice', e.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    value={it.quantity}
-                    min="1"
-                    onChange={e => handleFieldChange(i, 'quantity', e.target.value)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="modal-header">
+          <h3>
+            <span className="icon">🔄</span>
+            Đổi hàng – Hóa đơn {bill._id}
+          </h3>
+          <button className="close-btn" onClick={onClose}>
+            <span>×</span>
+          </button>
+        </div>
+        
+        <div className="modal-content">
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Sản phẩm</th>
+                  <th>Giá (đ)</th>
+                  <th>SL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className="row-number">{i+1}</span>
+                    </td>
+                    <td>
+                      <div className="select-wrapper">
+                        <select
+                          value={it.product_id}
+                          onChange={e => handleFieldChange(i, 'product_id', e.target.value)}
+                        >
+                          {products.map(p => (
+                            <option key={p._id} value={p._id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="input-wrapper">
+                        <input
+                          type="number"
+                          value={it.unitPrice}
+                          min="0"
+                          onChange={e => handleFieldChange(i, 'unitPrice', e.target.value)}
+                        />
+                      </div>
+                    </td>
+                    <td>
+                      <div className="input-wrapper">
+                        <input
+                          type="number"
+                          value={it.quantity}
+                          min="1"
+                          onChange={e => handleFieldChange(i, 'quantity', e.target.value)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Chọn lại địa chỉ / voucher nếu muốn */}
-        {/* ... */}
+          {/* Chọn lại địa chỉ / voucher nếu muốn */}
+          {/* ... */}
 
-        <div className="actions">
-          <button className="btn-save"   onClick={handleSubmit}>Lưu</button>
-          <button className="btn-cancel" onClick={onClose}>Hủy</button>
+          <div className="actions">
+            <button className="btn-cancel" onClick={onClose}>
+              <span>Hủy</span>
+            </button>
+            <button className="btn-save" onClick={handleSubmit}>
+              <span>💾 Lưu thay đổi</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

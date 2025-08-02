@@ -104,83 +104,146 @@ const NotificationManagement = () => {
     <div className="notification-management">
       <TabBar />
       <h2>Quản lý thông báo</h2>
+      
       <form className="notify-form" onSubmit={send}>
-         <select value={userId} onChange={e => setUserId(e.target.value)}>
-           <option value="">— Gửi đến tất cả —</option>
-           {users.map(u => (
-             <option key={u._id} value={u._id}>
-               {u.name || u.email} ({u._id})
-             </option>
-           ))}
-         </select>
-        <input
-          placeholder="Nội dung"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          required
-        />
-        <button type="submit">Gửi</button>
+        <div className="form-header">
+          <h3>Gửi thông báo mới</h3>
+        </div>
+        
+        <div className="form-row">
+          <div className="input-group">
+            <label>👥 Người nhận</label>
+            <select value={userId} onChange={e => setUserId(e.target.value)}>
+              <option value="">🌐 Gửi đến tất cả người dùng</option>
+              {users.map(u => (
+                <option key={u._id} value={u._id}>
+                  👤 {u.name || u.email}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="input-group">
+            <label>💬 Nội dung thông báo</label>
+            <input
+              placeholder="Nhập nội dung thông báo..."
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              required
+            />
+          </div>
+          
+          <button type="submit" className="submit-btn">
+            🚀 Gửi ngay
+          </button>
+        </div>
       </form>
 
-       <div className="filter-bar">
-         <input placeholder="Tìm nội dung…" value={searchContent}
-           onChange={e => setSearchContent(e.target.value)} />
-         <select value={filterRead} onChange={e => setFilterRead(e.target.value)}>
-           <option value="all">Tất cả</option>
-           <option value="unread">Chưa đọc</option>
-           <option value="read">Đã đọc</option>
-         </select>
-         {selIds.length > 0 && (
-           <div className="bulk-actions">
-             <button onClick={markReadBulk}>Đánh dấu đã đọc ({selIds.length})</button>
-             <button onClick={delBulk}>Xóa ({selIds.length})</button>
-           </div>
-         )}
-       </div>
+      <div className="filter-bar">
+        <div className="filter-section">
+          <div className="search-container">
+            <div className="search-icon">🔍</div>
+            <input 
+              placeholder="Tìm kiếm nội dung thông báo..." 
+              value={searchContent}
+              onChange={e => setSearchContent(e.target.value)} 
+            />
+          </div>
+          
+          <select value={filterRead} onChange={e => setFilterRead(e.target.value)}>
+            <option value="all">📋 Tất cả</option>
+            <option value="unread">🔔 Chưa đọc</option>
+            <option value="read">✅ Đã đọc</option>
+          </select>
+        </div>
+        
+        {selIds.length > 0 && (
+          <div className="bulk-actions">
+            <button onClick={markReadBulk}>
+              ✅ Đánh dấu đã đọc
+              <span className="count-badge">{selIds.length}</span>
+            </button>
+            <button onClick={delBulk}>
+              🗑️ Xóa
+              <span className="count-badge">{selIds.length}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
-      <table className="notify-table">
-        <thead>
-          <tr>
-             <th><input type="checkbox"
-                onChange={e => setSelIds(e.target.checked ? shown.map(n=>n._id) : [])}
-                checked={selIds.length === shown.length && shown.length > 0}
-             /></th>
-            <th>#</th>
-            <th>User</th>
-            <th>Content</th>
-            <th>Ngày</th>
-            <th>Read</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-           {shown.map((n,i)=>(
-             <tr key={n._id}
-                 className={n.is_read?'read':''}>
-               <td>
-                 <input type="checkbox"
-                   checked={selIds.includes(n._id)}
-                   onChange={e => {
-                     const next = e.target.checked
-                       ? [...selIds,n._id]
-                       : selIds.filter(x=>x!==n._id);
-                     setSelIds(next);
-                   }}
-                 />
-               </td>
-              <td>{i + 1}</td>
-              <td>{n.user?.name || n.user?.email || n.user_id}</td>
-              <td>{n.content}</td>
-              <td>{fmtDT(n.created_at)}</td>
-              <td>{n.is_read ? '✅' : '❌'}</td>
-              <td>
-                 {!n.is_read && <button onClick={()=>markRead(n._id)}>Đánh dấu</button>}
-                 <button onClick={()=>delOne(n._id)}>Xóa</button>
-              </td>
+      {shown.length > 0 ? (
+        <table className="notify-table">
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox"
+                  onChange={e => setSelIds(e.target.checked ? shown.map(n=>n._id) : [])}
+                  checked={selIds.length === shown.length && shown.length > 0}
+                />
+              </th>
+              <th>📊 #</th>
+              <th>👤 Người dùng</th>
+              <th>💬 Nội dung</th>
+              <th>📅 Thời gian</th>
+              <th>📖 Trạng thái</th>
+              <th>⚙️ Hành động</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {shown.map((n,i)=>(
+              <tr key={n._id} className={n.is_read ? 'read' : ''}>
+                <td>
+                  <input type="checkbox"
+                    checked={selIds.includes(n._id)}
+                    onChange={e => {
+                      const next = e.target.checked
+                        ? [...selIds,n._id]
+                        : selIds.filter(x=>x!==n._id);
+                      setSelIds(next);
+                    }}
+                  />
+                </td>
+                <td>{i + 1}</td>
+                <td className="user-info">
+                  {n.user?.name || n.user?.email || n.user_id}
+                </td>
+                <td className="content-text" title={n.content}>
+                  {n.content}
+                </td>
+                <td className="date-text">{fmtDT(n.created_at)}</td>
+                <td>
+                  <span className={`status-indicator ${n.is_read ? 'read' : 'unread'}`}>
+                    {n.is_read ? '✅' : '🔔'}
+                  </span>
+                </td>
+                <td>
+                  <div className="action-buttons">
+                    {!n.is_read && (
+                      <button 
+                        className="mark-read-btn" 
+                        onClick={() => markRead(n._id)}
+                      >
+                        ✅ Đánh dấu
+                      </button>
+                    )}
+                    <button 
+                      className="delete-btn" 
+                      onClick={() => delOne(n._id)}
+                    >
+                      🗑️ Xóa
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div className="empty-state">
+          <div className="empty-icon">📭</div>
+          <div className="empty-text">Không có thông báo nào được tìm thấy</div>
+        </div>
+      )}
     </div>
   );
 };

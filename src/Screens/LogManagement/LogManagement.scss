@@ -1,17 +1,543 @@
 /* src/Screens/LogManagement/LogManagement.scss */
-.log-management {
-  padding: 20px;
-  background: #f5f5f5;
-  min-height: 100vh;
 
+// Modern Variables
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ef4444;
+$info-color: #3b82f6;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-light: #9ca3af;
+$bg-primary: #ffffff;
+$bg-secondary: #f8fafc;
+$bg-light: #f1f5f9;
+$border-color: #e2e8f0;
+$border-light: #f1f5f9;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// Animations
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink {
+  0%, 50% { border-right-color: transparent; }
+  51%, 100% { border-right-color: $primary-color; }
+}
+
+.log-management {
+  padding: 2rem;
+  background: $bg-light;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: fadeIn 0.5s ease-out;
+
+  h2 {
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+    animation: slideDown 0.8s ease-out;
+
+    &::before {
+      content: '📊';
+      display: block;
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 4px;
+      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      border-radius: 2px;
+    }
+  }
+
+  // Stats Cards
+  .stats-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    animation: slideDown 0.6s ease-out;
+
+    .stat-card {
+      background: $bg-primary;
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: $shadow-md;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+      }
+
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: $shadow-lg;
+      }
+
+      .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: $text-secondary;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: $text-primary;
+        font-family: 'Monaco', 'Menlo', monospace;
+      }
+    }
+  }
+
+  // Filters Section
+  .filters-section {
+    background: $bg-primary;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: $shadow-md;
+    margin-bottom: 2rem;
+    animation: slideDown 0.7s ease-out;
+
+    .filters-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+
+      h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: $text-primary;
+
+        &::before {
+          content: '🔍';
+          margin-right: 0.5rem;
+        }
+      }
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: $text-secondary;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        input, select {
+          padding: 0.75rem 1rem;
+          border: 2px solid $border-color;
+          border-radius: 10px;
+          background: $bg-secondary;
+          font-size: 0.95rem;
+          transition: all 0.3s ease;
+          min-width: 200px;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: $bg-primary;
+          }
+        }
+      }
+
+      .refresh-btn {
+        margin-top: 1.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, $success-color, #059669);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: $shadow-md;
+        }
+
+        &::before {
+          content: '🔄';
+          margin-right: 0.5rem;
+        }
+      }
+    }
+  }
+
+  // Log Table
   .log-table {
     width: 100%;
     border-collapse: collapse;
+    background: $bg-primary;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: $shadow-lg;
+    animation: slideUp 0.8s ease-out;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 
-    th, td {
-      border: 1px solid #eee;
-      padding: 8px;
-      text-align: center;
+    thead {
+      background: linear-gradient(135deg, $bg-secondary, $bg-light);
+      
+      th {
+        padding: 1.25rem 1rem;
+        font-weight: 700;
+        color: $text-primary;
+        border-bottom: 2px solid $border-light;
+        text-align: left;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+        &:first-child {
+          width: 80px;
+          text-align: center;
+        }
+
+        &:nth-child(2) {
+          width: 200px;
+        }
+
+        &:nth-child(4) {
+          width: 180px;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid $border-light;
+        transition: all 0.3s ease;
+        position: relative;
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+          transform: scale(1.01);
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        // Log level styling
+        &.log-info {
+          border-left: 4px solid $info-color;
+        }
+
+        &.log-warning {
+          border-left: 4px solid $warning-color;
+        }
+
+        &.log-error {
+          border-left: 4px solid $danger-color;
+        }
+
+        &.log-success {
+          border-left: 4px solid $success-color;
+        }
+      }
+
+      td {
+        padding: 1rem;
+        vertical-align: middle;
+        color: $text-secondary;
+        font-weight: 500;
+        font-size: 0.9rem;
+
+        &:first-child {
+          text-align: center;
+          font-weight: 700;
+          color: $text-primary;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .user-id {
+          font-family: 'Monaco', 'Menlo', monospace;
+          background: $bg-light;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          color: $text-primary;
+          font-weight: 600;
+        }
+
+        .action-text {
+          font-weight: 600;
+          color: $text-primary;
+          position: relative;
+          display: inline-block;
+
+          &.action-create {
+            color: $success-color;
+            
+            &::before {
+              content: '➕';
+              margin-right: 0.5rem;
+            }
+          }
+
+          &.action-update {
+            color: $warning-color;
+            
+            &::before {
+              content: '✏️';
+              margin-right: 0.5rem;
+            }
+          }
+
+          &.action-delete {
+            color: $danger-color;
+            
+            &::before {
+              content: '🗑️';
+              margin-right: 0.5rem;
+            }
+          }
+
+          &.action-login {
+            color: $info-color;
+            
+            &::before {
+              content: '🔑';
+              margin-right: 0.5rem;
+            }
+          }
+
+          &.action-view {
+            color: $text-secondary;
+            
+            &::before {
+              content: '👁️';
+              margin-right: 0.5rem;
+            }
+          }
+        }
+
+        .timestamp {
+          font-family: 'Monaco', 'Menlo', monospace;
+          font-size: 0.85rem;
+          color: $text-light;
+          background: $bg-light;
+          padding: 0.5rem;
+          border-radius: 8px;
+          display: inline-block;
+          min-width: 150px;
+          text-align: center;
+        }
+      }
+    }
+  }
+
+  // Empty state
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: $text-light;
+    background: $bg-primary;
+    border-radius: 16px;
+    box-shadow: $shadow-md;
+    animation: slideUp 0.8s ease-out;
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: $text-secondary;
+    }
+
+    .empty-text {
+      font-size: 1rem;
+      color: $text-light;
+    }
+  }
+
+  // Loading state
+  .loading-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: $bg-primary;
+    border-radius: 16px;
+    box-shadow: $shadow-md;
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid $border-color;
+      border-top: 4px solid $primary-color;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    .loading-text {
+      color: $text-secondary;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  // Responsive Design
+  @media (max-width: 1024px) {
+    padding: 1rem;
+
+    .stats-section {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .filters-section {
+      .filters-row {
+        flex-direction: column;
+        align-items: stretch;
+
+        .filter-group {
+          input, select {
+            min-width: 100%;
+          }
+        }
+      }
+    }
+
+    .log-table {
+      font-size: 0.8rem;
+
+      th, td {
+        padding: 0.75rem 0.5rem;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .log-table {
+      th, td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.75rem;
+      }
+
+      .user-id, .timestamp {
+        font-size: 0.7rem;
+        padding: 0.25rem;
+      }
+
+      .action-text {
+        font-size: 0.8rem;
+
+        &::before {
+          display: none;
+        }
+      }
+    }
+
+    h2 {
+      font-size: 2rem;
+
+      &::before {
+        font-size: 2rem;
+      }
+    }
+
+    .stats-section {
+      grid-template-columns: 1fr;
     }
   }
 }

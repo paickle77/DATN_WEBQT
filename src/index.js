@@ -21,7 +21,7 @@ import CustomerManagement from './Screens/CustomerManagement/CustomerManagement'
 import StatisticReport    from './Screens/StatisticReport/StatisticReport';
 import VoucherManagement  from './Screens/VoucherManagement/VoucherManagement';
 import VoucherUserManagement from './Screens/VoucherUserManagement/VoucherUserManagement';
-import IngredientManagement from './Screens/IngredientManagement/IngredientManagement';
+import SupplierManagement from './Screens/SupplierManagement/SupplierManagement.jsx';
 import BranchManagement   from './Screens/BranchManagement/BranchManagement';
 import LogManagement       from './Screens/LogManagement/LogManagement';
 import NotificationManagement from './Screens/NotificationManagement/NotificationManagement';
@@ -162,10 +162,10 @@ root.render(
           }
         />
         <Route
-          path={ENUM_PAGE.IngredientManagement}
+          path={ENUM_PAGE.SupplierManagement}
           element={
             <PrivateRoute>
-              <IngredientManagement />
+              <SupplierManagement />
             </PrivateRoute>
           }
         />

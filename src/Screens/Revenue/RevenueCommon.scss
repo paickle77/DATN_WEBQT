@@ -1,82 +1,633 @@
 /* src/Screens/Revenue/RevenueCommon.scss */
+
+// Modern color palette
+:root {
+  --primary-color: #667eea;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --secondary-color: #f093fb;
+  --success-color: #4ade80;
+  --warning-color: #fbbf24;
+  --error-color: #f87171;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.revenue-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding-bottom: 40px;
+}
+
 .revenue-wrapper {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 0 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
 
-  h2 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .filter {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    background: #fff;
-    padding: 16px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
-
-    label {
-      font-weight: 500;
-      color: #555;
-    }
-    .react-datepicker-wrapper {
-      width: 180px;
-      input {
-        width: 100%;
-        padding: 8px 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        transition: border-color .2s, box-shadow .2s;
-        &:focus {
-          outline: none;
-          border-color: #1890ff;
-          box-shadow: 0 0 6px rgba(24,144,255,.3);
+  // Modern header section
+  .revenue-header {
+    padding: 40px 0 32px;
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      text-align: left;
+      
+      .header-icon {
+        width: 64px;
+        height: 64px;
+        background: var(--primary-gradient);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: var(--shadow-lg);
+        flex-shrink: 0;
+      }
+      
+      .header-text {
+        h2 {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          background: var(--primary-gradient);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          line-height: 1.2;
+        }
+        
+        p {
+          font-size: 1.1rem;
+          color: var(--text-secondary);
+          margin: 0;
+          font-weight: 400;
         }
       }
     }
   }
 
-  .result {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
-
-    h3 {
-      margin-bottom: 15px;
-      color: #1890ff;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 12px;
-      th, td {
-        padding: 10px;
-        border: 1px solid #f0f0f0;
-        text-align: left;
+  // Filter section with glassmorphism effect
+  .filter-section {
+    margin-bottom: 32px;
+    
+    .filter-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-xl);
       }
-      thead {
-        background: #fafafa;
-        th { font-weight: 600; }
+      
+      .filter-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        
+        svg {
+          color: var(--primary-color);
+        }
       }
-      tbody tr:hover { background: #fafafa; }
-    }
-    .total {
-      font-size: 1.2rem;
-      font-weight: bold;
-      text-align: right;
-      margin: 0;
+      
+      .filter-content {
+        .date-picker-group {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          
+          label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+          }
+          
+          .date-picker-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 280px;
+            
+            .modern-date-input {
+              width: 100%;
+              padding: 14px 48px 14px 16px;
+              font-size: 1rem;
+              border: 2px solid var(--border-light);
+              border-radius: 12px;
+              background: var(--bg-primary);
+              color: var(--text-primary);
+              transition: all 0.3s ease;
+              font-family: inherit;
+              
+              &:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                transform: translateY(-1px);
+              }
+              
+              &::placeholder {
+                color: var(--text-muted);
+              }
+            }
+            
+            .date-picker-icon {
+              position: absolute;
+              right: 16px;
+              top: 50%;
+              transform: translateY(-50%);
+              color: var(--text-muted);
+              pointer-events: none;
+            }
+          }
+        }
+      }
     }
   }
 
-  @media (max-width: 600px) {
-    .filter { flex-direction: column; align-items: flex-start; }
-    .filter .react-datepicker-wrapper { width: 100%; }
+  // Result section with modern cards
+  .result-section {
+    .result-card {
+      background: var(--bg-primary);
+      border-radius: 24px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+      }
+      
+      .result-header {
+        padding: 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        
+        .result-title {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          
+          h3 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          
+          svg {
+            opacity: 0.9;
+          }
+        }
+        
+        .result-stats {
+          display: flex;
+          gap: 32px;
+          
+          .stat-item {
+            text-align: center;
+            
+            .stat-label {
+              display: block;
+              font-size: 0.85rem;
+              opacity: 0.9;
+              margin-bottom: 4px;
+              font-weight: 400;
+            }
+            
+            .stat-value {
+              display: block;
+              font-size: 1.5rem;
+              font-weight: 700;
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+      }
+      
+      .table-container {
+        padding: 32px;
+        
+        .table-wrapper {
+          overflow-x: auto;
+          border-radius: 16px;
+          box-shadow: var(--shadow-md);
+          margin-bottom: 24px;
+          
+          .modern-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-primary);
+            
+            thead {
+              tr {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                
+                th {
+                  padding: 20px 16px;
+                  text-align: left;
+                  font-weight: 600;
+                  color: var(--text-primary);
+                  font-size: 0.95rem;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                  border-bottom: 2px solid var(--border-medium);
+                  
+                  &:first-child {
+                    border-top-left-radius: 16px;
+                  }
+                  
+                  &:last-child {
+                    border-top-right-radius: 16px;
+                  }
+                }
+              }
+            }
+            
+            tbody {
+              .table-row {
+                transition: all 0.2s ease;
+                
+                &:hover {
+                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                  transform: scale(1.005);
+                }
+                
+                &:not(:last-child) {
+                  border-bottom: 1px solid var(--border-light);
+                }
+                
+                td {
+                  padding: 16px;
+                  color: var(--text-primary);
+                  font-size: 0.95rem;
+                  
+                  &.row-number {
+                    font-weight: 600;
+                    color: var(--text-muted);
+                    width: 60px;
+                  }
+                  
+                  &.bill-id {
+                    font-family: 'Monaco', 'Menlo', monospace;
+                    font-size: 0.9rem;
+                    color: var(--primary-color);
+                    font-weight: 500;
+                  }
+                  
+                  &.quantity {
+                    font-weight: 600;
+                    text-align: center;
+                  }
+                  
+                  &.price, &.total {
+                    font-weight: 600;
+                    text-align: right;
+                    color: var(--success-color);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        .total-summary {
+          display: flex;
+          justify-content: flex-end;
+          
+          .total-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px 32px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: var(--shadow-xl);
+            }
+            
+            .total-icon {
+              opacity: 0.9;
+            }
+            
+            .total-content {
+              text-align: right;
+              
+              .total-label {
+                display: block;
+                font-size: 0.9rem;
+                opacity: 0.9;
+                margin-bottom: 4px;
+                font-weight: 400;
+              }
+              
+              .total-amount {
+                display: block;
+                font-size: 1.75rem;
+                font-weight: 700;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              }
+            }
+          }
+        }
+      }
+      
+      .empty-state {
+        padding: 80px 32px;
+        text-align: center;
+        
+        .empty-icon {
+          margin: 0 auto 24px;
+          width: 80px;
+          height: 80px;
+          background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+        }
+        
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        
+        p {
+          margin: 0;
+          color: var(--text-secondary);
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 768px) {
+    padding: 0 16px;
+    
+    .revenue-header {
+      padding: 24px 0 20px;
+      
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+        
+        .header-icon {
+          width: 56px;
+          height: 56px;
+        }
+        
+        .header-text {
+          h2 {
+            font-size: 2rem;
+          }
+          
+          p {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+    
+    .filter-section {
+      .filter-card {
+        padding: 20px;
+        border-radius: 16px;
+        
+        .filter-content {
+          .date-picker-group {
+            .date-picker-wrapper {
+              max-width: 100%;
+            }
+          }
+        }
+      }
+    }
+    
+    .result-section {
+      .result-card {
+        border-radius: 20px;
+        
+        .result-header {
+          padding: 24px 20px;
+          flex-direction: column;
+          text-align: center;
+          
+          .result-title {
+            h3 {
+              font-size: 1.5rem;
+            }
+          }
+          
+          .result-stats {
+            gap: 24px;
+            
+            .stat-item {
+              .stat-value {
+                font-size: 1.25rem;
+              }
+            }
+          }
+        }
+        
+        .table-container {
+          padding: 20px;
+          
+          .table-wrapper {
+            .modern-table {
+              font-size: 0.85rem;
+              
+              thead th {
+                padding: 16px 12px;
+                font-size: 0.8rem;
+              }
+              
+              tbody td {
+                padding: 12px 8px;
+                font-size: 0.85rem;
+              }
+            }
+          }
+          
+          .total-summary {
+            .total-card {
+              padding: 20px 24px;
+              
+              .total-content {
+                .total-amount {
+                  font-size: 1.5rem;
+                }
+              }
+            }
+          }
+        }
+        
+        .empty-state {
+          padding: 60px 20px;
+          
+          .empty-icon {
+            width: 64px;
+            height: 64px;
+          }
+          
+          h4 {
+            font-size: 1.25rem;
+          }
+          
+          p {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 0 12px;
+    
+    .revenue-header {
+      .header-content {
+        .header-text {
+          h2 {
+            font-size: 1.75rem;
+          }
+        }
+      }
+    }
+    
+    .result-section {
+      .result-card {
+        .result-header {
+          .result-stats {
+            flex-direction: column;
+            gap: 16px;
+          }
+        }
+        
+        .table-container {
+          padding: 16px;
+          
+          .table-wrapper {
+            .modern-table {
+              thead th {
+                padding: 12px 8px;
+                font-size: 0.75rem;
+              }
+              
+              tbody td {
+                padding: 10px 6px;
+                font-size: 0.8rem;
+              }
+            }
+          }
+          
+          .total-summary {
+            .total-card {
+              padding: 16px 20px;
+              flex-direction: column;
+              text-align: center;
+              gap: 12px;
+              
+              .total-content {
+                text-align: center;
+                
+                .total-amount {
+                  font-size: 1.25rem;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Custom datepicker styles
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  font-family: inherit;
+}
+
+.react-datepicker__header {
+  background: var(--primary-gradient);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  color: white;
+  padding: 16px 0;
+}
+
+.react-datepicker__current-month {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.react-datepicker__navigation {
+  top: 18px;
+  
+  &:hover {
+    border-radius: 50%;
+  }
+}
+
+.react-datepicker__day {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--primary-color);
+    color: white;
+  }
+  
+  &--selected {
+    background: var(--primary-color) !important;
+    color: white !important;
+  }
+  
+  &--keyboard-selected {
+    background: var(--primary-color);
+    color: white;
   }
 }

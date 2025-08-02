@@ -16,53 +16,53 @@ const emptyCustomer = {
 };
 
 const CustomerManagement = () => {
-  const [customers, setCustomers]   = useState([]);
-  const [addresses, setAddresses]   = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [addresses, setAddresses] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [showForm, setShowForm]     = useState(false);
-  const [formData, setFormData]     = useState(emptyCustomer);
-  const [editingId, setEditingId]   = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState(emptyCustomer);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     fetchAll();
   }, []);
 
-    // ✨ hàm xuất Excel
-    const exportToExcel = async () => {
+  // ✨ hàm xuất Excel
+  const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Khách hàng');
 
-      // Header
-      sheet.addRow(['#', 'Tên', 'Email', 'SĐT', 'Địa chỉ', 'Trạng thái']);
-      sheet.getRow(1).font = { bold: true };
-  
-      // Dữ liệu
-      customers.forEach((c, i) => {
-        sheet.addRow([
-          i + 1,
-          c.name,
-          c.email,
-          c.phone,
-          lookupAddress(c.address_id),
-          c.is_lock ? 'Đã khóa' : 'Hoạt động'
-        ]);
+    // Header
+    sheet.addRow(['#', 'Tên', 'Email', 'SĐT', 'Địa chỉ', 'Trạng thái']);
+    sheet.getRow(1).font = { bold: true };
+
+    // Dữ liệu
+    customers.forEach((c, i) => {
+      sheet.addRow([
+        i + 1,
+        c.name,
+        c.email,
+        c.phone,
+        lookupAddress(c.address_id),
+        c.is_lock ? 'Đã khóa' : 'Hoạt động'
+      ]);
+    });
+
+    // Tự động co cột
+    sheet.columns.forEach(col => {
+      let maxLen = 10;
+      col.eachCell(cell => {
+        const v = cell.value?.toString() || '';
+        if (v.length > maxLen) maxLen = v.length;
       });
-    
-      // Tự động co cột
-      sheet.columns.forEach(col => {
-        let maxLen = 10;
-        col.eachCell(cell => {
-          const v = cell.value?.toString() || '';
-          if (v.length > maxLen) maxLen = v.length;
-        });
-        col.width = maxLen + 2;
-      });
-    
-      // Xuất file
-      const buf = await workbook.xlsx.writeBuffer();
-      saveAs(new Blob([buf]), `KhachHang_${new Date().toISOString().slice(0,10)}.xlsx`);
-    };
+      col.width = maxLen + 2;
+    });
+
+    // Xuất file
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `KhachHang_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
 
   const fetchAll = () => {
     api.get('/users').then(r => setCustomers(r.data.data));
@@ -98,13 +98,14 @@ const CustomerManagement = () => {
     setFormData(emptyCustomer);
     setShowForm(true);
   };
+  
   const handleEdit = c => {
     setEditingId(c._id);
     setFormData({
-      name:       c.name,
-      email:      c.email,
-      phone:      c.phone,
-      is_lock:    c.is_lock,
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      is_lock: c.is_lock,
       address_id: c.address_id || ''
     });
     setShowForm(true);
@@ -137,108 +138,140 @@ const CustomerManagement = () => {
       <h2>Quản lý khách hàng</h2>
 
       <div className="top-bar">
-        <input
-          type="text"
-          placeholder="Tìm khách hàng..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-        />
-          <button onClick={handleAdd}>+ Thêm khách hàng</button>
-          <button onClick={exportToExcel}>Xuất Excel</button>
+        <div className="search-container">
+          <div className="search-icon">🔍</div>
+          <input
+            type="text"
+            placeholder="Tìm kiếm khách hàng..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="action-buttons">
+          <button className="btn-primary" onClick={handleAdd}>
+            ➕ Thêm khách hàng
+          </button>
+          <button className="btn-success" onClick={exportToExcel}>
+            📊 Xuất Excel
+          </button>
+        </div>
       </div>
 
       {showForm && (
         <div className="modal-overlay">
-        <div className="modal-box">
-        <form className="customer-form" onSubmit={handleSubmit}>
-          <h3>{editingId ? 'Sửa khách hàng' : 'Thêm khách hàng'}</h3>
-          <div className="form-row">
-            <label>Tên:</label>
-            <input required
-              value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
-            />
+          <div className="modal-box">
+            <form className="customer-form" onSubmit={handleSubmit}>
+              <h3>{editingId ? '✏️ Sửa khách hàng' : '➕ Thêm khách hàng'}</h3>
+              
+              <div className="form-row">
+                <label>👤 Tên:</label>
+                <input required
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  placeholder="Nhập tên khách hàng"
+                />
+              </div>
+              
+              <div className="form-row">
+                <label>📧 Email:</label>
+                <input type="email" required
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  placeholder="Nhập email"
+                />
+              </div>
+              
+              <div className="form-row">
+                <label>📱 Phone:</label>
+                <input required
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+              
+              <div className="form-row">
+                <label>🏠 Địa chỉ:</label>
+                <select required
+                  value={formData.address_id}
+                  onChange={e => setFormData({...formData, address_id: e.target.value})}
+                >
+                  <option value="">--Chọn địa chỉ--</option>
+                  {addresses.map(a => (
+                    <option key={a._id} value={a._id}>
+                      {`${a.street}, ${a.ward}, ${a.district}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-row checkbox-row">
+                <label>🔒 Khóa tài khoản:</label>
+                <input
+                  type="checkbox"
+                  checked={formData.is_lock}
+                  onChange={e => setFormData({...formData, is_lock: e.target.checked})}
+                />
+              </div>
+              
+              <div className="form-actions">
+                <button type="submit">
+                  {editingId ? '💾 Lưu' : '✅ Tạo'}
+                </button>
+                <button type="button" onClick={() => setShowForm(false)}>
+                  ❌ Hủy
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="form-row">
-            <label>Email:</label>
-            <input type="email" required
-              value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-          <div className="form-row">
-            <label>Phone:</label>
-            <input required
-              value={formData.phone}
-              onChange={e => setFormData({...formData, phone: e.target.value})}
-            />
-          </div>
-          <div className="form-row">
-            <label>Địa chỉ:</label>
-            <select required
-              value={formData.address_id}
-              onChange={e => setFormData({...formData, address_id: e.target.value})}
-            >
-              <option value="">--Chọn địa chỉ--</option>
-              {addresses.map(a => (
-                <option key={a._id} value={a._id}>
-                  {`${a.street}, ${a.ward}, ${a.district}`}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-row checkbox-row">
-            <label>Khóa tài khoản:</label>
-            <input
-              type="checkbox"
-              checked={formData.is_lock}
-              onChange={e => setFormData({...formData, is_lock: e.target.checked})}
-            />
-          </div>
-          <div className="form-actions">
-            <button type="submit">{editingId ? 'Lưu' : 'Tạo'}</button>
-            <button type="button" onClick={() => setShowForm(false)}>Hủy</button>
-          </div>
-        </form>
-            </div>
-          </div>
-        )}
+        </div>
+      )}
 
       <div className="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Name</th><th>Email</th>
-              <th>Phone</th><th>Địa chỉ</th><th>Trạng thái</th><th>Hành động</th>
+              <th>#</th>
+              <th>👤 Name</th>
+              <th>📧 Email</th>
+              <th>📱 Phone</th>
+              <th>🏠 Địa chỉ</th>
+              <th>📊 Trạng thái</th>
+              <th>⚙️ Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c,i) => (
-              <tr key={c._id}>
-                <td>{i+1}</td>
-                <td>{c.name}</td>
-                <td>{c.email}</td>
-                <td>{c.phone}</td>
-                <td>{lookupAddress(c.address_id)}</td>
-                <td>
-                  {c.is_lock
-                    ? <span className="status-locked">Đã khóa</span>
-                    : <span className="status-active">Hoạt động</span>
-                  }
-                </td>
-                <td>
-                  <button onClick={() => handleEdit(c)}>Sửa</button>
-                  <button onClick={() => handleDelete(c._id)}>Xóa</button>
-                  {/* Nút khóa / mở khóa */}
-                  {c.is_lock
-                    ? <button onClick={() => handleUnlock(c._id)}>Mở khóa</button>
-                    : <button onClick={() => handleLock(c._id)}>Khóa</button>
-                  }
+            {filtered.length > 0 ? (
+              filtered.map((c, i) => (
+                <tr key={c._id}>
+                  <td>{i + 1}</td>
+                  <td>{c.name}</td>
+                  <td>{c.email}</td>
+                  <td>{c.phone}</td>
+                  <td>{lookupAddress(c.address_id)}</td>
+                  <td>
+                    {c.is_lock
+                      ? <span className="status-locked">Đã khóa</span>
+                      : <span className="status-active">Hoạt động</span>
+                    }
+                  </td>
+                  <td>
+                    <button onClick={() => handleEdit(c)}>✏️ Sửa</button>
+                    <button onClick={() => handleDelete(c._id)}>🗑️ Xóa</button>
+                    {/* Nút khóa / mở khóa */}
+                    {c.is_lock
+                      ? <button onClick={() => handleUnlock(c._id)}>🔓 Mở khóa</button>
+                      : <button onClick={() => handleLock(c._id)}>🔒 Khóa</button>
+                    }
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="empty-state">
+                  Không tìm thấy dữ liệu khách hàng
                 </td>
               </tr>
-            ))}
-            {filtered.length===0 && (
-              <tr><td colSpan="7">Không tìm thấy dữ liệu.</td></tr>
             )}
           </tbody>
         </table>

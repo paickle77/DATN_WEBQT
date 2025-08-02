@@ -37,14 +37,6 @@ const DashboardCards = () => {
   }, []);
 
   const cards = [
-    // {
-    //   key: 'employees',
-    //   count: employees.length,
-    //   label: 'Nhân viên',
-    //   color: 'blue',
-    //   columns: ['name','email','phone'],
-    //   icon: <FaUserTie />
-    // },
     {
       key: 'accounts',
       count: employees.length,
@@ -84,16 +76,17 @@ const DashboardCards = () => {
       color: 'purple',
       icon: <FaFileExcel />
     },
-    // {
-    //   key: 'salary',
-    //   count: '',
-    //   label: 'Bảng lương',
-    //   color: 'green',
-    //   icon: <FaMoneyBillWave />
-    // },
   ];
 
   const dataMap = { employees, branches, accounts: employees, lockedUsers, vouchers };
+
+  const handleCardClick = (card) => {
+    if (card.key === 'excel') {
+      navigate(ENUM_PAGE.StatisticReport);
+    } else {
+      setActiveList(card.key);
+    }
+  };
 
   return (
     <div className="dashboard-wrapper">
@@ -102,13 +95,7 @@ const DashboardCards = () => {
           <div
             key={card.key}
             className={`card ${card.color}`}
-            onClick={() => {
-              if (card.key === 'excel') {
-                navigate(ENUM_PAGE.StatisticReport);
-              } else {
-                setActiveList(card.key);
-              }
-            }}
+            onClick={() => handleCardClick(card)}
           >
             <div className="card-icon">{card.icon}</div>
             {card.count !== '' && <div className="count">{card.count}</div>}
@@ -127,7 +114,15 @@ const DashboardCards = () => {
       {/* Hiển thị bảng chỉ với các card có columns */}
       {activeList && cards.find(c => c.key === activeList)?.columns && (
         <div className="list-container">
-          <h3>Dữ liệu: {cards.find(c => c.key === activeList).label}</h3>
+          <div className="list-header">
+            <h3>Dữ liệu: {cards.find(c => c.key === activeList).label}</h3>
+            <button 
+              className="close-btn"
+              onClick={() => setActiveList(null)}
+            >
+              ✕
+            </button>
+          </div>
           <table>
             <thead>
               <tr>

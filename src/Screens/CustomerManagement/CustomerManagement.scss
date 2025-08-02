@@ -1,161 +1,571 @@
-/* src/Screens/CustomerManagement/CustomerManagement.scss */
+// Variables
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ef4444;
+$info-color: #3b82f6;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-light: #9ca3af;
+$bg-primary: #ffffff;
+$bg-secondary: #f8fafc;
+$bg-light: #f1f5f9;
+$border-color: #e2e8f0;
+$border-light: #f1f5f9;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// Animations
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Main container
 .customer-management {
-  padding: 20px;
-  background: #f5f5f5;
+  padding: 2rem;
+  background: $bg-light;
   min-height: 100vh;
+  animation: fadeIn 0.5s ease-out;
 
   h2 {
     text-align: center;
-    margin-bottom: 20px;
-    color: #333;
+    margin-bottom: 2.5rem;
+    color: $text-primary;
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(135deg, $primary-color, $secondary-color);
+      border-radius: 2px;
+    }
   }
 
+  // Top bar with search and actions
   .top-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: $bg-primary;
+    border-radius: 16px;
+    box-shadow: $shadow-md;
+    animation: slideDown 0.6s ease-out;
 
-    input {
+    .search-container {
+      position: relative;
       flex: 1;
-      padding: 8px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      min-width: 250px;
+
+      input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 3rem;
+        font-size: 0.95rem;
+        border: 2px solid $border-color;
+        border-radius: 12px;
+        background: $bg-secondary;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          background: $bg-primary;
+          transform: translateY(-1px);
+        }
+
+        &::placeholder {
+          color: $text-light;
+        }
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: $text-light;
+        font-size: 1.1rem;
+        transition: color 0.3s ease;
+      }
+
+      &:focus-within .search-icon {
+        color: $primary-color;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.75rem;
     }
 
     button {
-      padding: 8px 16px;
-      background-color: #1890ff;
-      color: #fff;
+      padding: 0.875rem 1.5rem;
       border: none;
-      border-radius: 4px;
+      border-radius: 12px;
       font-weight: 600;
+      font-size: 0.95rem;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
 
-      &:hover { background-color: #096dd9; }
+      &.btn-primary {
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        color: white;
+        box-shadow: $shadow-sm;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: $shadow-lg;
+        }
+      }
+
+      &.btn-success {
+        background: linear-gradient(135deg, $success-color, #059669);
+        color: white;
+        box-shadow: $shadow-sm;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: $shadow-lg;
+        }
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+      }
+
+      &:hover::before {
+        left: 100%;
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
     }
   }
 
+  // Customer form (modal)
   .customer-form {
-    background: #fff;
-    padding: 20px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    background: $bg-primary;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: $shadow-xl;
+    margin-bottom: 2rem;
 
     h3 {
-      margin-bottom: 15px;
-      color: #444;
+      margin-bottom: 1.5rem;
+      color: $text-primary;
+      font-size: 1.5rem;
+      font-weight: 600;
+      text-align: center;
     }
 
     .form-row {
       display: flex;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 1.25rem;
 
       label {
         width: 120px;
         font-weight: 600;
+        color: $text-primary;
+        font-size: 0.95rem;
       }
 
       input, select {
         flex: 1;
-        padding: 6px 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        padding: 0.75rem 1rem;
+        border: 2px solid $border-color;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        background: $bg-secondary;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          background: $bg-primary;
+        }
+      }
+
+      &.checkbox-row {
+        align-items: center;
+
+        input[type="checkbox"] {
+          flex: none;
+          width: 20px;
+          height: 20px;
+          margin-left: 1rem;
+          cursor: pointer;
+          accent-color: $primary-color;
+        }
       }
     }
 
     .form-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 1rem;
+      margin-top: 2rem;
 
       button {
-        padding: 6px 14px;
+        padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
-        font-weight: 500;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
 
-        &:first-child {
-          background: #52c41a;
-          color: #fff;
+        &[type="submit"] {
+          background: linear-gradient(135deg, $success-color, #059669);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
         }
-        &:last-child {
-          background: #f5222d;
-          color: #fff;
+
+        &[type="button"] {
+          background: linear-gradient(135deg, $danger-color, #dc2626);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
         }
       }
     }
   }
 
+  // Table wrapper
   .table-wrapper {
-    overflow-x: auto;
+    background: $bg-primary;
+    border-radius: 16px;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+    animation: slideUp 0.7s ease-out;
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
 
       th, td {
-        border: 1px solid #e8e8e8;
-        padding: 10px;
+        padding: 1rem;
         text-align: center;
-        font-size: 14px;
+        font-size: 0.9rem;
+        border-bottom: 1px solid $border-light;
       }
 
       th {
-        background: #fafafa;
-        font-weight: 600;
+        background: linear-gradient(135deg, $bg-secondary, $bg-light);
+        font-weight: 700;
+        color: $text-primary;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
       }
 
-      tbody tr:hover {
-        background: #f0f7ff;
+      tbody {
+        tr {
+          transition: all 0.3s ease;
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            transform: scale(1.01);
+          }
+
+          &:last-child td {
+            border-bottom: none;
+          }
+        }
+
+        td {
+          color: $text-secondary;
+          font-weight: 500;
+
+          .status-active {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, $success-color, #059669);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+
+            &::before {
+              content: '●';
+              margin-right: 0.5rem;
+              animation: pulse 2s infinite;
+            }
+          }
+
+          .status-locked {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, $danger-color, #dc2626);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+
+            &::before {
+              content: '🔒';
+              margin-right: 0.5rem;
+            }
+          }
+        }
       }
 
+      // Action buttons
       button {
-        margin: 0 4px;
-        padding: 4px 8px;
-        font-size: 12px;
+        margin: 0 0.25rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
         border: none;
-        border-radius: 3px;
+        border-radius: 6px;
         cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
 
         &:first-of-type {
-          background: #1890ff;
-          color: #fff;
+          background: linear-gradient(135deg, $info-color, #2563eb);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
         }
+
+        &:nth-of-type(2) {
+          background: linear-gradient(135deg, $danger-color, #dc2626);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
+        }
+
         &:last-of-type {
-          background: #f5222d;
-          color: #fff;
+          background: linear-gradient(135deg, $warning-color, #d97706);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
         }
+      }
+    }
+
+    // Empty state
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: $text-light;
+      font-size: 1.1rem;
+
+      &::before {
+        content: '📋';
+        display: block;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
       }
     }
   }
 
-  /* ─── Modal chung ─── */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 60px;   /* đẩy modal-box xuống 60px */
-  z-index: 1000;
-}
-.modal-box {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  width: 100%;
-  max-width: 600px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  // Modal overlay
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 5vh;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+
+    .modal-box {
+      background: $bg-primary;
+      border-radius: 20px;
+      padding: 0;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: $shadow-xl;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      animation: scaleIn 0.3s ease-out;
+
+      // Custom scrollbar
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: $bg-light;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: $primary-color;
+        border-radius: 3px;
+      }
+    }
+  }
 }
 
+// Responsive design
+@media (max-width: 1024px) {
+  .customer-management {
+    padding: 1rem;
+
+    .top-bar {
+      flex-direction: column;
+      align-items: stretch;
+
+      .search-container {
+        min-width: 100%;
+      }
+
+      .action-buttons {
+        justify-content: center;
+      }
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-management {
+    h2 {
+      font-size: 2rem;
+    }
+
+    .customer-form {
+      .form-row {
+        flex-direction: column;
+        align-items: stretch;
+
+        label {
+          width: 100%;
+          margin-bottom: 0.5rem;
+        }
+
+        &.checkbox-row {
+          flex-direction: row;
+          align-items: center;
+
+          label {
+            width: auto;
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+
+    .table-wrapper table {
+      font-size: 0.8rem;
+
+      th, td {
+        padding: 0.5rem;
+      }
+
+      button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+        margin: 0.1rem;
+      }
+    }
+  }
+}
+
+// Pulse animation for status indicator
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
