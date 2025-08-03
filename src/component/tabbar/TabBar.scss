@@ -1,4 +1,4 @@
-// TabBar.scss - Modern Design
+// TabBar.scss - Cập nhật cho layout 3 phần tử
 .tab-bar {
   display: flex;
   justify-content: space-between;
@@ -39,6 +39,7 @@
     z-index: 3;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(102, 126, 234, 0.1);
+    animation: float 4s ease-in-out infinite;
 
     &:hover {
       transform: translateX(-50%) translateY(-20%) scale(1.05);
@@ -122,7 +123,7 @@
       transform: translateY(-1px) scale(0.98);
     }
 
-    // Special styling for different icons
+    // Special styling for home icon (first child)
     &:first-child {
       background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.08));
       
@@ -133,17 +134,67 @@
       }
     }
 
-    &:last-child {
+    // Settings container with dropdown
+    &.settings-container {
       background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(142, 68, 173, 0.08));
       
       &:hover {
         color: #9b59b6;
         border-color: rgba(155, 89, 182, 0.3);
         box-shadow: 0 4px 12px rgba(155, 89, 182, 0.25);
+        
+        svg {
+          transform: scale(1.1) rotate(90deg);
+        }
+      }
+
+      .settings-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 12px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 12px;
+        box-shadow: 
+          0 10px 30px rgba(0, 0, 0, 0.15),
+          0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+        animation: dropdownSlideIn 0.3s ease-out;
+        z-index: 1000;
+        min-width: 160px;
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          color: #374151;
+          font-weight: 500;
+
+          &:hover {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+            color: #dc2626;
+            transform: translateX(4px);
+          }
+
+          .dropdown-icon {
+            font-size: 1.1rem;
+          }
+
+          .dropdown-text {
+            font-size: 0.9rem;
+          }
+        }
       }
     }
   }
-}
+
+  }
+
 
 // Background pattern animation
 @keyframes movePattern {
@@ -165,8 +216,16 @@
   }
 }
 
-.tab-logo {
-  animation: float 4s ease-in-out infinite;
+// Dropdown slide in animation
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 // Responsive design
@@ -199,6 +258,13 @@
 
       &:hover {
         transform: translateY(-1px);
+      }
+
+      &.settings-container {
+        .settings-dropdown {
+          right: -20px;
+          min-width: 140px;
+        }
       }
     }
   }
@@ -234,6 +300,18 @@
       &::before {
         display: none; // Remove glow effect on small screens
       }
+
+      &.settings-container {
+        .settings-dropdown {
+          right: -30px;
+          min-width: 120px;
+
+          .dropdown-item {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+          }
+        }
+      }
     }
   }
 }
@@ -260,6 +338,22 @@
         color: #e2e8f0;
         background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.15));
       }
+
+      &.settings-container {
+        .settings-dropdown {
+          background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+          border-color: rgba(255, 255, 255, 0.1);
+
+          .dropdown-item {
+            color: #e2e8f0;
+
+            &:hover {
+              background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+              color: #fca5a5;
+            }
+          }
+        }
+      }
     }
   }
-} 
+}

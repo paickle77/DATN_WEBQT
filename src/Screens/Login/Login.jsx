@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import './Login.scss';
 import { useNavigate } from 'react-router-dom';
+import { ENUM_PAGE } from '../../component/ENUM/enum.ts';
 import api from '../../utils/api';
 
 const LoginForm = () => {
@@ -9,6 +10,7 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,8 +21,8 @@ const LoginForm = () => {
       const token = res.data.data.token;
       // Lưu token để dùng cho các request sau
       localStorage.setItem('token', res.data.data.token);
-      // Điều hướng về Home
-      navigate('/home');
+      // Điều hướng về Home using ENUM_PAGE
+      navigate(ENUM_PAGE.Home, { replace: true });
     } catch (err) {
       // Hiển thị lỗi từ server (hoặc generic)
       const msg = err.response?.data?.error || 'Đăng nhập thất bại';
@@ -28,6 +30,10 @@ const LoginForm = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -49,12 +55,15 @@ const LoginForm = () => {
         <div className="input-group">
           <div className="input-icon">🔒</div>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Mật khẩu"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
           />
+          <div className="password-toggle" onClick={togglePasswordVisibility}>
+            {showPassword ? '👁️' : '👁️‍🗨️'}
+          </div>
         </div>
 
         <button type="submit" disabled={loading}>

@@ -26,7 +26,7 @@ import BranchManagement   from './Screens/BranchManagement/BranchManagement';
 import LogManagement       from './Screens/LogManagement/LogManagement';
 import NotificationManagement from './Screens/NotificationManagement/NotificationManagement';
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
 
 // Import PrivateRoute từ folder component
@@ -39,6 +39,16 @@ root.render(
       <Routes>
         {/* Public route: Login */}
         <Route path={ENUM_PAGE.Login} element={<LoginForm />} />
+        
+        {/* Default route - redirect to login if no token, home if has token */}
+        <Route 
+          path="/" 
+          element={
+            localStorage.getItem('token') ? 
+              <Navigate to={ENUM_PAGE.Home} replace /> : 
+              <Navigate to={ENUM_PAGE.Login} replace />
+          } 
+        />
 
         {/* All other routes require authentication */}
         <Route
@@ -193,6 +203,9 @@ root.render(
             </PrivateRoute>
           }
         />
+
+        {/* Catch all route - redirect to login */}
+        <Route path="*" element={<Navigate to={ENUM_PAGE.Login} replace />} />
       </Routes>
     </Router>
   </React.StrictMode>
