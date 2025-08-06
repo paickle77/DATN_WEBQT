@@ -16,22 +16,19 @@ import {
 
 const DashboardCards = () => {
   const [employees, setEmployees] = useState([]);
-  const [branches, setBranches]   = useState([]);
-  const [vouchers, setVouchers]   = useState([]);
+  const [vouchers, setVouchers] = useState([]);
   const [lockedUsers, setLockedUsers] = useState([]);
-  const [activeList, setActiveList]   = useState(null);
+  const [activeList, setActiveList] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([
       api.get('/users'),
-      api.get('/branches'),
       api.get('/vouchers'),
-    ]).then(([uRes, bRes, vRes]) => {
+    ]).then(([uRes, vRes]) => {
       const allUsers = uRes.data.data;
       setEmployees(allUsers);
       setLockedUsers(allUsers.filter(u => u.is_lock));
-      setBranches(bRes.data.data);
       setVouchers(vRes.data.data);
     });
   }, []);
@@ -44,14 +41,6 @@ const DashboardCards = () => {
       color: 'blue',
       columns: ['name','email','phone'],
       icon: <FaUser />
-    },
-    {
-      key: 'branches',
-      count: branches.length,
-      label: 'Cơ sở',
-      color: 'orange',
-      columns: ['name','address','phone'],
-      icon: <FaWarehouse />
     },
     {
       key: 'lockedUsers',
@@ -78,7 +67,7 @@ const DashboardCards = () => {
     },
   ];
 
-  const dataMap = { employees, branches, accounts: employees, lockedUsers, vouchers };
+  const dataMap = { employees, accounts: employees, lockedUsers, vouchers };
 
   const handleCardClick = (card) => {
     if (card.key === 'excel') {

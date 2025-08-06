@@ -110,12 +110,6 @@ const Sidebar = () => {
       </div>
       <div
         className="sidebar-item"
-        onClick={() => navigate(ENUM_PAGE.BranchManagement)}
-      >
-        <FaBuilding /> <span>Quản lý chi nhánh</span>
-      </div>
-      <div
-        className="sidebar-item"
         onClick={() => navigate(ENUM_PAGE.NotificationManagement)}
       >
         <FaBell /> <span>Quản lý thông báo</span>

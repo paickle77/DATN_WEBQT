@@ -36,7 +36,7 @@ const Home = () => {
       .catch(console.error);
   }, []);
 
-  // Load KPI charts: bills, billdetails, suppliers
+  // Load KPI charts: bills, billdetails, suppliers -
   useEffect(() => {
     Promise.all([
       api.get('/bills'),

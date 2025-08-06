@@ -14,7 +14,6 @@ import RevenueByDate      from './Screens/Revenue/RevenueByDate.jsx';
 import RevenueByMonth     from './Screens/Revenue/RevenueByMonth.jsx';
 import RevenueByYear      from './Screens/Revenue/RevenueByYear.jsx';
 import ProductManagement  from './Screens/ProductManagement/ProductManagement';
-import OrderManagement    from './Screens/OrderManagement/BillManagement.jsx';
 import RefundManagement   from './Screens/RefundManagement/RefundManagement';
 import ShipmentManagement from './Screens/ShipmentManagement/ShipmentManagement';
 import CustomerManagement from './Screens/CustomerManagement/CustomerManagement';
@@ -22,7 +21,6 @@ import StatisticReport    from './Screens/StatisticReport/StatisticReport';
 import VoucherManagement  from './Screens/VoucherManagement/VoucherManagement';
 import VoucherUserManagement from './Screens/VoucherUserManagement/VoucherUserManagement';
 import SupplierManagement from './Screens/SupplierManagement/SupplierManagement.jsx';
-import BranchManagement   from './Screens/BranchManagement/BranchManagement';
 import LogManagement       from './Screens/LogManagement/LogManagement';
 import NotificationManagement from './Screens/NotificationManagement/NotificationManagement';
 
@@ -116,14 +114,6 @@ root.render(
           }
         />
         <Route
-          path={ENUM_PAGE.OrderManagement}
-          element={
-            <PrivateRoute>
-              <OrderManagement />
-            </PrivateRoute>
-          }
-        />
-        <Route
           path={ENUM_PAGE.RefundManagement}
           element={
             <PrivateRoute>
@@ -176,14 +166,6 @@ root.render(
           element={
             <PrivateRoute>
               <SupplierManagement />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path={ENUM_PAGE.BranchManagement}
-          element={
-            <PrivateRoute>
-              <BranchManagement />
             </PrivateRoute>
           }
         />

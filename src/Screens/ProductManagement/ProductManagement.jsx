@@ -22,14 +22,14 @@ const defaultSizesMap = {
   ]
 };
 
-// Form mặc định - đã thay ingredient_ids thành supplier_id và thêm các trường mới
+// ✅ Form mặc định - Đã xóa branch_id vì không còn cần
 const emptyForm = {
   name: '',
   description: '',
   price: 0,
   discount_price: 0,
   image_url: '',
-  branch_id: '',
+  // ❌ Xóa: branch_id: '',
   category_id: '',
   sizes: [],
   supplier_id: '',        // Thay đổi từ ingredient_ids
@@ -44,7 +44,6 @@ const ProductManagement = () => {
   const [productsRaw, setProductsRaw] = useState([]);
   const [sizesData, setSizesData] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [branches, setBranches] = useState([]);
   const [suppliers, setSuppliers] = useState([]); // Thay đổi từ ingredients
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -69,9 +68,7 @@ const ProductManagement = () => {
     api.get('/categories')
        .then(r => setCategories(r.data.data))
        .catch(console.error);
-    api.get('/branches')
-       .then(r => setBranches(r.data.data))
-       .catch(console.error);
+
     // Sửa để lấy suppliers hoạt động
     api.get('/suppliers/active')
        .then(r => setSuppliers(r.data.data))
@@ -150,7 +147,7 @@ const ProductManagement = () => {
       price: p.price,
       discount_price: p.discount_price,
       image_url: p.image_url,
-      branch_id: p.branch_id,
+      // ❌ Xóa: branch_id: p.branch_id,
       category_id: p.category_id,
       sizes: currentSizes.length ? currentSizes : emptyForm.sizes,
       supplier_id: p.supplier_id || '',     // Thay đổi
@@ -309,18 +306,6 @@ const ProductManagement = () => {
                         value={formData.sku}
                         onChange={e => setFormData({ ...formData, sku: e.target.value })}
                       />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Chi nhánh *</label>
-                      <select
-                        required
-                        value={formData.branch_id}
-                        onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
-                      >
-                        <option value="">Chọn chi nhánh</option>
-                        {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-                      </select>
                     </div>
 
                     <div className="form-group">
