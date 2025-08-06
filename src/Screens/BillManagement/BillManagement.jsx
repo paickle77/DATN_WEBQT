@@ -147,9 +147,9 @@ const BillManagement = () => {
       return { data: { data: [] }, error: 'no-address-endpoint' };
     };
 
-    // Danh sách API calls chính
+    // Danh sách API calls chính - SỬA ĐỔI: Sử dụng endpoint có populate
     const apiCalls = [
-      api.get('/bills').catch(err => ({ data: { data: [] }, error: 'bills', details: err })),
+      api.get('/GetAllBills').catch(err => ({ data: { data: [] }, error: 'bills', details: err })), // 🔥 SỬA: Dùng GetAllBills có populate
       api.get('/users').catch(err => ({ data: { data: [] }, error: 'users', details: err })),
       api.get('/vouchers').catch(err => ({ data: { data: [] }, error: 'vouchers', details: err })),
       api.get('/shippers').catch(err => ({ data: { data: [] }, error: 'shippers', details: err }))
@@ -168,9 +168,17 @@ const BillManagement = () => {
       console.log('🚚 Shippers:', shippersRes.error ? 'ERROR' : 'OK', shippersRes.data.data?.length || 0);
       console.log('📍 Addresses:', addressesRes.error ? 'ERROR' : 'OK', addressesRes.data.data?.length || 0);
       
+      // 🔥 SỬA ĐỔI: Debug logs để kiểm tra dữ liệu
+      const billData = billsRes.data.data || [];
+      const userData = usersRes.data.data || [];
+      const shipperData = shippersRes.data.data || [];
+      
+      console.log('🔍 Sample bill data:', billData[0]);
+      console.log('🔍 Sample user data:', userData[0]);
+      console.log('🔍 Sample shipper data:', shipperData[0]);
+      
       // 🔥 GIẢI PHÁP: Nếu không có endpoint addresses, extract từ bills
       let addressData = addressesRes.data.data || [];
-      const billData = billsRes.data.data || [];
       
       if (addressData.length === 0 && billData.length > 0) {
         console.log('🔧 Extracting addresses from bills...');
@@ -201,9 +209,9 @@ const BillManagement = () => {
 
       // Cập nhật state
       setBills(billData);
-      setUsers(usersRes.data.data || []);
+      setUsers(userData);
       setVouchers(vouchersRes.data.data || []);
-      setShippers(shippersRes.data.data || []);
+      setShippers(shipperData);
       setAddresses(addressData);
 
       // Kiểm tra lỗi quan trọng
@@ -234,17 +242,50 @@ const BillManagement = () => {
     });
   }
 
-    // ✅ Cải thiện lookup functions để handle missing data tốt hơn
-    const lookupUser = id => {
-      if (!id || !users.length) return 'Khách hàng không rõ';
-      const user = users.find(u => u._id === id.toString());
-      return user ? (user.full_name || user.name || user.username || 'Khách hàng không rõ') : 'Khách hàng không rõ';
-    };
-  const lookupAddress = id => {
-    if (!id || !addresses.length) return 'Chưa có địa chỉ giao hàng';
+  // ✅ SỬA CHÍNH: Cải thiện lookup functions để handle missing data và populated data
+  const lookupUser = (bill) => {
+    // 🔥 KIỂM TRA: Nếu bill đã có populated user_id
+    if (bill.user_id && typeof bill.user_id === 'object' && bill.user_id.full_name) {
+      return bill.user_id.full_name || bill.user_id.name || bill.user_id.username || 'Khách hàng không rõ';
+    }
     
-    const address = addresses.find(x => x._id === id);
-    if (!address) return `Địa chỉ ID: ${id.slice(-8)}`;
+    // 🔥 FALLBACK: Nếu chưa populate, tìm trong users array
+    if (!bill.user_id || !users.length) return 'Khách hàng không rõ';
+    
+    const userId = typeof bill.user_id === 'object' ? bill.user_id._id : bill.user_id;
+    const user = users.find(u => u._id === userId.toString());
+    
+    if (!user) {
+      console.warn(`⚠️ User not found for ID: ${userId}`);
+      return `User ID: ${userId.toString().slice(-8)}`; // Hiển thị ID cuối để debug
+    }
+    
+    return user.full_name || user.name || user.username || 'Khách hàng không rõ';
+  };
+
+  const lookupAddress = (bill) => {
+    // 🔥 KIỂM TRA: Nếu bill đã có populated address_id
+    if (bill.address_id && typeof bill.address_id === 'object') {
+      const addr = bill.address_id;
+      if (addr.full_address) return addr.full_address;
+      
+      const parts = [
+        addr.detail_address || addr.address || addr.street,
+        addr.ward || addr.ward_name,
+        addr.district || addr.district_name, 
+        addr.city || addr.province || addr.province_name
+      ].filter(Boolean);
+      
+      return parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
+    }
+    
+    // 🔥 FALLBACK: Tìm trong addresses array
+    if (!bill.address_id || !addresses.length) return 'Chưa có địa chỉ giao hàng';
+    
+    const addressId = typeof bill.address_id === 'object' ? bill.address_id._id : bill.address_id;
+    const address = addresses.find(x => x._id === addressId);
+    
+    if (!address) return `Địa chỉ ID: ${addressId.toString().slice(-8)}`;
     
     // Nếu có full_address (từ bills)
     if (address.full_address) {
@@ -262,12 +303,12 @@ const BillManagement = () => {
     return parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
   };
 
-    const lookupVoucher = bill => {
-      if (!bill.voucher_code && !bill.voucher_id) return '—';
-      if (bill.voucher_code) return bill.voucher_code; // Ưu tiên voucher_code từ bill
-      const voucher = vouchers.find(v => v._id === bill.voucher_id);
-      return voucher?.code || '—';
-    };
+  const lookupVoucher = bill => {
+    if (!bill.voucher_code && !bill.voucher_id) return '—';
+    if (bill.voucher_code) return bill.voucher_code; // Ưu tiên voucher_code từ bill
+    const voucher = vouchers.find(v => v._id === bill.voucher_id);
+    return voucher?.code || '—';
+  };
 
   // Filter hóa đơn
   const filtered = bills.filter(bill => {
@@ -277,7 +318,7 @@ const BillManagement = () => {
     }
     // Tìm theo tên khách hàng hoặc ID hóa đơn
     if (searchTerm) {
-      const customerName = lookupUser(bill.user_id).toLowerCase();
+      const customerName = lookupUser(bill).toLowerCase();
       const billId = (bill._id || '').toLowerCase();
       const searchLower = searchTerm.toLowerCase();
       if (!customerName.includes(searchLower) && !billId.includes(searchLower)) {
@@ -316,7 +357,7 @@ const BillManagement = () => {
     }
   };
 
-  // Gán shipper và chuyển sang shipping
+  // 🔥 SỬA CHÍNH: Gán shipper và chuyển sang shipping - Đảm bảo lưu đúng field
   const assignShipperAndStartShipping = async (billId, shipperId) => {
     try {
       // 1. Thử tạo shipment (có thể endpoint này chưa có)
@@ -336,12 +377,12 @@ const BillManagement = () => {
         // Tiếp tục mà không dừng lại
       }
 
-      // 2. Cập nhật trạng thái hóa đơn sang shipping
+      // 2. 🔥 SỬA CHÍNH: Cập nhật cả shipper_id VÀ assigned_shipper để đảm bảo tương thích
       await api.put(`/bills/${billId}`, { 
         status: BILL_STATUS.SHIPPING,
-        assigned_shipper: shipperId
+        shipper_id: shipperId,      // 🔥 THÊM: Lưu vào shipper_id
+        assigned_shipper: shipperId  // 🔥 GIỮ: Lưu vào assigned_shipper
       });
-      fetchAll();
 
       alert('🚚 Đã gán shipper và bắt đầu giao hàng thành công!');
       setShowShipperModal(false);
@@ -400,9 +441,9 @@ const BillManagement = () => {
       const discountAmount = Math.round(subtotal * discountPercent / 100);
       const finalTotal = subtotal - discountAmount;
       
-      const userName = lookupUser(billData.user_id);
-      const addressStr = lookupAddress(billData.address_id);
-      const voucherCode = lookupVoucher(billData.voucher_id);
+      const userName = lookupUser(billData);
+      const addressStr = lookupAddress(billData);
+      const voucherCode = lookupVoucher(billData);
 
       setCurrentBill({
         ...billData,
@@ -446,9 +487,9 @@ const BillManagement = () => {
       const v = vouchers.find(v => v._id === bill.voucher_id);
       const discountAmount = Math.round(subtotal * ((Number(v?.discount_percent) || 0) / 100));
       const finalTotal = subtotal - discountAmount;
-      const customer = lookupUser(bill.user_id);
-      const addressText = lookupAddress(bill.address_id);
-      const voucherCode = lookupVoucher(bill.voucher_id);
+      const customer = lookupUser(bill);
+      const addressText = lookupAddress(bill);
+      const voucherCode = lookupVoucher(bill);
 
       const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
       doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
@@ -596,15 +637,36 @@ const BillManagement = () => {
     return labels[status] || STATUS_LABELS[status];
   };
 
-      // Lấy tên shipper được gán
-    const getAssignedShipperName = (bill) => {
-      // Chỉ hiển thị tên shipper nếu trạng thái là 'shipping' hoặc 'done'
-      if (!bill.shipper_id || !shippers.length || (bill.status !== 'shipping' && bill.status !== 'done')) {
-        return '—';
-      }
-      const shipper = shippers.find(s => s._id.toString() === bill.shipper_id.toString());
-      return shipper?.full_name || shipper?.name || shipper?.username || '—';
-    };
+  // 🔥 SỬA CHÍNH: Lấy tên shipper được gán - FIX logic tìm kiếm shipper
+  const getAssignedShipperName = (bill) => {
+    // Chỉ hiển thị tên shipper nếu trạng thái là 'shipping' hoặc 'done'
+    if ((bill.status !== 'shipping' && bill.status !== 'done')) {
+      return '—';
+    }
+
+    // 🔥 KIỂM TRA: Nếu bill đã có populated shipper_id
+    if (bill.shipper_id && typeof bill.shipper_id === 'object' && bill.shipper_id.full_name) {
+      return bill.shipper_id.full_name || bill.shipper_id.name || bill.shipper_id.username || '—';
+    }
+
+    // 🔥 TÌM THEO: shipper_id hoặc assigned_shipper
+    const shipperId = bill.shipper_id || bill.assigned_shipper;
+    
+    if (!shipperId || !shippers.length) {
+      console.warn(`⚠️ No shipper ID found for bill ${bill._id}. shipper_id:`, bill.shipper_id, 'assigned_shipper:', bill.assigned_shipper);
+      return '—';
+    }
+
+    const shipperIdStr = typeof shipperId === 'object' ? shipperId._id : shipperId;
+    const shipper = shippers.find(s => s._id.toString() === shipperIdStr.toString());
+    
+    if (!shipper) {
+      console.warn(`⚠️ Shipper not found for ID: ${shipperIdStr}`);
+      return `Shipper ID: ${shipperIdStr.toString().slice(-8)}`; // Debug info
+    }
+    
+    return shipper.full_name || shipper.name || shipper.username || '—';
+  };
 
   // ✅ Thêm loading và error states
   if (loading) {
@@ -764,7 +826,7 @@ const BillManagement = () => {
                 <td className="row-number">{i + 1}</td>
                 <td className="customer-cell">
                   <div className="customer-info">
-                    <span className="customer-name">{lookupUser(bill.user_id)}</span>
+                    <span className="customer-name">{lookupUser(bill)}</span>
                     <span className="bill-id">#{(bill._id || '').slice(-8)}</span>
                   </div>
                 </td>
@@ -773,10 +835,10 @@ const BillManagement = () => {
                   <br />
                   <small>{bill.createdAt ? new Date(bill.createdAt).toLocaleTimeString('vi-VN') : ''}</small>
                 </td>
-                <td className="address-cell" title={lookupAddress(bill.address_id)}>
-                  {lookupAddress(bill.address_id).length > 50 
-                    ? lookupAddress(bill.address_id).substring(0, 50) + '...'
-                    : lookupAddress(bill.address_id)
+                <td className="address-cell" title={lookupAddress(bill)}>
+                  {lookupAddress(bill).length > 50 
+                    ? lookupAddress(bill).substring(0, 50) + '...'
+                    : lookupAddress(bill)
                   }
                 </td>
                 <td className="voucher-cell">{lookupVoucher(bill)}</td>
@@ -794,7 +856,7 @@ const BillManagement = () => {
                   </div>
                 </td>
                 <td className="shipper-cell">
-                  <span className={`shipper-name ${bill.assigned_shipper ? 'assigned' : 'unassigned'}`}>
+                  <span className={`shipper-name ${(bill.shipper_id || bill.assigned_shipper) ? 'assigned' : 'unassigned'}`}>
                     {getAssignedShipperName(bill)}
                   </span>
                 </td>
@@ -841,8 +903,8 @@ const BillManagement = () => {
             </div>
             <div className="modal-content">
               <div className="bill-info">
-                <p><strong>👤 Khách hàng:</strong> {lookupUser(selectedBill.user_id)}</p>
-                <p><strong>📍 Địa chỉ:</strong> {lookupAddress(selectedBill.address_id)}</p>
+                <p><strong>👤 Khách hàng:</strong> {lookupUser(selectedBill)}</p>
+                <p><strong>📍 Địa chỉ:</strong> {lookupAddress(selectedBill)}</p>
                 <p><strong>💰 Tổng tiền:</strong> {(Number(selectedBill.total) || 0).toLocaleString('vi-VN')} đ</p>
                 <p><strong>📊 Trạng thái:</strong> <span style={{ color: STATUS_COLORS[selectedBill.status] }}>📦 {STATUS_LABELS[selectedBill.status]}</span></p>
               </div>
