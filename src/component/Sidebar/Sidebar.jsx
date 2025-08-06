@@ -68,7 +68,7 @@ const Sidebar = () => {
       </div>
       <div
         className="sidebar-item"
-        onClick={() => navigate(ENUM_PAGE.OrderManagement)}
+        onClick={() => navigate(ENUM_PAGE.BillManagement)}
       >
         <FaShoppingCart /> <span>Quản lý đơn hàng</span>
       </div>
