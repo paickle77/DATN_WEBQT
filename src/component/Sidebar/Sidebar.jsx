@@ -19,6 +19,7 @@ import {
   FaCalendar,
   FaTruck,
   FaChevronDown,
+  FaUserTie, // Thêm icon cho shipper
 } from 'react-icons/fa';
 import { ENUM_PAGE } from '../ENUM/enum.ts';
 
@@ -83,6 +84,13 @@ const Sidebar = () => {
         onClick={() => navigate(ENUM_PAGE.ShipmentManagement)}
       >
         <FaTruck /> <span>Quản lý giao hàng</span>
+      </div>
+      {/* Thêm menu quản lý shipper */}
+      <div
+        className="sidebar-item"
+        onClick={() => navigate(ENUM_PAGE.ShipperManagement)}
+      >
+        <FaUserTie /> <span>Quản lý shipper</span>
       </div>
       <div
         className="sidebar-item"

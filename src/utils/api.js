@@ -2,48 +2,52 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3002/api',
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: 'http://localhost:3002/api', // Thay đổi port thành 3002 như trong file của bạn
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Request interceptor - thêm token vào header
+// Thêm token vào header nếu có
 api.interceptors.request.use(
-  config => {
+  (config) => {
     const token = localStorage.getItem('token');
     console.log('🔑 Request interceptor - Token:', token ? 'exists' : 'missing');
+    console.log('📡 API Request:', config.method?.toUpperCase(), config.url);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  error => {
+  (error) => {
     console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - xử lý lỗi và redirect
+// Xử lý response
 api.interceptors.response.use(
-  response => {
-    console.log('✅ API Response success:', response.config.url);
+  (response) => {
+    console.log('✅ API Response success:', response.config.url, response.status);
     return response;
   },
-  error => {
+  (error) => {
     console.error('❌ API Response error:', {
       status: error.response?.status,
+      statusText: error.response?.statusText,
       url: error.config?.url,
-      message: error.response?.data?.message || error.message
+      data: error.response?.data,
+      message: error.message
     });
     
-    // Nếu lỗi 401 (Unauthorized) - token hết hạn hoặc không hợp lệ
+    // Nếu token hết hạn, redirect về login
     if (error.response?.status === 401) {
       console.warn('🚨 Token expired or invalid - redirecting to login');
       localStorage.removeItem('token');
-      
-      // Redirect về login (tùy thuộc vào routing của bạn)
-      window.location.href = '/login';
-      // Hoặc nếu dùng React Router:
-      // window.location.pathname = '/login';
+      localStorage.removeItem('user');
+      window.location.href = '/';
     }
     
     return Promise.reject(error);

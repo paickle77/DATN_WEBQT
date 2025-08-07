@@ -24,6 +24,7 @@ import VoucherUserManagement from './Screens/VoucherUserManagement/VoucherUserMa
 import SupplierManagement from './Screens/SupplierManagement/SupplierManagement.jsx';
 import LogManagement       from './Screens/LogManagement/LogManagement';
 import NotificationManagement from './Screens/NotificationManagement/NotificationManagement';
+import ShipperManagement from './Screens/ShipperManagement/ShipperManagement.jsx';
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
@@ -151,6 +152,14 @@ root.render(
           element={
             <PrivateRoute>
               <CustomerManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path={ENUM_PAGE.ShipperManagement}
+          element={
+            <PrivateRoute>
+              <ShipperManagement />
             </PrivateRoute>
           }
         />

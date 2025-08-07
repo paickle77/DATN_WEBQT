@@ -1,4 +1,4 @@
-/* Enhanced Shipment Management Styles */
+/* ✅ Enhanced Shipment Management Styles - Chuyên biệt cho giao hàng */
 .shipment-management {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
@@ -42,7 +42,7 @@
       
       .subtitle {
         font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.8);
+        color: rgba(255, 255, 255, 0.85);
         margin: 0;
         font-weight: 400;
       }
@@ -129,7 +129,7 @@
       }
     }
 
-    // Quick Actions Section - Đơn hàng sẵn sàng giao
+    // ✅ Quick Actions Section - Đơn hàng sẵn sàng giao
     .quick-actions {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
@@ -222,7 +222,7 @@
       }
     }
 
-    // Filters Section
+    // ✅ Filters Section
     .filters-section {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
@@ -351,6 +351,7 @@
               
               &:hover {
                 background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.04));
+                transform: scale(1.01);
               }
               
               td {
@@ -366,20 +367,53 @@
                   width: 60px;
                 }
                 
+                // ✅ THAY ĐỔI: Style mới cho bill info với loại và tổng tiền
                 &.bill-info {
-                  .bill-label {
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    font-size: 0.85rem;
-                    letter-spacing: 0.5px;
-                    display: inline-block;
+                  min-width: 150px;
+                  
+                  .bill-details {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    
+                    .bill-id .bill-label {
+                      background: linear-gradient(135deg, #667eea, #764ba2);
+                      color: white;
+                      padding: 6px 12px;
+                      border-radius: 8px;
+                      font-weight: 600;
+                      font-size: 0.85rem;
+                      letter-spacing: 0.5px;
+                      display: inline-block;
+                    }
+                    
+                    .bill-meta {
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      gap: 12px;
+                      
+                      .bill-type {
+                        font-size: 0.8rem;
+                        color: #6b7280;
+                        font-weight: 500;
+                        background: #f1f5f9;
+                        padding: 4px 8px;
+                        border-radius: 6px;
+                      }
+                      
+                      .bill-total {
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        color: #059669;
+                      }
+                    }
                   }
                 }
 
                 &.customer-info {
+                  min-width: 150px;
+                  
                   .customer-name {
                     font-weight: 500;
                     color: #1f2937;
@@ -388,7 +422,7 @@
                 }
 
                 &.address-info {
-                  max-width: 250px;
+                  max-width: 280px;
                   
                   .address-text {
                     color: #6b7280;
@@ -398,23 +432,39 @@
                   }
                 }
                 
+                // ✅ THAY ĐỔI: Style mới cho shipper info với trạng thái online và gán lại
                 &.shipper-info {
-                  min-width: 200px;
+                  min-width: 220px;
                   
                   .shipper-display {
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
+                    gap: 10px;
                     
                     .shipper-main {
                       display: flex;
                       flex-direction: column;
-                      gap: 2px;
+                      gap: 4px;
                       
                       .shipper-name {
                         font-weight: 600;
                         color: #1f2937;
                         font-size: 0.9rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        
+                        .online-status {
+                          font-size: 0.8rem;
+                          
+                          &.online {
+                            color: #059669;
+                          }
+                          
+                          &.offline {
+                            color: #dc2626;
+                          }
+                        }
                       }
                       
                       .shipper-phone {
@@ -428,18 +478,6 @@
                       align-items: center;
                       gap: 8px;
                       
-                      .online-status {
-                        font-size: 0.85rem;
-                        
-                        &.online {
-                          color: #059669;
-                        }
-                        
-                        &.offline {
-                          color: #dc2626;
-                        }
-                      }
-                      
                       .reassign-select {
                         background: white;
                         border: 2px solid rgba(0, 0, 0, 0.1);
@@ -447,7 +485,7 @@
                         padding: 6px 10px;
                         font-size: 0.8rem;
                         color: #374151;
-                        min-width: 140px;
+                        min-width: 160px;
                         transition: all 0.2s ease;
                         cursor: pointer;
                         appearance: none;
@@ -455,7 +493,7 @@
                         background-position: right 8px center;
                         background-repeat: no-repeat;
                         background-size: 12px;
-                        padding-right: 28px;
+                        padding-right: 30px;
                         
                         &:focus {
                           outline: none;
@@ -467,6 +505,7 @@
                   }
                 }
                 
+                // ✅ THAY ĐỔI: Tracking info có thể không có tracking code
                 &.tracking-info {
                   min-width: 160px;
                   
@@ -484,6 +523,10 @@
                       padding: 4px 8px;
                       border-radius: 6px;
                       display: inline-block;
+                      
+                      &:empty {
+                        display: none;
+                      }
                     }
                     
                     .carrier {
@@ -495,22 +538,23 @@
                   }
                 }
                 
+                // ✅ THAY ĐỔI: Actions cell với nhiều nút hành động hơn
                 &.actions-cell {
-                  min-width: 200px;
+                  min-width: 250px;
                   
                   .action-buttons {
                     display: flex;
-                    gap: 8px;
+                    gap: 6px;
                     flex-wrap: wrap;
                     
                     .action-btn {
                       display: flex;
                       align-items: center;
                       gap: 6px;
-                      padding: 8px 14px;
+                      padding: 8px 12px;
                       border: none;
                       border-radius: 8px;
-                      font-size: 0.85rem;
+                      font-size: 0.8rem;
                       font-weight: 600;
                       cursor: pointer;
                       transition: all 0.3s ease;
@@ -558,6 +602,15 @@
                         }
                       }
 
+                      &.btn-create-shipment {
+                        background: linear-gradient(135deg, #fef3c7, #f59e0b);
+                        color: #92400e;
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #fde68a, #d97706);
+                        }
+                      }
+
                       &.btn-track {
                         background: linear-gradient(135deg, #f3e8ff, #8b5cf6);
                         color: #5b21b6;
@@ -568,23 +621,55 @@
                       }
 
                       &.btn-contact {
-                        background: linear-gradient(135deg, #fef3c7, #f59e0b);
-                        color: #92400e;
+                        background: linear-gradient(135deg, #dcfce7, #22c55e);
+                        color: #15803d;
                         
                         &:hover {
-                          background: linear-gradient(135deg, #fde68a, #d97706);
+                          background: linear-gradient(135deg, #bbf7d0, #16a34a);
+                        }
+                      }
+
+                      &.btn-detail {
+                        background: linear-gradient(135deg, #e5e7eb, #6b7280);
+                        color: #374151;
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #d1d5db, #4b5563);
                         }
                       }
                     }
                   }
                 }
 
+                // ✅ THAY ĐỔI: No data với design mới
                 &.no-data {
                   text-align: center;
-                  color: #9ca3af;
-                  font-style: italic;
-                  padding: 60px 40px;
-                  font-size: 1.1rem;
+                  padding: 80px 40px;
+                  
+                  .no-data-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 16px;
+                    
+                    svg {
+                      color: #9ca3af;
+                    }
+                    
+                    p {
+                      color: #6b7280;
+                      font-size: 1.1rem;
+                      font-weight: 500;
+                      margin: 0;
+                    }
+                    
+                    small {
+                      color: #a0aec0;
+                      font-size: 0.9rem;
+                      max-width: 300px;
+                      line-height: 1.4;
+                    }
+                  }
                 }
               }
             }
@@ -594,7 +679,7 @@
     }
   }
 
-  // Modal Styles - Tạo shipment từ bill ready
+  // ✅ Modal Styles - Tạo shipment từ bill ready (GIỮ NGUYÊN)
   .create-shipment-modal {
     background: #ffffff;
     width: 90%;
@@ -783,7 +868,7 @@
     }
   }
 
-  // Modal Overlay
+  // ✅ Modal Overlay
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -800,7 +885,7 @@
     animation: fadeIn 0.3s ease;
   }
 
-  // Responsive design
+  // ✅ Responsive design
   @media (max-width: 1200px) {
     .shipment-content {
       padding: 100px 20px 40px;
@@ -929,6 +1014,16 @@
             tbody td {
               padding: 16px 12px;
               
+              &.bill-info {
+                min-width: 120px;
+                
+                .bill-details .bill-meta {
+                  flex-direction: column;
+                  align-items: flex-start;
+                  gap: 6px;
+                }
+              }
+              
               &.shipper-info .shipper-display {
                 .shipper-actions {
                   flex-direction: column;
@@ -1030,13 +1125,13 @@
         overflow-x: scroll;
         
         table {
-          min-width: 1000px;
+          min-width: 1200px;
         }
       }
     }
   }
 
-  // Dark mode support
+  // ✅ Dark mode support
   @media (prefers-color-scheme: dark) {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
 
@@ -1055,7 +1150,7 @@
         }
 
         .subtitle {
-          color: rgba(241, 245, 249, 0.8);
+          color: rgba(241, 245, 249, 0.85);
         }
       }
 
@@ -1152,6 +1247,19 @@
                   color: #94a3b8;
                 }
 
+                &.bill-info .bill-details {
+                  .bill-meta {
+                    .bill-type {
+                      background: #475569;
+                      color: #cbd5e1;
+                    }
+
+                    .bill-total {
+                      color: #6ee7b7;
+                    }
+                  }
+                }
+
                 &.customer-info .customer-name {
                   color: #f9fafb;
                 }
@@ -1172,10 +1280,8 @@
                 }
 
                 &.shipper-info .shipper-display {
-                  .shipper-main {
-                    .shipper-name {
-                      color: #f9fafb;
-                    }
+                  .shipper-main .shipper-name {
+                    color: #f9fafb;
 
                     .shipper-phone {
                       color: #cbd5e1;
@@ -1194,8 +1300,14 @@
                   }
                 }
 
-                &.no-data {
-                  color: #6b7280;
+                &.no-data .no-data-content {
+                  p {
+                    color: #9ca3af;
+                  }
+
+                  small {
+                    color: #6b7280;
+                  }
                 }
               }
             }
@@ -1273,7 +1385,7 @@
   }
 }
 
-// Animations
+// ✅ Animations
 @keyframes slideInUp {
   from { 
     opacity: 0; 
