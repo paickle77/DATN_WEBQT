@@ -14,7 +14,7 @@ export enum ENUM_PAGE {
   SupplierManagement = "/SupplierManagement",
   NotificationManagement = "/NotificationManagement",
   LogManagement = "/LogManagement",
-  StatisticReport = "/StatisticReport",
+  AnalyticsDashboard = "/AnalyticsDashboard",
   ShipmentManagement = "/ShipmentManagement",
   ShipperManagement = "/ShipperManagement" // Thêm route mới cho quản lý shipper
 }
