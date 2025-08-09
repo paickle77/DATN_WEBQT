@@ -1,4 +1,6 @@
+// 🔒 PHIÊN BẢN ĐÃ SỬA LỖI REDIRECT - TƯƠNG THÍCH NGƯỢC
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ THÊM useNavigate
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './BillManagement.scss';
@@ -7,16 +9,17 @@ import api from '../../utils/api.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import RobotoRegular from '../../fonts/RobotoRegular.js';
+import { ENUM_PAGE } from '../../component/ENUM/enum.ts'; // ✅ THÊM import ENUM_PAGE
 
 import StatusBadge from '../../component/StatusBadge.jsx';
 import BillDetailModal from '../../component/BillDetailModal.jsx';
 
 // 🎯 CHỈ QUẢN LÝ CÁC TRẠNG THÁI TRƯỚC KHI GIAO HÀNG
 const BILL_STATUS = {
-  PENDING: 'pending',      // Khách hàng đặt hàng
-  CONFIRMED: 'confirmed',  // Admin xác nhận hóa đơn và đóng gói chuẩn bị đơn
-  READY: 'ready',         // Admin chuẩn bị hóa đơn xong đợi chuyển sang giao hàng
-  CANCELLED: 'cancelled', // Khách hủy hóa đơn
+  PENDING: 'pending',      
+  CONFIRMED: 'confirmed',  
+  READY: 'ready',         
+  CANCELLED: 'cancelled', 
 };
 
 // Mapping hiển thị trạng thái tiếng Việt
@@ -31,19 +34,81 @@ const STATUS_LABELS = {
 const ALLOWED_TRANSITIONS = {
   [BILL_STATUS.PENDING]: [BILL_STATUS.CONFIRMED, BILL_STATUS.CANCELLED],
   [BILL_STATUS.CONFIRMED]: [BILL_STATUS.READY, BILL_STATUS.CANCELLED],
-  [BILL_STATUS.READY]: [BILL_STATUS.CANCELLED], // Chỉ có thể hủy, không thể chuyển sang shipping ở đây
-  [BILL_STATUS.CANCELLED]: [], // Không thể chuyển đổi từ đã hủy
+  [BILL_STATUS.READY]: [BILL_STATUS.CANCELLED], 
+  [BILL_STATUS.CANCELLED]: [], 
 };
 
 // Màu sắc cho từng trạng thái
 const STATUS_COLORS = {
-  [BILL_STATUS.PENDING]: '#f59e0b',      // Vàng
-  [BILL_STATUS.CONFIRMED]: '#3b82f6',    // Xanh dương
-  [BILL_STATUS.READY]: '#8b5cf6',        // Tím
-  [BILL_STATUS.CANCELLED]: '#ef4444',    // Đỏ
+  [BILL_STATUS.PENDING]: '#f59e0b',      
+  [BILL_STATUS.CONFIRMED]: '#3b82f6',    
+  [BILL_STATUS.READY]: '#8b5cf6',        
+  [BILL_STATUS.CANCELLED]: '#ef4444',    
+};
+
+// ✅ PHÂN QUYỀN ĐƠN GIẢN (KHÔNG CẦN THAY ĐỔI DATABASE)
+const getUserRole = () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role || 'staff';
+    }
+  } catch (e) {
+    console.error('Error getting user role:', e);
+  }
+  return 'staff';
+};
+
+const getCurrentUserName = () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.username || payload.name || 'Unknown User';
+    }
+  } catch (e) {
+    console.error('Error getting username:', e);
+  }
+  return 'Unknown User';
+};
+
+// ✅ KIỂM TRA TOKEN HỢP LỆ NHƯNG KHÔNG QUÁ STRICT
+const checkTokenValidity = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    const timeUntilExpiry = payload.exp - currentTime;
+    
+    // ⚠️ Chỉ cảnh báo, không block action
+    if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
+      console.warn('🕐 Token sẽ hết hạn trong', Math.floor(timeUntilExpiry / 60), 'phút');
+    }
+    
+    return timeUntilExpiry > 0;
+  } catch (e) {
+    console.error('❌ Token validation error:', e);
+    return false;
+  }
+};
+
+// ✅ HANDLE AUTHENTICATION ERRORS - NHƯNG KHÔNG QUÁ AGGRESSIVE
+const handleAuthError = (error) => {
+  if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    console.error('🚨 Authentication failed');
+    localStorage.removeItem('token');
+    alert('⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    window.location.href = '/';
+    return true;
+  }
+  return false;
 };
 
 const BillManagement = () => {
+  const navigate = useNavigate(); // ✅ THÊM useNavigate hook
   const [bills, setBills] = useState([]);
   const [users, setUsers] = useState([]);
   const [addresses, setAddresses] = useState([]);
@@ -57,41 +122,50 @@ const BillManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [userRole, setUserRole] = useState('staff');
+  const [userName, setUserName] = useState('');
+  const [actionHistory, setActionHistory] = useState([]);
+
+  // ✅ LOẠI BỎ Token validity checker aggressive
   useEffect(() => {
     console.log('=== BILL MANAGEMENT DEBUG ===');
     
-    // Token validation logic giữ nguyên
+    // ✅ Kiểm tra token cơ bản
     const token = localStorage.getItem('token');
-    console.log('🔑 Token exists:', !!token);
-    
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const isExpired = Date.now() >= payload.exp * 1000;
-        console.log('⏰ Token expires at:', new Date(payload.exp * 1000));
-        console.log('⏰ Token expired:', isExpired);
-        
-        if (isExpired) {
-          console.warn('🚨 Token đã hết hạn!');
-          localStorage.removeItem('token');
-          window.location.href = '/login';
-          return;
-        }
-      } catch (e) {
-        console.error('❌ Token decode error:', e);
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-        return;
-      }
-    } else {
+    if (!token) {
       console.warn('🚨 Không có token - redirect to login');
-      window.location.href = '/login';
+      window.location.href = '/';
       return;
     }
     
-    console.log('✅ Token valid - fetching data...');
+    // ✅ Lấy thông tin user
+    setUserRole(getUserRole());
+    setUserName(getCurrentUserName());
+    
+    console.log('✅ Token exists - fetching data...');
     fetchAll();
   }, []);
+
+  // ✅ LOG ACTION LOCALLY
+  const logAction = (action, billId, details = '') => {
+    const logEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      user: userName,
+      role: userRole,
+      action,
+      billId: billId?.slice(-8) || 'N/A',
+      details,
+      ip: 'N/A'
+    };
+    
+    const existingLogs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
+    const updatedLogs = [logEntry, ...existingLogs].slice(0, 100);
+    localStorage.setItem('bill_action_logs', JSON.stringify(updatedLogs));
+    
+    setActionHistory(updatedLogs);
+    console.log('📝 Action logged:', logEntry);
+  };
 
   function fetchAll() {
     console.log('📊 Starting fetchAll...');
@@ -124,10 +198,18 @@ const BillManagement = () => {
       return { data: { data: [] }, error: 'no-address-endpoint' };
     };
 
+    const makeApiCall = async (endpoint, errorType) => {
+      try {
+        return await api.get(endpoint);
+      } catch (err) {
+        return { data: { data: [] }, error: errorType, details: err };
+      }
+    };
+
     const apiCalls = [
-      api.get('/GetAllBills').catch(err => ({ data: { data: [] }, error: 'bills', details: err })),
-      api.get('/users').catch(err => ({ data: { data: [] }, error: 'users', details: err })),
-      api.get('/vouchers').catch(err => ({ data: { data: [] }, error: 'vouchers', details: err }))
+      makeApiCall('/GetAllBills', 'bills'),
+      makeApiCall('/users', 'users'),
+      makeApiCall('/vouchers', 'vouchers')
     ];
 
     Promise.all([
@@ -147,7 +229,6 @@ const BillManagement = () => {
       console.log('🔍 Sample bill data:', billData[0]);
       console.log('🔍 Sample user data:', userData[0]);
       
-      // 🎯 CHỈ LẤY BILLS CÓ TRẠNG THÁI QUẢN LÝ ĐƠN HÀNG (TRƯỚC GIAO HÀNG)
       const managementBills = billData.filter(bill => 
         ['pending', 'confirmed', 'ready', 'cancelled'].includes(bill.status)
       );
@@ -183,6 +264,9 @@ const BillManagement = () => {
       setUsers(userData);
       setVouchers(vouchersRes.data.data || []);
       setAddresses(addressData);
+
+      const existingLogs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
+      setActionHistory(existingLogs);
 
       const criticalErrors = [];
       if (billsRes.error) criticalErrors.push('Không thể tải danh sách hóa đơn');
@@ -292,11 +376,44 @@ const BillManagement = () => {
     return true;
   });
 
-  // Cập nhật trạng thái hóa đơn
+  // ✅ CẬP NHẬT TRẠNG THÁI KHÔNG QUÁ STRICT
   const updateBillStatus = async (billId, newStatus) => {
+    const bill = bills.find(b => b._id === billId);
+    if (!bill) return;
+
+    // ✅ KIỂM TRA QUYỀN HẠN
+    if (userRole === 'staff' && newStatus === BILL_STATUS.CANCELLED) {
+      alert('❌ Staff không có quyền hủy hóa đơn. Vui lòng liên hệ Manager/Admin.');
+      return;
+    }
+
+    // ✅ YÊU CẦU LÝ DO CHO HÀNH ĐỘNG QUAN TRỌNG
+    let reason = '';
+    if (newStatus === BILL_STATUS.CANCELLED) {
+      reason = prompt('📝 Vui lòng nhập lý do hủy hóa đơn (bắt buộc):');
+      if (!reason || reason.trim() === '') {
+        alert('⚠️ Vui lòng nhập lý do hủy hóa đơn');
+        return;
+      }
+    }
+
+    const confirmMessage = newStatus === BILL_STATUS.CANCELLED 
+      ? `⚠️ Bạn có chắc muốn HỦY hóa đơn này?\n\nLý do: ${reason}\n\nHành động này sẽ được ghi lại trong hệ thống.`
+      : `✅ Xác nhận chuyển trạng thái thành: ${STATUS_LABELS[newStatus]}?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
     try {
-      await api.put(`/bills/${billId}`, { status: newStatus });
-      
+      await api.put(`/bills/${billId}`, { 
+        status: newStatus
+      });
+
+      logAction(
+        `STATUS_CHANGE: ${bill.status} → ${newStatus}`,
+        billId,
+        reason ? `Lý do: ${reason}` : ''
+      );
+
       const statusEmoji = {
         [BILL_STATUS.CONFIRMED]: '✅',
         [BILL_STATUS.READY]: '📦',
@@ -306,8 +423,52 @@ const BillManagement = () => {
       alert(`${statusEmoji[newStatus]} Đã cập nhật trạng thái thành: ${STATUS_LABELS[newStatus]}`);
       fetchAll();
     } catch (err) {
-      console.error(err);
-      alert('❌ Lỗi khi cập nhật trạng thái hóa đơn: ' + (err.response?.data?.message || err.message));
+      if (!handleAuthError(err)) {
+        console.error('❌ Update status error:', err);
+        alert('❌ Lỗi khi cập nhật trạng thái hóa đơn: ' + (err.response?.data?.message || err.message));
+      }
+    }
+  };
+
+  // ✅ FIXED - XỬ LÝ CHUYỂN GIAO HÀNG VỚI NAVIGATE THAY VÌ WINDOW.LOCATION
+  const moveToShipment = (bill) => {
+    const confirmMessage = `🚚 Chuyển đến màn quản lý giao hàng?\n\n` +
+      `📋 Mã đơn: ${bill._id.slice(-8)}\n` +
+      `👤 Khách hàng: ${lookupUser(bill)}\n` +
+      `📍 Địa chỉ: ${lookupAddress(bill)}\n\n` +
+      `Bạn sẽ được chuyển đến màn hình quản lý giao hàng.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      // ✅ Log action trước khi chuyển trang
+      logAction('MOVE_TO_SHIPPING', bill._id, 'Chuyển sang màn quản lý giao hàng');
+      
+      // ✅ Lưu thông tin bill vào localStorage
+      localStorage.setItem('selected_bill_for_shipping', JSON.stringify({
+        id: bill._id,
+        customer: lookupUser(bill),
+        address: lookupAddress(bill),
+        total: bill.total,
+        timestamp: new Date().toISOString()
+      }));
+
+      console.log('🚚 Navigating to ShipmentManagement using React Router...');
+      
+      // ✅ SỬ DỤNG REACT ROUTER NAVIGATE THAY VÌ WINDOW.LOCATION
+      navigate(ENUM_PAGE.ShipmentManagement);
+      
+    } catch (err) {
+      console.error('❌ Move to shipping error:', err);
+      
+      // ✅ FALLBACK với thông báo chi tiết hơn
+      alert('⚠️ Không thể chuyển đến màn quản lý giao hàng.\n\n' +
+            '🔧 Có thể do:\n' +
+            '1. Route ShipmentManagement chưa được thiết lập đúng\n' +
+            '2. Vấn đề với React Router\n\n' +
+            '👉 Thử navigate thủ công hoặc refresh trang');
+      
+      logAction('SHIPPING_REDIRECT_FAILED', bill._id, `Error: ${err.message}`);
     }
   };
 
@@ -355,6 +516,8 @@ const BillManagement = () => {
         finalTotal
       });
       setShowModal(true);
+
+      logAction('VIEW_DETAIL', bill._id, `Xem chi tiết hóa đơn`);
     } catch (err) {
       console.error('❌ Error opening modal:', err);
       alert('❌ Không thể tải chi tiết hóa đơn: ' + (err.response?.data?.message || err.message));
@@ -443,22 +606,89 @@ const BillManagement = () => {
       doc.text('Cảm ơn quý khách đã tin tưởng CakeShop! 🎂', 14, yAfterTable + 20);
       
       doc.save(`HoaDon_${bill._id.slice(-8)}_${STATUS_LABELS[bill.status] || bill.status}.pdf`);
+
+      logAction('PRINT_PDF', billId, `In hóa đơn PDF`);
     } catch (err) {
       console.error('❌ PDF Error:', err);
       alert('❌ Không thể tạo PDF: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const deleteBill = async billId => {
-    if (!window.confirm('⚠️ Bạn có chắc muốn xóa hóa đơn này?')) return;
+  const hideBill = async billId => {
+    if (userRole !== 'admin') {
+      alert('❌ Chỉ Admin mới có thể ẩn hóa đơn');
+      return;
+    }
+
+    const reason = prompt('📝 Vui lòng nhập lý do ẩn hóa đơn (bắt buộc):');
+    if (!reason || reason.trim() === '') {
+      alert('⚠️ Vui lòng nhập lý do ẩn hóa đơn');
+      return;
+    }
+
+    if (!window.confirm(`⚠️ Bạn có chắc muốn ẨN hóa đơn này?\n\nLý do: ${reason}\n\nHóa đơn sẽ không hiển thị trong danh sách nhưng vẫn còn trong database.`)) return;
+
     try {
-      await api.delete(`/bills/${billId}`);
-      alert('✅ Xóa hóa đơn thành công.');
+      await api.put(`/bills/${billId}`, { 
+        status: 'hidden',
+        hidden_reason: reason,
+        hidden_by: userName,
+        hidden_at: new Date().toISOString()
+      });
+
+      logAction('HIDE_BILL', billId, `Ẩn hóa đơn. Lý do: ${reason}`);
+      
+      alert('✅ Đã ẩn hóa đơn.');
       fetchAll();
     } catch (err) {
       console.error(err);
-      alert('❌ Xóa hóa đơn thất bại: ' + (err.response?.data?.message || err.message));
+      if (window.confirm('⚠️ Backend chưa hỗ trợ ẩn hóa đơn. Bạn có muốn XÓA VĨNH VIỄN không?\n\n⚠️ CẢNH BÁO: Hành động này có thể tạo ra rủi ro bảo mật!')) {
+        try {
+          await api.delete(`/bills/${billId}`);
+          
+          logAction('DELETE_BILL', billId, `⚠️ XÓA VĨNH VIỄN - Lý do: ${reason} - CẢNH BÁO: Có thể mất dấu vết`);
+          
+          alert('⚠️ Đã xóa hóa đơn (không khuyến khích).');
+          fetchAll();
+        } catch (deleteErr) {
+          alert('❌ Không thể xóa hóa đơn: ' + deleteErr.message);
+        }
+      }
     }
+  };
+
+  // ✅ XEM LỊCH SỬ THAO TÁC
+  const viewActionHistory = () => {
+    const logs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
+    const logsText = logs.map(log => 
+      `${new Date(log.timestamp).toLocaleString('vi-VN')} | ${log.user} (${log.role}) | ${log.action} | Bill: ${log.billId} | ${log.details}`
+    ).join('\n');
+    
+    if (logs.length === 0) {
+      alert('📝 Chưa có lịch sử thao tác nào.');
+      return;
+    }
+    
+    const logWindow = window.open('', 'ActionLogs', 'width=800,height=600');
+    logWindow.document.write(`
+      <html>
+        <head>
+          <title>Lịch sử thao tác - Bill Management</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h2 { color: #667eea; }
+            pre { background: #f5f5f5; padding: 15px; border-radius: 8px; font-size: 12px; overflow-x: auto; }
+            .clear-btn { background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <h2>📜 Lịch sử thao tác hệ thống</h2>
+          <p>Tổng cộng: ${logs.length} thao tác</p>
+          <button class="clear-btn" onclick="if(confirm('Xóa toàn bộ lịch sử?')) { localStorage.removeItem('bill_action_logs'); alert('Đã xóa lịch sử!'); window.close(); }">🗑️ Xóa lịch sử</button>
+          <pre>${logsText}</pre>
+        </body>
+      </html>
+    `);
   };
 
   // Render action buttons cho từng trạng thái
@@ -476,40 +706,44 @@ const BillManagement = () => {
             🖨️ In PDF
           </button>
           
-          {/* Nút chuyển đổi trạng thái */}
-          {allowedNextStates.map(nextStatus => (
-            <button
-              key={nextStatus}
-              onClick={() => updateBillStatus(bill._id, nextStatus)}
-              className={`btn-status btn-${nextStatus}`}
-              title={`Chuyển sang: ${STATUS_LABELS[nextStatus]}`}
-              style={{ backgroundColor: STATUS_COLORS[nextStatus] }}
-            >
-              {getStatusButtonLabel(nextStatus)}
+          {(userRole === 'manager' || userRole === 'admin') && (
+            <button onClick={viewActionHistory} className="btn-audit">
+              📜 Lịch sử
             </button>
-          ))}
+          )}
           
-          {/* Nút chuyển sang màn giao hàng cho trạng thái READY */}
+          {allowedNextStates.map(nextStatus => {
+            if (nextStatus === BILL_STATUS.CANCELLED && userRole === 'staff') {
+              return null;
+            }
+            
+            return (
+              <button
+                key={nextStatus}
+                onClick={() => updateBillStatus(bill._id, nextStatus)}
+                className={`btn-status btn-${nextStatus}`}
+                title={`Chuyển sang: ${STATUS_LABELS[nextStatus]} ${nextStatus === BILL_STATUS.CANCELLED && userRole === 'staff' ? '(Không có quyền)' : ''}`}
+                style={{ backgroundColor: STATUS_COLORS[nextStatus] }}
+              >
+                {getStatusButtonLabel(nextStatus)}
+              </button>
+            );
+          })}
+          
           {currentStatus === BILL_STATUS.READY && (
             <button
-              onClick={() => {
-                // Chuyển đến màn quản lý giao hàng để xử lý
-                if (window.confirm('🚚 Chuyển đơn hàng này sang màn quản lý giao hàng?')) {
-                  window.location.href = '/admin/shipments';
-                }
-              }}
+              onClick={() => moveToShipment(bill)}
               className="btn-move-to-shipping"
-              title="Chuyển sang màn quản lý giao hàng để gán shipper"
+              title="Chuyển sang màn quản lý giao hàng"
               style={{ backgroundColor: '#06b6d4' }}
             >
               🚚 Chuyển giao hàng
             </button>
           )}
           
-          {/* Nút xóa (chỉ cho hóa đơn chưa xử lý hoặc đã hủy) */}
-          {[BILL_STATUS.PENDING, BILL_STATUS.CANCELLED].includes(currentStatus) && (
-            <button onClick={() => deleteBill(bill._id)} className="btn-delete">
-              🗑️ Xóa
+          {[BILL_STATUS.PENDING, BILL_STATUS.CANCELLED].includes(currentStatus) && userRole === 'admin' && (
+            <button onClick={() => hideBill(bill._id)} className="btn-hide">
+              👁️‍🗨️ Ẩn
             </button>
           )}
         </div>
@@ -526,7 +760,7 @@ const BillManagement = () => {
     return labels[status] || STATUS_LABELS[status];
   };
 
-  // Loading và error states giữ nguyên
+  // Loading và error states
   if (loading) {
     return (
       <div className="bill-management">
@@ -534,6 +768,9 @@ const BillManagement = () => {
         <div style={{ textAlign: 'center', padding: '100px' }}>
           <span style={{ fontSize: '48px' }}>⏳</span>
           <p>Đang tải dữ liệu...</p>
+          <small style={{ color: '#718096' }}>
+            Đang kiểm tra token và tải dữ liệu...
+          </small>
         </div>
       </div>
     );
@@ -557,6 +794,10 @@ const BillManagement = () => {
           }}>
             🔄 Thử lại
           </button>
+          <br />
+          <small style={{ color: '#718096', marginTop: '10px', display: 'block' }}>
+            Nếu lỗi liên tục xảy ra, vui lòng kiểm tra kết nối mạng hoặc đăng nhập lại
+          </small>
         </div>
       </div>
     );
@@ -573,6 +814,22 @@ const BillManagement = () => {
         <div className="header-content">
           <h2>Quản lý Đơn hàng</h2>
           <p>Xử lý đơn hàng từ khi đặt hàng đến sẵn sàng giao</p>
+          
+          <div className="user-info-badge" style={{
+            marginTop: '10px',
+            padding: '8px 15px',
+            background: 'rgba(102, 126, 234, 0.1)',
+            borderRadius: '20px',
+            fontSize: '14px',
+            color: '#667eea'
+          }}>
+            👤 <strong>{userName}</strong> | 
+            🏷️ <strong>{userRole.toUpperCase()}</strong> | 
+            📊 <strong>{actionHistory.length}</strong> thao tác đã thực hiện |
+            🔐 <span style={{ color: checkTokenValidity() ? '#10b981' : '#ef4444' }}>
+              {checkTokenValidity() ? 'Token hợp lệ' : 'Token hết hạn'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -618,9 +875,14 @@ const BillManagement = () => {
         </div>
         
         <button onClick={fetchAll} className="filter-btn">🔄 Làm mới</button>
+        
+        {(userRole === 'manager' || userRole === 'admin') && (
+          <button onClick={viewActionHistory} className="filter-btn" style={{background: '#10b981'}}>
+            📜 Lịch sử ({actionHistory.length})
+          </button>
+        )}
       </div>
 
-      {/* Thống kê chỉ cho trạng thái quản lý đơn hàng */}
       <div className="quick-stats">
         <div className="stat-card pending">
           <div className="stat-icon">⏳</div>
@@ -723,7 +985,6 @@ const BillManagement = () => {
         </table>
       </div>
 
-      {/* Modal Chi tiết hóa đơn */}
       {showModal && currentBill && (
         <BillDetailModal
           bill={currentBill}

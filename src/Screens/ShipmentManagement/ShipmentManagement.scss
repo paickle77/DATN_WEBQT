@@ -1,11 +1,11 @@
-/* ✅ Enhanced Shipment Management Styles - Chuyên biệt cho giao hàng */
+/* ✅ Enhanced Shipment Management Styles - Giám sát giao hàng */
 .shipment-management {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 
   .shipment-content {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 120px 24px 40px;
     
@@ -24,11 +24,6 @@
         color: white;
         margin-bottom: 24px;
         box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-        
-        svg {
-          width: 40px;
-          height: 40px;
-        }
       }
       
       h1 {
@@ -43,8 +38,28 @@
       .subtitle {
         font-size: 1.2rem;
         color: rgba(255, 255, 255, 0.85);
-        margin: 0;
+        margin: 0 0 16px 0;
         font-weight: 400;
+      }
+
+      .auto-refresh-control {
+        margin-top: 16px;
+        
+        label {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 0.95rem;
+          cursor: pointer;
+          
+          input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #10b981;
+          }
+        }
       }
     }
 
@@ -80,30 +95,6 @@
           justify-content: center;
           color: white;
           flex-shrink: 0;
-          
-          &.stat-icon-total {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-          }
-          
-          &.stat-icon-shipping {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-          }
-          
-          &.stat-icon-done {
-            background: linear-gradient(135deg, #4facfe, #00f2fe);
-          }
-
-          &.stat-icon-failed {
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-          }
-
-          &.stat-icon-ready {
-            background: linear-gradient(135deg, #a8edea, #fed6e3);
-          }
-
-          &.stat-icon-online {
-            background: linear-gradient(135deg, #d299c2, #fef9d7);
-          }
         }
         
         .stat-info {
@@ -129,94 +120,46 @@
       }
     }
 
-    // ✅ Quick Actions Section - Đơn hàng sẵn sàng giao
-    .quick-actions {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 28px;
+    // ✅ Alert Section - Cảnh báo đơn hàng chờ lâu
+    .alert-section {
       margin-bottom: 32px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
 
-      h3 {
-        margin: 0 0 24px 0;
-        color: #1a202c;
-        font-size: 1.4rem;
-        font-weight: 600;
+      .alert-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 16px;
+        padding: 20px 24px;
         display: flex;
         align-items: center;
-        gap: 8px;
-      }
+        gap: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
 
-      .ready-bills {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 20px;
+        &.warning {
+          border-left: 4px solid #f59e0b;
+          background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.95));
+        }
 
-        .ready-bill-card {
-          background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-          border-radius: 16px;
-          padding: 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          transition: all 0.3s ease;
-          border: 2px solid transparent;
+        .alert-icon {
+          font-size: 2rem;
+          flex-shrink: 0;
+        }
 
-          &:hover {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            border-color: #667eea;
-          }
+        .alert-content {
+          flex: 1;
 
-          .bill-info {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-
-            .bill-id {
-              font-weight: 700;
-              color: #667eea;
-              font-size: 1rem;
-              letter-spacing: 0.5px;
-            }
-
-            .customer-name {
-              color: #64748b;
-              font-size: 0.9rem;
-              font-weight: 500;
-            }
-
-            .bill-total {
-              color: #059669;
-              font-size: 0.95rem;
-              font-weight: 600;
-            }
-          }
-
-          .create-shipment-btn {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-size: 0.9rem;
+          h4 {
+            margin: 0 0 8px 0;
+            color: #92400e;
+            font-size: 1.1rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          }
 
-            &:hover {
-              background: linear-gradient(135deg, #059669, #047857);
-              transform: translateY(-2px);
-              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-            }
-
-            &:active {
-              transform: translateY(0);
-            }
+          p {
+            margin: 0;
+            color: #78716c;
+            font-size: 0.95rem;
+            line-height: 1.4;
           }
         }
       }
@@ -279,12 +222,31 @@
         }
 
         .filter-input {
-          min-width: 280px;
+          min-width: 320px;
 
           &::placeholder {
             color: #9ca3af;
             font-weight: 400;
           }
+        }
+      }
+
+      .refresh-btn {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+
+        &:hover {
+          background: linear-gradient(135deg, #059669, #047857);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
         }
       }
     }
@@ -330,17 +292,6 @@
               letter-spacing: 0.5px;
               border-bottom: 2px solid rgba(0, 0, 0, 0.05);
               white-space: nowrap;
-              
-              .th-content {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                
-                svg {
-                  color: #667eea;
-                  opacity: 0.7;
-                }
-              }
             }
           }
           
@@ -351,7 +302,7 @@
               
               &:hover {
                 background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.04));
-                transform: scale(1.01);
+                transform: scale(1.005);
               }
               
               td {
@@ -367,7 +318,6 @@
                   width: 60px;
                 }
                 
-                // ✅ THAY ĐỔI: Style mới cho bill info với loại và tổng tiền
                 &.bill-info {
                   min-width: 150px;
                   
@@ -376,7 +326,7 @@
                     flex-direction: column;
                     gap: 6px;
                     
-                    .bill-id .bill-label {
+                    .bill-id {
                       background: linear-gradient(135deg, #667eea, #764ba2);
                       color: white;
                       padding: 6px 12px;
@@ -385,28 +335,18 @@
                       font-size: 0.85rem;
                       letter-spacing: 0.5px;
                       display: inline-block;
+                      width: fit-content;
                     }
                     
-                    .bill-meta {
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                      gap: 12px;
-                      
-                      .bill-type {
-                        font-size: 0.8rem;
-                        color: #6b7280;
-                        font-weight: 500;
-                        background: #f1f5f9;
-                        padding: 4px 8px;
-                        border-radius: 6px;
-                      }
-                      
-                      .bill-total {
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                        color: #059669;
-                      }
+                    .bill-total {
+                      font-size: 0.9rem;
+                      font-weight: 600;
+                      color: #059669;
+                    }
+
+                    .bill-date {
+                      font-size: 0.8rem;
+                      color: #6b7280;
                     }
                   }
                 }
@@ -421,26 +361,47 @@
                   }
                 }
 
+                &.contact-info {
+                  min-width: 140px;
+
+                  .contact-details {
+                    .phone-link {
+                      color: #059669;
+                      text-decoration: none;
+                      font-weight: 500;
+                      font-size: 0.9rem;
+                      transition: all 0.2s ease;
+
+                      &:hover {
+                        color: #047857;
+                        text-decoration: underline;
+                      }
+                    }
+
+                    .no-phone {
+                      color: #9ca3af;
+                      font-style: italic;
+                      font-size: 0.85rem;
+                    }
+                  }
+                }
+
                 &.address-info {
-                  max-width: 280px;
+                  max-width: 300px;
                   
                   .address-text {
                     color: #6b7280;
                     font-size: 0.9rem;
                     line-height: 1.4;
                     display: block;
+                    cursor: help;
                   }
                 }
                 
-                // ✅ THAY ĐỔI: Style mới cho shipper info với trạng thái online và gán lại
                 &.shipper-info {
-                  min-width: 220px;
+                  min-width: 180px;
                   
                   .shipper-display {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 10px;
-                    
                     .shipper-main {
                       display: flex;
                       flex-direction: column;
@@ -456,97 +417,82 @@
                         
                         .online-status {
                           font-size: 0.8rem;
-                          
-                          &.online {
-                            color: #059669;
-                          }
-                          
-                          &.offline {
-                            color: #dc2626;
-                          }
                         }
                       }
                       
                       .shipper-phone {
-                        color: #6b7280;
-                        font-size: 0.85rem;
-                      }
-                    }
-                    
-                    .shipper-actions {
-                      display: flex;
-                      align-items: center;
-                      gap: 8px;
-                      
-                      .reassign-select {
-                        background: white;
-                        border: 2px solid rgba(0, 0, 0, 0.1);
-                        border-radius: 8px;
-                        padding: 6px 10px;
+                        color: #059669;
+                        text-decoration: none;
                         font-size: 0.8rem;
-                        color: #374151;
-                        min-width: 160px;
+                        font-weight: 500;
                         transition: all 0.2s ease;
-                        cursor: pointer;
-                        appearance: none;
-                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-                        background-position: right 8px center;
-                        background-repeat: no-repeat;
-                        background-size: 12px;
-                        padding-right: 30px;
-                        
-                        &:focus {
-                          outline: none;
-                          border-color: #667eea;
-                          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+                        &:hover {
+                          color: #047857;
+                          text-decoration: underline;
                         }
                       }
                     }
                   }
                 }
-                
-                // ✅ THAY ĐỔI: Tracking info có thể không có tracking code
-                &.tracking-info {
-                  min-width: 160px;
-                  
-                  .tracking-display {
+
+                &.status-cell {
+                  min-width: 140px;
+
+                  .status-badge {
+                    margin-bottom: 4px;
+                  }
+
+                  .waiting-time {
+                    margin-top: 4px;
+
+                    small {
+                      font-size: 0.75rem;
+                      padding: 2px 6px;
+                      background: rgba(245, 158, 11, 0.1);
+                      border-radius: 4px;
+                    }
+                  }
+                }
+
+                &.time-info {
+                  min-width: 120px;
+
+                  .time-display {
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    
-                    .tracking-code {
-                      font-weight: 600;
+
+                    .order-age {
+                      font-weight: 500;
                       color: #374151;
                       font-size: 0.9rem;
-                      font-family: 'Monaco', 'Consolas', monospace;
-                      background: #f1f5f9;
-                      padding: 4px 8px;
-                      border-radius: 6px;
-                      display: inline-block;
-                      
-                      &:empty {
-                        display: none;
-                      }
                     }
-                    
-                    .carrier {
-                      color: #6b7280;
-                      font-size: 0.8rem;
-                      text-transform: uppercase;
-                      letter-spacing: 0.5px;
+
+                    .last-update {
+                      small {
+                        color: #9ca3af;
+                        font-size: 0.75rem;
+                      }
                     }
                   }
                 }
                 
-                // ✅ THAY ĐỔI: Actions cell với nhiều nút hành động hơn
                 &.actions-cell {
-                  min-width: 250px;
+                  min-width: 280px;
                   
                   .action-buttons {
                     display: flex;
                     gap: 6px;
                     flex-wrap: wrap;
                     
+                    .readonly-notice {
+                      background: #f9fafb;
+                      padding: 8px 12px;
+                      border-radius: 8px;
+                      border: 1px dashed #d1d5db;
+                    }
+
                     .action-btn {
                       display: flex;
                       align-items: center;
@@ -560,12 +506,8 @@
                       transition: all 0.3s ease;
                       white-space: nowrap;
                       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                      color: white;
                       
-                      svg {
-                        opacity: 0.8;
-                        flex-shrink: 0;
-                      }
-
                       &:hover {
                         transform: translateY(-2px);
                         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -576,72 +518,32 @@
                       }
                       
                       &.btn-delivered {
-                        background: linear-gradient(135deg, #d1fae5, #10b981);
-                        color: #065f46;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #a7f3d0, #059669);
-                        }
+                        background: linear-gradient(135deg, #10b981, #059669);
                       }
 
                       &.btn-failed {
-                        background: linear-gradient(135deg, #fee2e2, #ef4444);
-                        color: #991b1b;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #fecaca, #dc2626);
-                        }
+                        background: linear-gradient(135deg, #ef4444, #dc2626);
                       }
 
                       &.btn-retry {
-                        background: linear-gradient(135deg, #e0e7ff, #6366f1);
-                        color: #3730a3;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #c7d2fe, #4f46e5);
-                        }
+                        background: linear-gradient(135deg, #06b6d4, #0891b2);
                       }
 
-                      &.btn-create-shipment {
-                        background: linear-gradient(135deg, #fef3c7, #f59e0b);
-                        color: #92400e;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #fde68a, #d97706);
-                        }
-                      }
-
-                      &.btn-track {
-                        background: linear-gradient(135deg, #f3e8ff, #8b5cf6);
-                        color: #5b21b6;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #e9d5ff, #7c3aed);
-                        }
-                      }
-
-                      &.btn-contact {
-                        background: linear-gradient(135deg, #dcfce7, #22c55e);
-                        color: #15803d;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #bbf7d0, #16a34a);
-                        }
+                      &.btn-return {
+                        background: linear-gradient(135deg, #f97316, #ea580c);
                       }
 
                       &.btn-detail {
-                        background: linear-gradient(135deg, #e5e7eb, #6b7280);
-                        color: #374151;
-                        
-                        &:hover {
-                          background: linear-gradient(135deg, #d1d5db, #4b5563);
-                        }
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                      }
+
+                      &.btn-copy {
+                        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
                       }
                     }
                   }
                 }
 
-                // ✅ THAY ĐỔI: No data với design mới
                 &.no-data {
                   text-align: center;
                   padding: 80px 40px;
@@ -651,10 +553,6 @@
                     flex-direction: column;
                     align-items: center;
                     gap: 16px;
-                    
-                    svg {
-                      color: #9ca3af;
-                    }
                     
                     p {
                       color: #6b7280;
@@ -677,212 +575,6 @@
         }
       }
     }
-  }
-
-  // ✅ Modal Styles - Tạo shipment từ bill ready (GIỮ NGUYÊN)
-  .create-shipment-modal {
-    background: #ffffff;
-    width: 90%;
-    max-width: 700px;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
-    animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 28px 32px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-
-      h3 {
-        margin: 0;
-        font-size: 1.4rem;
-        font-weight: 600;
-      }
-
-      .close-btn {
-        width: 40px;
-        height: 40px;
-        border: none;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 24px;
-        font-weight: 300;
-        transition: all 0.3s;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: scale(1.1);
-        }
-      }
-    }
-
-    .modal-content {
-      padding: 32px;
-
-      .order-info {
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 32px;
-        border: 1px solid #e2e8f0;
-
-        h4 {
-          margin: 0 0 16px 0;
-          color: #1f2937;
-          font-size: 1.2rem;
-          font-weight: 600;
-        }
-
-        p {
-          margin: 12px 0;
-          font-size: 1rem;
-          color: #374151;
-          line-height: 1.5;
-
-          strong {
-            color: #1f2937;
-            font-weight: 600;
-          }
-
-          .status-ready {
-            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-            color: #3730a3;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-        }
-      }
-
-      .shipper-selection {
-        h4 {
-          margin: 0 0 20px 0;
-          color: #1f2937;
-          font-size: 1.2rem;
-          font-weight: 600;
-        }
-
-        .shipper-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-
-          .shipper-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 16px;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-
-            &:hover {
-              background: #f1f5f9;
-              border-color: #667eea;
-              transform: translateY(-2px);
-              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            }
-
-            .shipper-info {
-              display: flex;
-              flex-direction: column;
-              gap: 6px;
-
-              .shipper-name {
-                font-weight: 600;
-                color: #1f2937;
-                font-size: 1.1rem;
-              }
-
-              .shipper-phone {
-                color: #6b7280;
-                font-size: 0.95rem;
-              }
-
-              .shipper-status {
-                font-size: 0.9rem;
-                font-weight: 500;
-
-                &.online {
-                  color: #059669;
-                }
-              }
-            }
-
-            .assign-btn {
-              padding: 12px 24px;
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              color: white;
-              border: none;
-              border-radius: 12px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              font-size: 0.95rem;
-              box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
-
-              &:hover {
-                background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-              }
-
-              &:active {
-                transform: translateY(-1px);
-              }
-            }
-          }
-        }
-
-        .no-shipper-available {
-          text-align: center;
-          padding: 40px 20px;
-          background: #f9fafb;
-          border-radius: 16px;
-          border: 2px dashed #d1d5db;
-
-          p {
-            margin: 8px 0;
-            color: #6b7280;
-
-            &.suggestion {
-              font-size: 0.9rem;
-              font-style: italic;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // ✅ Modal Overlay
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-    animation: fadeIn 0.3s ease;
   }
 
   // ✅ Responsive design
@@ -909,12 +601,6 @@
           }
         }
       }
-
-      .quick-actions {
-        .ready-bills {
-          grid-template-columns: 1fr;
-        }
-      }
     }
   }
 
@@ -926,11 +612,6 @@
         .header-icon {
           width: 60px;
           height: 60px;
-          
-          svg {
-            width: 30px;
-            height: 30px;
-          }
         }
         
         h1 {
@@ -960,20 +641,6 @@
         }
       }
 
-      .quick-actions {
-        padding: 20px;
-
-        .ready-bills .ready-bill-card {
-          flex-direction: column;
-          gap: 16px;
-          text-align: center;
-
-          .create-shipment-btn {
-            width: 100%;
-          }
-        }
-      }
-
       .filters-section {
         padding: 20px;
 
@@ -985,6 +652,7 @@
           .filter-select,
           .filter-input {
             width: 100%;
+            min-width: unset;
           }
         }
       }
@@ -1004,38 +672,11 @@
             
             thead th {
               padding: 16px 12px;
-              
-              .th-content {
-                font-size: 0.8rem;
-                gap: 4px;
-              }
+              font-size: 0.8rem;
             }
             
             tbody td {
               padding: 16px 12px;
-              
-              &.bill-info {
-                min-width: 120px;
-                
-                .bill-details .bill-meta {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 6px;
-                }
-              }
-              
-              &.shipper-info .shipper-display {
-                .shipper-actions {
-                  flex-direction: column;
-                  align-items: stretch;
-                  gap: 8px;
-                  
-                  .reassign-select {
-                    width: 100%;
-                    min-width: unset;
-                  }
-                }
-              }
               
               &.actions-cell .action-buttons {
                 flex-direction: column;
@@ -1050,48 +691,7 @@
 
               &.address-info {
                 max-width: 200px;
-                
-                .address-text {
-                  font-size: 0.8rem;
-                }
               }
-
-              &.tracking-info .tracking-display {
-                .tracking-code {
-                  font-size: 0.8rem;
-                }
-                
-                .carrier {
-                  font-size: 0.75rem;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      .create-shipment-modal {
-        width: 95%;
-        margin: 20px;
-
-        .modal-header {
-          padding: 24px 20px;
-          
-          h3 {
-            font-size: 1.2rem;
-          }
-        }
-
-        .modal-content {
-          padding: 24px 20px;
-
-          .shipper-selection .shipper-list .shipper-item {
-            flex-direction: column;
-            gap: 16px;
-            text-align: center;
-
-            .assign-btn {
-              width: 100%;
             }
           }
         }
@@ -1114,10 +714,6 @@
           .stat-info .stat-number {
             font-size: 1.6rem;
           }
-          
-          .stat-label {
-            font-size: 0.85rem;
-          }
         }
       }
       
@@ -1125,260 +721,7 @@
         overflow-x: scroll;
         
         table {
-          min-width: 1200px;
-        }
-      }
-    }
-  }
-
-  // ✅ Dark mode support
-  @media (prefers-color-scheme: dark) {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-
-    .shipment-content {
-      .stats-overview .stat-card,
-      .quick-actions,
-      .filters-section,
-      .table-container {
-        background: rgba(30, 41, 59, 0.95);
-        border-color: rgba(255, 255, 255, 0.1);
-      }
-
-      .header-section {
-        h1 {
-          color: #f1f5f9;
-        }
-
-        .subtitle {
-          color: rgba(241, 245, 249, 0.85);
-        }
-      }
-
-      .stats-overview .stat-card {
-        .stat-info {
-          .stat-number {
-            color: #a5b4fc;
-          }
-
-          .stat-label {
-            color: #94a3b8;
-          }
-        }
-      }
-
-      .quick-actions {
-        h3 {
-          color: #f1f5f9;
-        }
-
-        .ready-bills .ready-bill-card {
-          background: linear-gradient(135deg, #334155, #475569);
-
-          &:hover {
-            background: linear-gradient(135deg, #475569, #64748b);
-          }
-
-          .bill-info {
-            .bill-id {
-              color: #a5b4fc;
-            }
-
-            .customer-name {
-              color: #cbd5e1;
-            }
-
-            .bill-total {
-              color: #6ee7b7;
-            }
-          }
-        }
-      }
-
-      .filters-section {
-        .filter-group {
-          label {
-            color: #e2e8f0;
-          }
-
-          .filter-select,
-          .filter-input {
-            background: #334155;
-            color: #f1f5f9;
-            border-color: #475569;
-
-            &:focus {
-              background: #475569;
-              border-color: #667eea;
-            }
-
-            &::placeholder {
-              color: #94a3b8;
-            }
-          }
-        }
-      }
-
-      .table-container {
-        .table-header {
-          background: linear-gradient(135deg, rgba(51, 65, 85, 0.5), rgba(71, 85, 105, 0.5));
-
-          h3 {
-            color: #f1f5f9;
-          }
-        }
-
-        .table-wrapper table {
-          thead th {
-            background: linear-gradient(135deg, #334155, #475569);
-            color: #e2e8f0;
-          }
-
-          tbody {
-            .table-row {
-              &:hover {
-                background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(30, 64, 175, 0.3));
-              }
-
-              td {
-                color: #e2e8f0;
-                border-color: #475569;
-
-                &.row-number {
-                  color: #94a3b8;
-                }
-
-                &.bill-info .bill-details {
-                  .bill-meta {
-                    .bill-type {
-                      background: #475569;
-                      color: #cbd5e1;
-                    }
-
-                    .bill-total {
-                      color: #6ee7b7;
-                    }
-                  }
-                }
-
-                &.customer-info .customer-name {
-                  color: #f9fafb;
-                }
-
-                &.address-info .address-text {
-                  color: #cbd5e1;
-                }
-
-                &.tracking-info .tracking-display {
-                  .tracking-code {
-                    color: #f9fafb;
-                    background: #475569;
-                  }
-
-                  .carrier {
-                    color: #94a3b8;
-                  }
-                }
-
-                &.shipper-info .shipper-display {
-                  .shipper-main .shipper-name {
-                    color: #f9fafb;
-
-                    .shipper-phone {
-                      color: #cbd5e1;
-                    }
-                  }
-
-                  .shipper-actions .reassign-select {
-                    background: #334155;
-                    color: #f1f5f9;
-                    border-color: #475569;
-
-                    &:focus {
-                      background: #475569;
-                      border-color: #667eea;
-                    }
-                  }
-                }
-
-                &.no-data .no-data-content {
-                  p {
-                    color: #9ca3af;
-                  }
-
-                  small {
-                    color: #6b7280;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      .create-shipment-modal {
-        background: #1e293b;
-
-        .modal-content {
-          .order-info {
-            background: #334155;
-            border-color: #475569;
-
-            h4 {
-              color: #f1f5f9;
-            }
-
-            p {
-              color: #e2e8f0;
-
-              strong {
-                color: #f1f5f9;
-              }
-
-              .status-ready {
-                background: linear-gradient(135deg, #3730a3, #1e40af);
-                color: #c7d2fe;
-              }
-            }
-          }
-
-          .shipper-selection {
-            h4 {
-              color: #f1f5f9;
-            }
-
-            .shipper-list .shipper-item {
-              background: #334155;
-              border-color: #475569;
-
-              &:hover {
-                background: #475569;
-                border-color: #667eea;
-              }
-
-              .shipper-info {
-                .shipper-name {
-                  color: #f1f5f9;
-                }
-
-                .shipper-phone {
-                  color: #cbd5e1;
-                }
-
-                .shipper-status.online {
-                  color: #6ee7b7;
-                }
-              }
-            }
-
-            .no-shipper-available {
-              background: #374151;
-              border-color: #4b5563;
-
-              p {
-                color: #9ca3af;
-              }
-            }
-          }
+          min-width: 1400px;
         }
       }
     }

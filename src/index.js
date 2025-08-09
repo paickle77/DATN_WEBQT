@@ -26,15 +26,36 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
 import PrivateRoute from './component/PrivateRoute';
 
+// ✅ HELPER FUNCTION - Kiểm tra authentication status
+const isAuthenticated = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  
+  try {
+    // ✅ Kiểm tra token có hợp lệ không (không quá strict)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp > currentTime;
+  } catch (e) {
+    console.error('Token validation error:', e);
+    return false;
+  }
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Router>
       <Routes>
+        {/* ✅ LOGIN ROUTE */}
         <Route path={ENUM_PAGE.Login} element={<LoginForm />} />
+        
+        {/* ✅ ROOT REDIRECT */}
         <Route path="/" element={
-          localStorage.getItem('token') ? <Navigate to={ENUM_PAGE.Home} replace /> : <Navigate to={ENUM_PAGE.Login} replace />
+          isAuthenticated() ? <Navigate to={ENUM_PAGE.Home} replace /> : <Navigate to={ENUM_PAGE.Login} replace />
         } />
+        
+        {/* ✅ PROTECTED ROUTES */}
         <Route path={ENUM_PAGE.Home} element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path={ENUM_PAGE.RevenueByDate} element={<PrivateRoute><RevenueByDate /></PrivateRoute>} />
         <Route path={ENUM_PAGE.RevenueByMonth} element={<PrivateRoute><RevenueByMonth /></PrivateRoute>} />
@@ -42,7 +63,10 @@ root.render(
         <Route path={ENUM_PAGE.ProductManagement} element={<PrivateRoute><ProductManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.BillManagement} element={<PrivateRoute><BillManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.RefundManagement} element={<PrivateRoute><RefundManagement /></PrivateRoute>} />
+        
+        {/* ✅ SHIPMENT MANAGEMENT - CRITICAL ROUTE */}
         <Route path={ENUM_PAGE.ShipmentManagement} element={<PrivateRoute><ShipmentManagement /></PrivateRoute>} />
+        
         <Route path={ENUM_PAGE.CustomerManagement} element={<PrivateRoute><CustomerManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.DatePicker} element={<PrivateRoute><DatePickerComponent /></PrivateRoute>} />
         <Route path={ENUM_PAGE.ShipperManagement} element={<PrivateRoute><ShipperManagement /></PrivateRoute>} />
@@ -52,7 +76,11 @@ root.render(
         <Route path={ENUM_PAGE.SupplierManagement} element={<PrivateRoute><SupplierManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.LogManagement} element={<PrivateRoute><LogManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.NotificationManagement} element={<PrivateRoute><NotificationManagement /></PrivateRoute>} />
-        <Route path="*" element={<Navigate to={ENUM_PAGE.Login} replace />} />
+        
+        {/* ✅ FALLBACK - Redirect to appropriate page */}
+        <Route path="*" element={
+          isAuthenticated() ? <Navigate to={ENUM_PAGE.Home} replace /> : <Navigate to={ENUM_PAGE.Login} replace />
+        } />
       </Routes>
     </Router>
   </React.StrictMode>
