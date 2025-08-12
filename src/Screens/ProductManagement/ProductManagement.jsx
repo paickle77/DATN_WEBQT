@@ -7,18 +7,18 @@ import api from '../../utils/api';
 const defaultSizesMap = {
   '64b1e1e18d28e450e97d8d01': [  // Bánh kem (từ dữ liệu thực tế)
     { size: '10cm', quantity: 0, price_increase: 0 },
-    { size: '15cm', quantity: 0, price_increase: 5000 },
-    { size: '20cm', quantity: 0, price_increase: 10000 }
+    { size: '15cm', quantity: 0, price_increase: 10000 },
+    { size: '20cm', quantity: 0, price_increase: 15000 }
   ],
   '64b1e1e18d28e450e97d8d02': [  // Bánh quy (từ dữ liệu thực tế)
     { size: '100g', quantity: 0, price_increase: 0 },
-    { size: '200g', quantity: 0, price_increase: 3000 },
-    { size: '500g', quantity: 0, price_increase: 8000 }
+    { size: '200g', quantity: 0, price_increase: 20000 },
+    { size: '500g', quantity: 0, price_increase: 40000 }
   ],
   '64b1e1e18d28e450e97d8e03': [  // Bánh bông lan (nếu có)
     { size: '10cm', quantity: 0, price_increase: 0 },
-    { size: '15cm', quantity: 0, price_increase: 4000 },
-    { size: '20cm', quantity: 0, price_increase: 8000 }
+    { size: '15cm', quantity: 0, price_increase: 10000 },
+    { size: '20cm', quantity: 0, price_increase: 15000 }
   ]
 };
 
