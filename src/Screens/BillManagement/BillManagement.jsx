@@ -110,9 +110,7 @@ const handleAuthError = (error) => {
 const BillManagement = () => {
   const navigate = useNavigate(); // ✅ THÊM useNavigate hook
   const [bills, setBills] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [addresses, setAddresses] = useState([]);
-  const [vouchers, setVouchers] = useState([]);
+  const [vouchers, setVouchers] = useState([]); // Giữ vouchers cho discount_percent trong modal
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [fromDate, setFromDate] = useState(null);
@@ -172,105 +170,32 @@ const BillManagement = () => {
     setLoading(true);
     setError(null);
     
-    const possibleAddressEndpoints = [
-      '/addresses',
-      '/address',
-      '/user-addresses', 
-      '/customer-addresses',
-      '/shipping-addresses',
-      '/delivery-addresses',
-      '/bill-addresses'
-    ];
-
-    const findAddressEndpoint = async () => {
-      for (const endpoint of possibleAddressEndpoints) {
-        try {
-          console.log(`🔍 Trying address endpoint: ${endpoint}`);
-          const response = await api.get(endpoint);
-          console.log(`✅ Address endpoint ${endpoint} works!`, response.data?.data?.length || 0, 'records');
-          return response;
-        } catch (err) {
-          console.log(`❌ Address endpoint ${endpoint} failed:`, err.response?.status);
-        }
-      }
-      
-      console.log('⚠️ No address endpoint found, trying to extract from bills...');
-      return { data: { data: [] }, error: 'no-address-endpoint' };
-    };
-
-    const makeApiCall = async (endpoint, errorType) => {
-      try {
-        return await api.get(endpoint);
-      } catch (err) {
-        return { data: { data: [] }, error: errorType, details: err };
-      }
-    };
-
-    const apiCalls = [
-      makeApiCall('/GetAllBills', 'bills'),
-      makeApiCall('/users', 'users'),
-      makeApiCall('/vouchers', 'vouchers')
-    ];
-
+    // 🔥 SỬA: Chỉ fetch bills enrich và vouchers (bỏ users, addresses)
     Promise.all([
-      ...apiCalls,
-      findAddressEndpoint()
-    ]).then(([billsRes, usersRes, vouchersRes, addressesRes]) => {
+      api.get('/GetAllBills?enrich=true'),
+      api.get('/vouchers')
+    ]).then(([billsRes, vouchersRes]) => {
       
       console.log('📊 API Results:');
-      console.log('📋 Bills:', billsRes.error ? 'ERROR' : 'OK', billsRes.data.data?.length || 0);
-      console.log('👥 Users:', usersRes.error ? 'ERROR' : 'OK', usersRes.data.data?.length || 0);
-      console.log('🎫 Vouchers:', vouchersRes.error ? 'ERROR' : 'OK', vouchersRes.data.data?.length || 0);
-      console.log('📍 Addresses:', addressesRes.error ? 'ERROR' : 'OK', addressesRes.data.data?.length || 0);
+      console.log('📋 Bills:', billsRes.data.data?.length || 0);
+      console.log('🎫 Vouchers:', vouchersRes.data.data?.length || 0);
       
       const billData = billsRes.data.data || [];
-      const userData = usersRes.data.data || [];
       
       console.log('🔍 Sample bill data:', billData[0]);
-      console.log('🔍 Sample user data:', userData[0]);
       
       const managementBills = billData.filter(bill => 
         ['pending', 'confirmed', 'ready', 'cancelled'].includes(bill.status)
       );
       
-      let addressData = addressesRes.data.data || [];
-      
-      if (addressData.length === 0 && billData.length > 0) {
-        console.log('🔧 Extracting addresses from bills...');
-        const extractedAddresses = [];
-        billData.forEach(bill => {
-          if (bill.delivery_address) {
-            extractedAddresses.push({
-              _id: bill.address_id || `addr_${bill._id}`,
-              detail_address: bill.delivery_address.street || bill.delivery_address.detail || '',
-              ward: bill.delivery_address.ward || '',
-              district: bill.delivery_address.district || '',
-              city: bill.delivery_address.city || bill.delivery_address.province || '',
-              user_id: bill.user_id
-            });
-          } else if (bill.shipping_address) {
-            extractedAddresses.push({
-              _id: bill.address_id || `addr_${bill._id}`,
-              full_address: bill.shipping_address,
-              user_id: bill.user_id
-            });
-          }
-        });
-        addressData = extractedAddresses;
-        console.log('✅ Extracted', addressData.length, 'addresses from bills');
-      }
-
       setBills(managementBills);
-      setUsers(userData);
       setVouchers(vouchersRes.data.data || []);
-      setAddresses(addressData);
 
       const existingLogs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
       setActionHistory(existingLogs);
 
       const criticalErrors = [];
-      if (billsRes.error) criticalErrors.push('Không thể tải danh sách hóa đơn');
-      if (usersRes.error) criticalErrors.push('Không thể tải danh sách khách hàng');
+      if (!billsRes.data.success) criticalErrors.push('Không thể tải danh sách hóa đơn');
       
       if (criticalErrors.length > 0) {
         setError(criticalErrors.join(', '));
@@ -278,8 +203,7 @@ const BillManagement = () => {
       }
 
       const warnings = [];
-      if (addressesRes.error) warnings.push('Không thể tải địa chỉ - sẽ hiển thị "N/A"');
-      if (vouchersRes.error) warnings.push('Không thể tải voucher - sẽ hiển thị "—"');
+      if (!vouchersRes.data.success) warnings.push('Không thể tải voucher - sẽ hiển thị "—"');
       
       if (warnings.length > 0) {
         console.warn('⚠️ Non-critical warnings:', warnings);
@@ -288,72 +212,17 @@ const BillManagement = () => {
       setLoading(false);
     }).catch(error => {
       console.error('❌ fetchAll error:', error);
-      setError('Lỗi khi tải dữ liệu: ' + (error.response?.data?.message || error.message));
+      setError('Lỗi khi tải dữ liệu: ' + (error.response?.data?.msg || error.message));
       setLoading(false);
     });
   }
 
-  // Lookup functions giữ nguyên
-  const lookupUser = (bill) => {
-    if (bill.user_id && typeof bill.user_id === 'object' && bill.user_id.full_name) {
-      return bill.user_id.full_name || bill.user_id.name || bill.user_id.username || 'Khách hàng không rõ';
-    }
-    
-    if (!bill.user_id || !users.length) return 'Khách hàng không rõ';
-    
-    const userId = typeof bill.user_id === 'object' ? bill.user_id._id : bill.user_id;
-    const user = users.find(u => u._id === userId.toString());
-    
-    if (!user) {
-      console.warn(`⚠️ User not found for ID: ${userId}`);
-      return `User ID: ${userId.toString().slice(-8)}`;
-    }
-    
-    return user.full_name || user.name || user.username || 'Khách hàng không rõ';
-  };
+  // 🔥 SỬA: Sử dụng enriched fields từ backend
+  const lookupUser = (bill) => bill.customerName || 'Khách hàng không rõ';
 
-  const lookupAddress = (bill) => {
-    if (bill.address_id && typeof bill.address_id === 'object') {
-      const addr = bill.address_id;
-      if (addr.full_address) return addr.full_address;
-      
-      const parts = [
-        addr.detail_address || addr.address || addr.street,
-        addr.ward || addr.ward_name,
-        addr.district || addr.district_name, 
-        addr.city || addr.province || addr.province_name
-      ].filter(Boolean);
-      
-      return parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
-    }
-    
-    if (!bill.address_id || !addresses.length) return 'Chưa có địa chỉ giao hàng';
-    
-    const addressId = typeof bill.address_id === 'object' ? bill.address_id._id : bill.address_id;
-    const address = addresses.find(x => x._id === addressId);
-    
-    if (!address) return `Địa chỉ ID: ${addressId.toString().slice(-8)}`;
-    
-    if (address.full_address) {
-      return address.full_address;
-    }
-    
-    const parts = [
-      address.detail_address || address.address || address.street,
-      address.ward || address.ward_name,
-      address.district || address.district_name, 
-      address.city || address.province || address.province_name
-    ].filter(Boolean);
-    
-    return parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
-  };
+  const lookupAddress = (bill) => bill.addressString || 'Chưa có địa chỉ';
 
-  const lookupVoucher = bill => {
-    if (!bill.voucher_code && !bill.voucher_id) return '—';
-    if (bill.voucher_code) return bill.voucher_code;
-    const voucher = vouchers.find(v => v._id === bill.voucher_id);
-    return voucher?.code || '—';
-  };
+  const lookupVoucher = bill => bill.voucherDisplayCode || '—';
 
   // Filter hóa đơn
   const filtered = bills.filter(bill => {
@@ -368,8 +237,8 @@ const BillManagement = () => {
         return false;
       }
     }
-    if (bill.createdAt) {
-      const d = new Date(bill.createdAt);
+    if (bill.created_at) {
+      const d = new Date(bill.created_at);
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
     }
@@ -479,7 +348,7 @@ const BillManagement = () => {
   const openModal = async bill => {
     try {
       console.log('🔍 Fetching bill details for:', bill._id);
-      const { data: res } = await api.get(`/bills/${bill._id}?_=${Date.now()}`);
+      const { data: res } = await api.get(`/bills/${bill._id}?enrich=true&_=${Date.now()}`);
       
       if (!res || !res.data) {
         throw new Error('Không có dữ liệu hóa đơn');
@@ -501,9 +370,9 @@ const BillManagement = () => {
       const discountAmount = Math.round(subtotal * discountPercent / 100);
       const finalTotal = subtotal - discountAmount;
       
-      const userName = lookupUser(billData);
-      const addressStr = lookupAddress(billData);
-      const voucherCode = lookupVoucher(billData);
+      const userName = billData.customerName || lookupUser(billData);
+      const addressStr = billData.addressString || lookupAddress(billData);
+      const voucherCode = billData.voucherDisplayCode || lookupVoucher(billData);
 
       setCurrentBill({
         ...billData,
@@ -520,14 +389,14 @@ const BillManagement = () => {
       logAction('VIEW_DETAIL', bill._id, `Xem chi tiết hóa đơn`);
     } catch (err) {
       console.error('❌ Error opening modal:', err);
-      alert('❌ Không thể tải chi tiết hóa đơn: ' + (err.response?.data?.message || err.message));
+      alert('❌ Không thể tải chi tiết hóa đơn: ' + (err.response?.data?.msg || err.message));
     }
   };
 
   const printBillSlip = async billId => {
     try {
       console.log('🖨️ Printing PDF for bill:', billId);
-      const { data: res } = await api.get(`/bills/${billId}?_=${Date.now()}`);
+      const { data: res } = await api.get(`/bills/${billId}?enrich=true&_=${Date.now()}`);
       
       if (!res || !res.data) {
         throw new Error('Không có dữ liệu hóa đơn');
@@ -547,9 +416,9 @@ const BillManagement = () => {
       const v = vouchers.find(v => v._id === bill.voucher_id);
       const discountAmount = Math.round(subtotal * ((Number(v?.discount_percent) || 0) / 100));
       const finalTotal = subtotal - discountAmount;
-      const customer = lookupUser(bill);
-      const addressText = lookupAddress(bill);
-      const voucherCode = lookupVoucher(bill);
+      const customer = bill.customerName || 'Khách hàng không rõ';
+      const addressText = bill.addressString || 'Chưa có địa chỉ';
+      const voucherCode = bill.voucherDisplayCode || '—';
 
       const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
       doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
@@ -563,9 +432,9 @@ const BillManagement = () => {
       doc.text(`📄 Mã hóa đơn: ${bill._id}`, 14, 30);
       doc.text(`👤 Khách hàng: ${customer}`, 14, 36);
       doc.text(`📍 Địa chỉ: ${addressText}`, 14, 42);
-      doc.text(`📊 Trạng thái: ${STATUS_LABELS[bill.status] || bill.status}`, 14, 48);
+      doc.text(`📊 Trạng thái: ${bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}`, 14, 48);
       doc.text(`🎫 Voucher: ${voucherCode}`, 14, 54);
-      doc.text(`📅 Ngày tạo: ${bill.createdAt ? new Date(bill.createdAt).toLocaleString('vi-VN') : 'N/A'}`, 14, 60);
+      doc.text(`📅 Ngày tạo: ${bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A')}`, 14, 60);
       
       if (discountAmount > 0) {
         doc.text(`💰 Giảm giá: -${discountAmount.toLocaleString('vi-VN')} đ`, 14, 66);
@@ -600,7 +469,7 @@ const BillManagement = () => {
       const yAfterTable = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(`💵 Tạm tính: ${subtotal.toLocaleString('vi-VN')} đ`, 14, yAfterTable);
-      doc.text(`💳 Tổng thanh toán: ${finalTotal.toLocaleString('vi-VN')} đ`, 14, yAfterTable + 6);
+      doc.text(`💳 Tổng thanh toán: ${bill.total_formatted || finalTotal.toLocaleString('vi-VN')} đ`, 14, yAfterTable + 6);
       
       doc.setFontSize(10);
       doc.text('Cảm ơn quý khách đã tin tưởng CakeShop! 🎂', 14, yAfterTable + 20);
@@ -610,7 +479,7 @@ const BillManagement = () => {
       logAction('PRINT_PDF', billId, `In hóa đơn PDF`);
     } catch (err) {
       console.error('❌ PDF Error:', err);
-      alert('❌ Không thể tạo PDF: ' + (err.response?.data?.message || err.message));
+      alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
     }
   };
 
@@ -942,9 +811,9 @@ const BillManagement = () => {
                   </div>
                 </td>
                 <td className="date-cell">
-                  {bill.createdAt ? new Date(bill.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
                   <br />
-                  <small>{bill.createdAt ? new Date(bill.createdAt).toLocaleTimeString('vi-VN') : ''}</small>
+                  <small>{bill.created_at ? new Date(bill.created_at).toLocaleTimeString('vi-VN') : ''}</small>
                 </td>
                 <td className="address-cell" title={lookupAddress(bill)}>
                   {lookupAddress(bill).length > 50 
@@ -955,7 +824,7 @@ const BillManagement = () => {
                 <td className="voucher-cell">{lookupVoucher(bill)}</td>
                 <td className="total-cell">
                   <span className="total-amount">
-                    {(Number(bill.total) || 0).toLocaleString('vi-VN')} đ
+                    {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'}
                   </span>
                 </td>
                 <td className="status-cell">
@@ -963,7 +832,7 @@ const BillManagement = () => {
                     className="status-badge" 
                     style={{ backgroundColor: STATUS_COLORS[bill.status] || '#6b7280' }}
                   >
-                    {STATUS_LABELS[bill.status] || bill.status}
+                    {bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}
                   </div>
                 </td>
                 {renderActionButtons(bill)}

@@ -42,8 +42,6 @@ const BILL_TO_SHIPMENT_STATUS = {
 export default function ShipmentManagement() {
   const [bills, setBills] = useState([]);
   const [shippers, setShippers] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [addresses, setAddresses] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -70,15 +68,11 @@ export default function ShipmentManagement() {
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      api.get('/GetAllBills'),
-      api.get('/shippers'), 
-      api.get('/users'),
-      api.get('/addresses')
-    ]).then(([billsRes, shippersRes, usersRes, addressesRes]) => {
+      api.get('/GetAllBills?enrich=true'),
+      api.get('/shippers')
+    ]).then(([billsRes, shippersRes]) => {
       const allBills = billsRes.data.data || [];
       const allShippers = shippersRes.data.data || [];
-      const allUsers = usersRes.data.data || [];
-      const allAddresses = addressesRes.data.data || [];
       
       // 🎯 CHỈ LẤY BILLS CÓ TRẠNG THÁI LIÊN QUAN ĐẾN GIAO HÀNG
       const shippingBills = allBills.filter(bill => 
@@ -87,8 +81,6 @@ export default function ShipmentManagement() {
       
       setBills(shippingBills);
       setShippers(allShippers);
-      setUsers(allUsers);
-      setAddresses(allAddresses);
       setLoading(false);
     }).catch(err => {
       console.error('Load data error:', err);
@@ -141,67 +133,25 @@ export default function ShipmentManagement() {
   };
 
   // Lấy thông tin customer từ bill
-  const getCustomerInfo = (bill) => {
-    let customerName = 'N/A';
-    let customerPhone = 'N/A';
-    let addressStr = 'N/A';
-
-    // Lấy customer name và phone
-    if (bill.user_id && typeof bill.user_id === 'object') {
-      customerName = bill.user_id.full_name || bill.user_id.name || bill.user_id.username || 'N/A';
-      customerPhone = bill.user_id.phone || 'N/A';
-    } else if (bill.user_id) {
-      const user = users.find(u => u._id === (typeof bill.user_id === 'object' ? bill.user_id._id : bill.user_id));
-      customerName = user?.full_name || user?.name || user?.username || 'N/A';
-      customerPhone = user?.phone || 'N/A';
-    }
-
-    // Lấy address
-    if (bill.address_id && typeof bill.address_id === 'object') {
-      const addr = bill.address_id;
-      if (addr.full_address) {
-        addressStr = addr.full_address;
-      } else {
-        const parts = [
-          addr.detail_address || addr.address || addr.street,
-          addr.ward || addr.ward_name,
-          addr.district || addr.district_name, 
-          addr.city || addr.province || addr.province_name
-        ].filter(Boolean);
-        addressStr = parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
-      }
-    } else if (bill.address_id) {
-      const address = addresses.find(a => a._id === (typeof bill.address_id === 'object' ? bill.address_id._id : bill.address_id));
-      if (address) {
-        if (address.full_address) {
-          addressStr = address.full_address;
-        } else {
-          const parts = [
-            address.detail_address || address.address || address.street,
-            address.ward || address.ward_name,
-            address.district || address.district_name, 
-            address.city || address.province || address.province_name
-          ].filter(Boolean);
-          addressStr = parts.length > 0 ? parts.join(', ') : 'Địa chỉ không đầy đủ';
-        }
-      }
-    }
-      
-    return { name: customerName, phone: customerPhone, address: addressStr };
-  };
+  const getCustomerInfo = (bill) => ({
+    name: bill.customerName || 'N/A',
+    phone: bill.customerPhone || 'N/A',
+    address: bill.addressString || 'N/A'
+  });
 
   // Lấy thông tin shipper - CHỈ HIỂN THỊ, KHÔNG CHO CHỈNH SỬA
   const getShipperInfo = (bill) => {
-    // Check populated shipper data
-    if (bill.shipper_id && typeof bill.shipper_id === 'object' && bill.shipper_id.full_name) {
+    // Ưu tiên enriched
+    if (bill.shipperName) {
       return {
-        name: bill.shipper_id.full_name || bill.shipper_id.name || bill.shipper_id.username || 'N/A',
-        phone: bill.shipper_id.phone || 'N/A',
-        isOnline: bill.shipper_id.is_online || false,
-        id: bill.shipper_id._id
+        name: bill.shipperName || 'Chờ shipper nhận',
+        phone: bill.shipperPhone || 'N/A',
+        isOnline: bill.shipper_id?.is_online || false,
+        id: bill.shipper_id?._id || null
       };
     } 
     
+    // Fallback nếu không enrich (nhưng giờ có enrich nên ít dùng)
     const shipperId = bill.shipper_id || bill.assigned_shipper;
     if (!shipperId) {
       return { name: 'Chờ shipper nhận', phone: 'N/A', isOnline: false, id: null };
@@ -346,7 +296,7 @@ export default function ShipmentManagement() {
 
         {/* Alert cho đơn hàng chờ lâu */}
         {bills.filter(b => b.status === 'ready').some(b => {
-          const hours = Math.floor((new Date() - new Date(b.createdAt)) / (1000 * 60 * 60));
+          const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
           return hours >= 2;
         }) && (
           <div className="alert-section">
@@ -356,7 +306,7 @@ export default function ShipmentManagement() {
                 <h4>Cảnh báo: Có đơn hàng chờ lâu!</h4>
                 <p>
                   {bills.filter(b => {
-                    const hours = Math.floor((new Date() - new Date(b.createdAt)) / (1000 * 60 * 60));
+                    const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
                     return b.status === 'ready' && hours >= 2;
                   }).length} đơn hàng đã chờ shipper nhận hơn 2 tiếng. 
                   Hãy kiểm tra lại hoặc liên hệ với các shipper.
@@ -422,7 +372,7 @@ export default function ShipmentManagement() {
                   const customerInfo = getCustomerInfo(bill);
                   const shipperInfo = getShipperInfo(bill);
                   const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
-                  const orderAge = getOrderAge(bill.createdAt);
+                  const orderAge = getOrderAge(bill.created_at);
 
                   return (
                     <tr key={bill._id} className="table-row">
@@ -432,10 +382,10 @@ export default function ShipmentManagement() {
                         <div className="bill-details">
                           <div className="bill-id">#{bill._id.slice(-8)}</div>
                           <div className="bill-total">
-                            {(Number(bill.total) || 0).toLocaleString('vi-VN')} đ
+                            {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'}
                           </div>
                           <div className="bill-date">
-                            {bill.createdAt ? new Date(bill.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                            {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
                           </div>
                         </div>
                       </td>
@@ -497,7 +447,7 @@ export default function ShipmentManagement() {
                             fontWeight: '600'
                           }}
                         >
-                          {STATUS_LABELS[displayStatus] || displayStatus}
+                          {bill.statusDisplay || STATUS_LABELS[displayStatus] || displayStatus}
                         </div>
                         {displayStatus === SHIPMENT_STATUS.READY && (
                           <div className="waiting-time">
@@ -511,10 +461,10 @@ export default function ShipmentManagement() {
                       <td className="time-info">
                         <div className="time-display">
                           <div className="order-age">{orderAge}</div>
-                          {bill.updatedAt && bill.updatedAt !== bill.createdAt && (
+                          {bill.updated_at && bill.updated_at !== bill.created_at && (
                             <div className="last-update">
                               <small>
-                                Cập nhật: {new Date(bill.updatedAt).toLocaleString('vi-VN')}
+                                Cập nhật: {new Date(bill.updated_at).toLocaleString('vi-VN')}
                               </small>
                             </div>
                           )}
@@ -590,7 +540,7 @@ export default function ShipmentManagement() {
                           <button
                             className="action-btn btn-copy"
                             onClick={() => {
-                              const info = `Đơn hàng #${bill._id.slice(-8)}\nKhách: ${customerInfo.name}\nSĐT: ${customerInfo.phone}\nĐịa chỉ: ${customerInfo.address}\nTiền: ${(Number(bill.total) || 0).toLocaleString('vi-VN')} đ`;
+                              const info = `Đơn hàng #${bill._id.slice(-8)}\nKhách: ${customerInfo.name}\nSĐT: ${customerInfo.phone}\nĐịa chỉ: ${customerInfo.address}\nTiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`;
                               navigator.clipboard.writeText(info);
                               toast.success('Đã copy thông tin!');
                             }}
