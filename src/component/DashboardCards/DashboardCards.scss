@@ -1,10 +1,10 @@
-// DashboardCards.scss - Modern Design with Close Button
+// DashboardCards.scss - Modern Professional Theme
 .dashboard-wrapper {
   padding: 24px;
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #1a1a1a;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
+  color: #334155;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
+  min-height: 5vh;
   border-radius: 0 0 24px 24px;
 }
 
@@ -25,56 +25,80 @@
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 
-  // Modern gradient backgrounds with glassmorphism
+  // Professional color scheme based on functionality
+  
+  // User Management - Professional Blue (Trust, Security)
   &.blue {
-    background: linear-gradient(135deg, rgba(64, 169, 255, 0.9), rgba(0, 109, 217, 0.9));
-    box-shadow: 0 8px 32px rgba(64, 169, 255, 0.3);
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25);
   }
   
-  &.orange {
-    background: linear-gradient(135deg, rgba(255, 169, 64, 0.9), rgba(212, 136, 6, 0.9));
-    box-shadow: 0 8px 32px rgba(255, 169, 64, 0.3);
-  }
-  
-  &.amber {
-    background: linear-gradient(135deg, rgba(255, 197, 61, 0.9), rgba(212, 136, 6, 0.9));
-    box-shadow: 0 8px 32px rgba(255, 197, 61, 0.3);
-  }
-  
-  &.green {
-    background: linear-gradient(135deg, rgba(115, 209, 61, 0.9), rgba(35, 120, 4, 0.9));
-    box-shadow: 0 8px 32px rgba(115, 209, 61, 0.3);
-  }
-  
+  // Account Locked - Alert Red (Warning, Security)
   &.red {
-    background: linear-gradient(135deg, rgba(255, 77, 79, 0.9), rgba(168, 7, 26, 0.9));
-    box-shadow: 0 8px 32px rgba(255, 77, 79, 0.3);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.25);
   }
   
+  // Shipper Management - Professional Orange (Logistics, Movement)
+  &.orange {
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+    box-shadow: 0 8px 32px rgba(234, 88, 12, 0.25);
+  }
+  
+  // Promotions/Vouchers - Success Green (Growth, Benefits)
+  &.green {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.25);
+  }
+  
+  // Reports/Analytics - Professional Purple (Intelligence, Insights)
   &.purple {
-    background: linear-gradient(135deg, rgba(146, 84, 222, 0.9), rgba(83, 29, 171, 0.9));
-    box-shadow: 0 8px 32px rgba(146, 84, 222, 0.3);
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.25);
+  }
+  
+  // Alternative colors for additional cards
+  &.amber {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.25);
   }
 
-  // Floating effect on hover
+  // Enhanced hover effects
   &:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     
     .card-icon {
       transform: scale(1.1) rotate(5deg);
     }
     
     .card-button {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
       transform: translateY(-2px);
+    }
+
+    // Specific hover effects for each card type
+    &.blue {
+      box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
+    }
+    &.red {
+      box-shadow: 0 20px 40px rgba(220, 38, 38, 0.3);
+    }
+    &.orange {
+      box-shadow: 0 20px 40px rgba(234, 88, 12, 0.3);
+    }
+    &.green {
+      box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+    }
+    &.purple {
+      box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3);
     }
   }
 
-  // Animated background patterns
+  // Subtle animated background patterns
   &::before {
     content: '';
     position: absolute;
@@ -82,75 +106,79 @@
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: float 6s ease-in-out infinite;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+    animation: float 8s ease-in-out infinite;
     z-index: 1;
   }
 
-  // Card icon styling
+  // Card icon styling with better positioning
   .card-icon {
     position: absolute;
     top: 20px;
     right: 20px;
     font-size: 2.5rem;
-    opacity: 0.8;
+    opacity: 0.9;
     transition: all 0.3s ease;
     z-index: 2;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     padding: 12px;
     border-radius: 50%;
     backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  // Count number styling
+  // Count number with better typography
   .count {
     font-size: 3.2rem;
-    font-weight: 700;
+    font-weight: 800;
     margin-bottom: 8px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 2;
     position: relative;
-    background: linear-gradient(45deg, #ffffff, rgba(255, 255, 255, 0.8));
+    background: linear-gradient(45deg, #ffffff, rgba(255, 255, 255, 0.9));
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    line-height: 1;
   }
 
-  // Label styling
+  // Label with better spacing
   .label {
     margin-top: 12px;
     font-size: 1.2rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
     z-index: 2;
     position: relative;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    line-height: 1.2;
   }
 
-  // Button styling
+  // Professional button styling
   .card-button {
     position: absolute;
     bottom: 20px;
     left: 24px;
     right: 24px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     border: none;
     padding: 12px 16px;
     border-radius: 12px;
     color: #fff;
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     z-index: 2;
     text-align: center;
+    letter-spacing: 0.3px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     &:active {
@@ -159,49 +187,15 @@
   }
 }
 
-// Thêm style cho card orange (shipper)
-.card.orange {
-  background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
-  
-  .card-icon {
-    color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .count {
-    color: white;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  .label {
-    color: rgba(255, 255, 255, 0.95);
-  }
-  
-  .card-button {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-2px);
-    }
-  }
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(255, 126, 95, 0.3);
-  }
-}
-
-// List container with modern styling and close button
+// List container with professional styling
 .list-container {
   margin-top: 60px;
   background: rgba(255, 255, 255, 0.95);
   padding: 32px;
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(71, 85, 105, 0.08);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(241, 245, 249, 0.5);
   position: relative;
   z-index: 1;
   animation: slideIn 0.3s ease-out;
@@ -212,21 +206,21 @@
     align-items: center;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+    border-bottom: 2px solid rgba(226, 232, 240, 0.5);
 
     h3 {
       margin: 0;
       font-size: 1.8rem;
-      font-weight: 600;
-      color: #2c3e50;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-weight: 700;
+      color: #1e293b;
+      background: linear-gradient(135deg, #334155, #475569);
       background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-          .close-btn {
-      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    .close-btn {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
       border: none;
       color: white;
       width: 36px;
@@ -239,11 +233,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
 
       &:hover {
         transform: scale(1.1);
-        box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
       }
 
       &:active {
@@ -257,7 +252,7 @@
     border-collapse: collapse;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(71, 85, 105, 0.06);
 
     th, td {
       border: none;
@@ -266,7 +261,7 @@
     }
 
     thead {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: linear-gradient(135deg, #1e293b, #0f172a);
       
       th {
         font-weight: 600;
@@ -280,11 +275,15 @@
     tbody {
       tr {
         transition: all 0.3s ease;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.3);
 
         &:hover {
-          background: linear-gradient(90deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+          background: linear-gradient(90deg, rgba(59, 130, 246, 0.03), rgba(99, 102, 241, 0.02));
           transform: translateX(4px);
+        }
+
+        &:nth-child(even) {
+          background: rgba(248, 250, 252, 0.5);
         }
 
         &:last-child {
@@ -293,20 +292,20 @@
       }
       
       td {
-        color: #2c3e50;
+        color: #334155;
         font-weight: 500;
       }
     }
   }
 }
 
-// Floating animation
+// Subtle floating animation
 @keyframes float {
   0%, 100% {
     transform: rotate(0deg) translateY(0px);
   }
   50% {
-    transform: rotate(180deg) translateY(-10px);
+    transform: rotate(180deg) translateY(-8px);
   }
 }
 
@@ -406,7 +405,7 @@
     
     .card-button {
       padding: 10px 12px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       bottom: 16px;
       left: 16px;
       right: 16px;
