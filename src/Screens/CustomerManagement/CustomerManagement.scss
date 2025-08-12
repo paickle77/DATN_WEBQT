@@ -57,6 +57,11 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 // Main container
 .customer-management {
   padding: 2rem;
@@ -86,6 +91,49 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       height: 4px;
       background: linear-gradient(135deg, $primary-color, $secondary-color);
       border-radius: 2px;
+    }
+  }
+
+  // ✅ Stats overview
+  .stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    animation: slideDown 0.5s ease-out;
+
+    .stat-card {
+      background: linear-gradient(135deg, $bg-primary, $bg-secondary);
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: $shadow-md;
+      text-align: center;
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: $shadow-lg;
+        border-color: rgba(102, 126, 234, 0.3);
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: $primary-color;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: $text-secondary;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
     }
   }
 
@@ -147,59 +195,68 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     .action-buttons {
       display: flex;
       gap: 0.75rem;
-    }
 
-    button {
-      padding: 0.875rem 1.5rem;
-      border: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      white-space: nowrap;
+      button {
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        white-space: nowrap;
 
-      &.btn-primary {
-        background: linear-gradient(135deg, $primary-color, $secondary-color);
-        color: white;
-        box-shadow: $shadow-sm;
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: $shadow-lg;
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          
+          &:hover {
+            transform: none;
+          }
         }
-      }
 
-      &.btn-success {
-        background: linear-gradient(135deg, $success-color, #059669);
-        color: white;
-        box-shadow: $shadow-sm;
+        &.btn-primary {
+          background: linear-gradient(135deg, $primary-color, $secondary-color);
+          color: white;
+          box-shadow: $shadow-sm;
 
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: $shadow-lg;
+          &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: $shadow-lg;
+          }
         }
-      }
 
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s ease;
-      }
+        &.btn-success {
+          background: linear-gradient(135deg, $success-color, #059669);
+          color: white;
+          box-shadow: $shadow-sm;
 
-      &:hover::before {
-        left: 100%;
-      }
+          &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: $shadow-lg;
+          }
+        }
 
-      &:active {
-        transform: translateY(0);
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          transition: left 0.5s ease;
+        }
+
+        &:hover::before {
+          left: 100%;
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
       }
     }
   }
@@ -210,7 +267,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     padding: 2rem;
     border-radius: 16px;
     box-shadow: $shadow-xl;
-    margin-bottom: 2rem;
+    max-height: 90vh;
+    overflow-y: auto;
 
     h3 {
       margin-bottom: 1.5rem;
@@ -220,20 +278,26 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       text-align: center;
     }
 
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
     .form-row {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       margin-bottom: 1.25rem;
 
       label {
-        width: 120px;
+        margin-bottom: 0.5rem;
         font-weight: 600;
         color: $text-primary;
         font-size: 0.95rem;
       }
 
       input, select {
-        flex: 1;
         padding: 0.75rem 1rem;
         border: 2px solid $border-color;
         border-radius: 8px;
@@ -250,10 +314,10 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       }
 
       &.checkbox-row {
+        flex-direction: row;
         align-items: center;
 
         input[type="checkbox"] {
-          flex: none;
           width: 20px;
           height: 20px;
           margin-left: 1rem;
@@ -268,6 +332,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       justify-content: flex-end;
       gap: 1rem;
       margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid $border-light;
 
       button {
         padding: 0.75rem 1.5rem;
@@ -282,9 +348,14 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
           background: linear-gradient(135deg, $success-color, #059669);
           color: white;
 
-          &:hover {
+          &:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: $shadow-md;
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
           }
         }
 
@@ -308,28 +379,49 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     box-shadow: $shadow-md;
     overflow: hidden;
     animation: slideUp 0.7s ease-out;
+    position: relative;
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: $primary-color;
+      z-index: 10;
+      backdrop-filter: blur(2px);
+    }
 
     table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 1200px; // Ensure horizontal scroll on small screens
 
       th, td {
-        padding: 1rem;
+        padding: 0.75rem;
         text-align: center;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         border-bottom: 1px solid $border-light;
+        vertical-align: middle;
       }
 
       th {
         background: linear-gradient(135deg, $bg-secondary, $bg-light);
         font-weight: 700;
         color: $text-primary;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 5;
+        white-space: nowrap;
       }
 
       tbody {
@@ -338,7 +430,15 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
 
           &:hover {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-            transform: scale(1.01);
+            transform: scale(1.005);
+          }
+
+          &.locked-row {
+            background: rgba(239, 68, 68, 0.05);
+            
+            &:hover {
+              background: rgba(239, 68, 68, 0.1);
+            }
           }
 
           &:last-child td {
@@ -349,6 +449,65 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
         td {
           color: $text-secondary;
           font-weight: 500;
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+
+          &.currency {
+            font-weight: 600;
+            color: $success-color;
+          }
+
+          &.address-cell {
+            max-width: 200px;
+            text-align: left;
+          }
+
+          &.actions-cell {
+            white-space: nowrap;
+            width: 120px;
+          }
+
+          .customer-info {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.5rem;
+            text-align: left;
+
+            .customer-avatar {
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 2px solid $border-light;
+            }
+          }
+
+          .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+
+            &.provider-local {
+              background: linear-gradient(135deg, $info-color, #2563eb);
+              color: white;
+            }
+
+            &.provider-google {
+              background: linear-gradient(135deg, #ea4335, #fbbc04);
+              color: white;
+            }
+
+            &.provider-facebook {
+              background: linear-gradient(135deg, #4267b2, #365899);
+              color: white;
+            }
+          }
 
           .status-active {
             display: inline-flex;
@@ -357,7 +516,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
             background: linear-gradient(135deg, $success-color, #059669);
             color: white;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
 
             &::before {
@@ -374,31 +533,26 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
             background: linear-gradient(135deg, $danger-color, #dc2626);
             color: white;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
-
-            &::before {
-              content: '🔒';
-              margin-right: 0.5rem;
-            }
           }
         }
       }
 
       // Action buttons
       button {
-        margin: 0 0.25rem;
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
+        margin: 0 0.2rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
         border: none;
         border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
         transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        min-width: 32px;
+        height: 32px;
 
-        &:first-of-type {
+        &.btn-edit {
           background: linear-gradient(135deg, $info-color, #2563eb);
           color: white;
 
@@ -408,7 +562,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
           }
         }
 
-        &:nth-of-type(2) {
+        &.btn-delete {
           background: linear-gradient(135deg, $danger-color, #dc2626);
           color: white;
 
@@ -418,8 +572,18 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
           }
         }
 
-        &:last-of-type {
+        &.btn-lock {
           background: linear-gradient(135deg, $warning-color, #d97706);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: $shadow-md;
+          }
+        }
+
+        &.btn-unlock {
+          background: linear-gradient(135deg, $success-color, #059669);
           color: white;
 
           &:hover {
@@ -447,6 +611,48 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     }
   }
 
+  // Pagination
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: $bg-primary;
+    border-radius: 12px;
+    box-shadow: $shadow-sm;
+
+    button {
+      padding: 0.5rem 1rem;
+      border: 2px solid $border-color;
+      border-radius: 8px;
+      background: $bg-secondary;
+      color: $text-primary;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        border-color: $primary-color;
+        background: $primary-color;
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .page-info {
+      font-weight: 600;
+      color: $text-primary;
+      padding: 0 1rem;
+    }
+  }
+
   // Modal overlay
   .modal-overlay {
     position: fixed;
@@ -459,21 +665,23 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding-top: 5vh;
+    padding: 2vh 1rem;
     z-index: 1000;
     animation: fadeIn 0.3s ease-out;
+    overflow-y: auto;
 
     .modal-box {
       background: $bg-primary;
       border-radius: 20px;
       padding: 0;
       width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
+      max-width: 800px;
+      max-height: 95vh;
       overflow-y: auto;
       box-shadow: $shadow-xl;
       border: 1px solid rgba(255, 255, 255, 0.2);
       animation: scaleIn 0.3s ease-out;
+      margin: auto;
 
       // Custom scrollbar
       &::-webkit-scrollbar {
@@ -497,6 +705,10 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   .customer-management {
     padding: 1rem;
 
+    .stats-overview {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
     .top-bar {
       flex-direction: column;
       align-items: stretch;
@@ -512,6 +724,13 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
 
     .table-wrapper {
       overflow-x: auto;
+      
+      table {
+        th, td {
+          padding: 0.5rem;
+          font-size: 0.8rem;
+        }
+      }
     }
   }
 }
@@ -522,50 +741,80 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       font-size: 2rem;
     }
 
+    .stats-overview {
+      grid-template-columns: 1fr;
+    }
+
     .customer-form {
+      padding: 1rem;
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
       .form-row {
-        flex-direction: column;
-        align-items: stretch;
-
-        label {
-          width: 100%;
-          margin-bottom: 0.5rem;
-        }
-
         &.checkbox-row {
           flex-direction: row;
           align-items: center;
 
           label {
-            width: auto;
             margin-bottom: 0;
           }
         }
       }
     }
 
-    .table-wrapper table {
-      font-size: 0.8rem;
+    .table-wrapper {
+      table {
+        min-width: 800px;
+        
+        th, td {
+          padding: 0.4rem;
+          font-size: 0.75rem;
+        }
 
-      th, td {
-        padding: 0.5rem;
+        button {
+          padding: 0.25rem;
+          font-size: 0.8rem;
+          min-width: 28px;
+          height: 28px;
+        }
       }
+    }
 
+    .pagination {
+      flex-direction: column;
+      
       button {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.7rem;
-        margin: 0.1rem;
+        width: 100%;
+        max-width: 200px;
       }
     }
   }
 }
 
-// Pulse animation for status indicator
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
+@media (max-width: 480px) {
+  .customer-management {
+    padding: 0.5rem;
+
+    .modal-overlay {
+      padding: 1rem 0.5rem;
+      
+      .modal-box {
+        max-width: 100%;
+      }
+    }
+
+    .customer-form {
+      padding: 1rem;
+      
+      .form-actions {
+        flex-direction: column;
+        
+        button {
+          width: 100%;
+        }
+      }
+    }
   }
 }
