@@ -372,116 +372,365 @@ const BillManagement = () => {
     }
   };
 
-  // 🔧 FIXED: PDF đơn giản, ổn định - Không gặp lỗi font
-  const printBillSlip = async billId => {
-    try {
-      console.log('🖨️ Printing PDF for bill:', billId);
-      const { data: res } = await api.get(`/bills/${billId}?enrich=true&_=${Date.now()}`);
-      
-      if (!res || !res.data) {
-        throw new Error('Không có dữ liệu hóa đơn');
-      }
-      
-      const bill = res.data;
-      console.log('📄 PDF data:', bill);
-      
-      const items = Array.isArray(bill.items) ? bill.items : [];
-      const customerInfo = getCustomerInfo(bill);
-      const deliveryInfo = getDeliveryInfo(bill);
-
-      // 📄 TẠO PDF ĐỚN GIẢN, KHÔNG LỖI FONT
-      const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
-      
-      // 🔧 SỬ DỤNG FONT AN TOÀN
-      let fontLoaded = false;
-      try {
-        doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
-        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-        doc.setFont('Roboto', 'normal');
-        fontLoaded = true;
-      } catch (fontErr) {
-        console.warn('⚠️ Roboto font failed, using default:', fontErr);
-        doc.setFont('helvetica', 'normal');
-      }
-      
-      doc.setFontSize(16);
-      doc.text('CAKESHOP - HOA DON', 14, 20);
-      
-      doc.setFontSize(12);
-      doc.text(`Ma hoa don: ${bill._id}`, 14, 30);
-      doc.text(`Khach hang: ${customerInfo.name}`, 14, 36);
-      doc.text(`SDT khach hang: ${customerInfo.phone}`, 14, 42);
-      doc.text(`Nguoi nhan: ${deliveryInfo.name}`, 14, 48);
-      doc.text(`SDT nguoi nhan: ${deliveryInfo.phone}`, 14, 54);
-      doc.text(`Dia chi giao hang: ${deliveryInfo.address}`, 14, 60);
-      doc.text(`Trang thai: ${bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}`, 14, 66);
-      doc.text(`Phuong thuc giao hang: ${getShippingMethod(bill)}`, 14, 72);
-      doc.text(`Phuong thuc thanh toan: ${getPaymentMethod(bill)}`, 14, 78);
-      doc.text(`Voucher: ${getVoucherCode(bill)}`, 14, 84);
-      doc.text(`Ngay tao: ${bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A')}`, 14, 90);
-      
-      const startY = 96;
-      const tableData = items.map((item, i) => {
-        const itemPrice = getItemPrice(item);
-        const itemQty = Number(item?.quantity || 0);
-        const itemTotal = itemPrice * itemQty;
-        
-        return [
-          i + 1,
-          item?.productName || item?.name || 'San pham khong ro',
-          itemQty,
-          itemPrice.toLocaleString('vi-VN') + ' d',
-          itemTotal.toLocaleString('vi-VN') + ' d'
-        ];
-      });
-      
-      autoTable(doc, {
-        head: [['#', 'Ten san pham', 'SL', 'Don gia', 'Thanh tien']],
-        body: tableData,
-        startY,
-        styles: {
-          font: fontLoaded ? 'Roboto' : 'helvetica',
-          fontStyle: 'normal',
-          fontSize: 10,
-          cellPadding: 3
-        },
-        headStyles: {
-          fillColor: [41, 128, 185],
-          font: fontLoaded ? 'Roboto' : 'helvetica',
-          fontStyle: 'normal'
-        }
-      });
-      
-      const yAfterTable = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      
-      doc.text(`Tien hang: ${bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable);
-      doc.text(`Phi van chuyen: ${bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 6);
-      
-      if (bill.discountAmount && bill.discountAmount > 0) {
-        doc.text(`Giam gia: -${bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} d`, 14, yAfterTable + 12);
-        doc.text(`TONG THANH TOAN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 18);
-      } else {
-        doc.text(`TONG THANH TOAN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 12);
-      }
-      
-      doc.setFontSize(10);
-      doc.text('Cam on quy khach da tin tuong CakeShop!', 14, yAfterTable + 30);
-      
-      const fileName = `HoaDon_${bill._id.slice(-8)}_${STATUS_LABELS[bill.status] || bill.status}.pdf`;
-      doc.save(fileName);
-
-      logAction('PRINT_PDF', billId, `In hóa đơn PDF - ${fileName}`);
-      
-      alert(`✅ Đã tạo PDF thành công!\n\n📄 File: ${fileName}\n💰 Tổng tiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`);
-
-    } catch (err) {
-      console.error('❌ PDF Error:', err);
-      if (!handleAuthError(err)) {
-        alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
-      }
+// 🎨 FIXED PDF GENERATION - Compact layout với spacing chính xác
+const printBillSlip = async billId => {
+  try {
+    console.log('🖨️ Creating enhanced PDF for bill:', billId);
+    const { data: res } = await api.get(`/bills/${billId}?enrich=true&_=${Date.now()}`);
+    
+    if (!res || !res.data) {
+      throw new Error('Không có dữ liệu hóa đơn');
     }
-  };
+    
+    const bill = res.data;
+    console.log('📄 PDF data:', bill);
+    
+    const items = Array.isArray(bill.items) ? bill.items : [];
+    const customerInfo = getCustomerInfo(bill);
+    const deliveryInfo = getDeliveryInfo(bill);
+
+    // 📄 TẠO PDF VỚI THIẾT KẾ COMPACT
+    const doc = new jsPDF({ 
+      putOnlyUsedFonts: true, 
+      compress: true,
+      format: 'a4'
+    });
+    
+    // 🔧 SETUP FONT AN TOÀN CHO TIẾNG VIỆT
+    let fontLoaded = false;
+    try {
+      doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.setFont('Roboto', 'normal');
+      fontLoaded = true;
+      console.log('✅ Roboto font loaded successfully');
+    } catch (fontErr) {
+      console.warn('⚠️ Roboto font failed, using Helvetica:', fontErr);
+      doc.setFont('helvetica', 'normal');
+    }
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPos = 15; // Starting Y position
+    
+    // 🎨 HEADER SECTION - Compact
+    doc.setFillColor(102, 126, 234);
+    doc.rect(0, 0, pageWidth, 35, 'F'); // Giảm từ 40 xuống 35
+    
+    // Company info section
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20); // Giảm từ 22 xuống 20
+    doc.text('🧁 CAKESHOP', margin, 16);
+    doc.setFontSize(9); // Giảm từ 10 xuống 9
+    doc.text('Premium Cake & Bakery', margin, 23);
+    doc.text('Hotline: 1900-CAKE | cakeshop.vn', margin, 29);
+    
+    // Bill title on the right
+    doc.setFontSize(16); // Giảm từ 18 xuống 16
+    const titleText = 'HOA DON BAN HANG';
+    const titleWidth = doc.getTextWidth(titleText);
+    doc.text(titleText, pageWidth - margin - titleWidth, 20);
+    
+    // Reset position after header
+    yPos = 42; // Giảm từ 50 xuống 42
+    
+    // 📋 BILL BASIC INFO - Compact
+    doc.setFillColor(248, 250, 252);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'F'); // Giảm từ 25 xuống 20
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 20, 'S');
+    
+    // Left column
+    doc.setTextColor(75, 85, 99);
+    doc.setFontSize(8); // Giảm từ 9 xuống 8
+    doc.text('Ma hoa don:', margin + 3, yPos + 6);
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(9); // Giảm từ 10 xuống 9
+    doc.text(`#${bill._id.slice(-8)}`, margin + 3, yPos + 12);
+    
+    // Middle column
+    doc.setTextColor(75, 85, 99);
+    doc.setFontSize(8);
+    doc.text('Ngay tao:', margin + 70, yPos + 6);
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(9);
+    const createDate = bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A');
+    doc.text(createDate, margin + 70, yPos + 12);
+    
+    // Right column - Status with color
+    doc.setTextColor(75, 85, 99);
+    doc.setFontSize(8);
+    doc.text('Trang thai:', margin + 130, yPos + 6);
+    const statusColor = STATUS_COLORS[bill.status] || '#6b7280';
+    const rgb = hexToRgb(statusColor);
+    doc.setTextColor(rgb.r, rgb.g, rgb.b);
+    doc.setFontSize(9);
+    doc.text(bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status, margin + 130, yPos + 12);
+    
+    yPos += 25; // Giảm từ 35 xuống 25
+    
+    // 💳 PAYMENT & SHIPPING INFO - Compact
+    doc.setFillColor(239, 246, 255);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 12, 'F'); // Giảm từ 15 xuống 12
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(8);
+    doc.text('Thanh toan:', margin + 3, yPos + 4);
+    doc.text('Van chuyen:', margin + 70, yPos + 4);
+    doc.text('Voucher:', margin + 130, yPos + 4);
+    
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(8);
+    doc.text(getPaymentMethod(bill), margin + 3, yPos + 9);
+    doc.text(getShippingMethod(bill), margin + 70, yPos + 9);
+    doc.setTextColor(16, 185, 129);
+    doc.text(getVoucherCode(bill), margin + 130, yPos + 9);
+    
+    yPos += 17; // Giảm từ 25 xuống 17
+    
+    // 👤 CUSTOMER INFO - Compact
+    doc.setFillColor(59, 130, 246);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text('👤 THONG TIN KHACH HANG', margin + 3, yPos + 7);
+    
+    yPos += 14; // Giảm từ 18 xuống 14
+    
+    // Customer details in 2 columns
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(9);
+    doc.text(`Ten: ${customerInfo.name}`, margin + 3, yPos);
+    if (customerInfo.phone) {
+      doc.text(`SDT: ${customerInfo.phone}`, margin + 100, yPos);
+    }
+    
+    yPos += 12; // Giảm từ 15 xuống 12
+    
+    // 📍 DELIVERY INFO - Compact
+    doc.setFillColor(139, 92, 246);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text('📍 THONG TIN GIAO HANG', margin + 3, yPos + 7);
+    
+    yPos += 14; // Giảm từ 18 xuống 14
+    
+    // Delivery details
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(9);
+    doc.text(`Nguoi nhan: ${deliveryInfo.name}`, margin + 3, yPos);
+    if (deliveryInfo.phone !== 'Chưa có SĐT') {
+      doc.text(`SDT: ${deliveryInfo.phone}`, margin + 100, yPos);
+    }
+    
+    yPos += 6; // Giảm từ 8 xuống 6
+    
+    // Address with proper wrapping - Compact
+    doc.setTextColor(75, 85, 99);
+    doc.setFontSize(8);
+    doc.text('Dia chi:', margin + 3, yPos);
+    
+    const address = deliveryInfo.address;
+    const maxAddressWidth = pageWidth - margin - 25;
+    const addressLines = doc.splitTextToSize(address, maxAddressWidth);
+    
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(9);
+    addressLines.forEach((line, index) => {
+      doc.text(line, margin + 3, yPos + 4 + (index * 4)); // Giảm từ 6 + index*5 xuống 4 + index*4
+    });
+    
+    yPos += 4 + (addressLines.length * 4) + 8; // Compact spacing
+    
+    // 🛒 PRODUCTS TABLE
+    doc.setFillColor(16, 185, 129);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text('🛒 CHI TIET SAN PHAM', margin + 3, yPos + 7);
+    
+    yPos += 14; // Giảm từ 18 xuống 14
+    
+    // Enhanced table with precise spacing
+    const tableData = items.map((item, i) => {
+      const itemPrice = getItemPrice(item);
+      const itemQty = Number(item?.quantity || 0);
+      const itemTotal = itemPrice * itemQty;
+      
+      return [
+        (i + 1).toString(),
+        item?.productName || item?.name || 'San pham khong ro',
+        itemQty.toString(),
+        itemPrice.toLocaleString('vi-VN') + ' d',
+        itemTotal.toLocaleString('vi-VN') + ' d'
+      ];
+    });
+    
+    autoTable(doc, {
+      head: [['#', 'Ten san pham', 'SL', 'Don gia', 'Thanh tien']],
+      body: tableData,
+      startY: yPos,
+      theme: 'striped',
+      styles: {
+        font: fontLoaded ? 'Roboto' : 'helvetica',
+        fontStyle: 'normal',
+        fontSize: 8, // Giảm từ 9 xuống 8
+        cellPadding: 3, // Giảm từ 4 xuống 3
+        textColor: [17, 24, 39],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.3
+      },
+      headStyles: {
+        fillColor: [16, 185, 129],
+        textColor: [255, 255, 255],
+        fontSize: 9, // Giảm từ 10 xuống 9
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 15 },
+        1: { halign: 'left', cellWidth: 85 },
+        2: { halign: 'center', cellWidth: 20 },
+        3: { halign: 'right', cellWidth: 30 },
+        4: { halign: 'right', cellWidth: 35 }
+      },
+      margin: { left: margin, right: margin }
+    });
+    
+    // 💰 COMPACT SUMMARY SECTION - Right aligned
+    const yAfterTable = doc.lastAutoTable.finalY + 6; // Giảm từ 8 xuống 6
+    const summaryWidth = 60; // Giảm từ 65 xuống 60
+    const summaryX = pageWidth - margin - summaryWidth;
+    
+    // Calculate summary height dynamically
+    const hasDiscount = bill.discountAmount && bill.discountAmount > 0;
+    const summaryHeight = hasDiscount ? 24 : 18; // Giảm height
+    
+    // Summary background
+    doc.setFillColor(249, 250, 251);
+    doc.rect(summaryX, yAfterTable, summaryWidth, summaryHeight, 'F');
+    doc.setDrawColor(209, 213, 219);
+    doc.rect(summaryX, yAfterTable, summaryWidth, summaryHeight, 'S');
+    
+    // Summary content with tighter spacing
+    let summaryY = yAfterTable + 4; // Giảm từ 5 xuống 4
+    
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.text('Tien hang:', summaryX + 2, summaryY);
+    doc.setTextColor(17, 24, 39);
+    const subtotalText = bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN') + ' d';
+    const subtotalWidth = doc.getTextWidth(subtotalText);
+    doc.text(subtotalText, summaryX + summaryWidth - 2 - subtotalWidth, summaryY);
+    
+    summaryY += 4; // Giảm từ 5 xuống 4
+    doc.setTextColor(75, 85, 99);
+    doc.text('Phi van chuyen:', summaryX + 2, summaryY);
+    doc.setTextColor(17, 24, 39);
+    const shippingText = bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN') + ' d';
+    const shippingWidth = doc.getTextWidth(shippingText);
+    doc.text(shippingText, summaryX + summaryWidth - 2 - shippingWidth, summaryY);
+    
+    if (hasDiscount) {
+      summaryY += 4; // Giảm từ 5 xuống 4
+      doc.setTextColor(220, 38, 38);
+      doc.text('Giam gia:', summaryX + 2, summaryY);
+      const discountText = '-' + (bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN') + ' d');
+      const discountWidth = doc.getTextWidth(discountText);
+      doc.text(discountText, summaryX + summaryWidth - 2 - discountWidth, summaryY);
+    }
+    
+    summaryY += 5; // Giảm từ 7 xuống 5
+    // Total with separator line
+    doc.setDrawColor(16, 185, 129);
+    doc.setLineWidth(0.5);
+    doc.line(summaryX + 2, summaryY, summaryX + summaryWidth - 2, summaryY);
+    
+    doc.setFontSize(9); // Giảm từ 10 xuống 9
+    doc.setTextColor(16, 185, 129);
+    doc.text('TONG CONG:', summaryX + 2, summaryY + 4);
+    const totalText = bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' d';
+    const totalWidth = doc.getTextWidth(totalText);
+    doc.text(totalText, summaryX + summaryWidth - 2 - totalWidth, summaryY + 4);
+    
+    // 📝 FOOTER - Positioned properly with enough space
+    const footerY = yAfterTable + summaryHeight + 10; // Giảm từ 15 xuống 10
+    
+    // Kiểm tra xem có đủ chỗ cho footer không
+    if (footerY < pageHeight - 25) {
+      // Footer separator line
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(margin, footerY, pageWidth - margin, footerY);
+      
+      // Thank you message - centered and compact
+      doc.setFontSize(10); // Tăng từ 9 lên 10 để nổi bật hơn
+      doc.setTextColor(59, 130, 246);
+      const thankYouText = 'Cam on quy khach da tin tuong CakeShop!';
+      const thankYouWidth = doc.getTextWidth(thankYouText);
+      doc.text(thankYouText, (pageWidth - thankYouWidth) / 2, footerY + 6);
+      
+      // Contact info - single line, smaller font
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      const contactInfo = '1900-CAKE | support@cakeshop.vn | cakeshop.vn';
+      const contactWidth = doc.getTextWidth(contactInfo);
+      doc.text(contactInfo, (pageWidth - contactWidth) / 2, footerY + 12);
+      
+      // Timestamp - bottom right, very small
+      const timestamp = `In: ${new Date().toLocaleString('vi-VN')}`;
+      const timestampWidth = doc.getTextWidth(timestamp);
+      doc.text(timestamp, pageWidth - margin - timestampWidth, footerY + 18);
+    } else {
+      // Nếu không đủ chỗ, chỉ thêm thank you message ngay dưới summary
+      const simpleFooterY = yAfterTable + summaryHeight + 3;
+      doc.setFontSize(8);
+      doc.setTextColor(59, 130, 246);
+      const thankYouText = 'Cam on quy khach!';
+      const thankYouWidth = doc.getTextWidth(thankYouText);
+      doc.text(thankYouText, (pageWidth - thankYouWidth) / 2, simpleFooterY);
+    }
+    
+    // Save PDF with descriptive filename
+    const fileName = `CakeShop_HoaDon_${bill._id.slice(-8)}_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '')}.pdf`;
+    doc.save(fileName);
+
+    // Log action
+    logAction('PRINT_COMPACT_PDF', billId, `In hóa đơn PDF compact - ${fileName}`);
+    
+    // Success message
+    const successMessage = `✅ Đã tạo PDF compact thành công!\n\n` +
+      `📄 File: ${fileName}\n` +
+      `👤 Khách hàng: ${customerInfo.name}\n` +
+      `📍 Địa chỉ: ${deliveryInfo.address.substring(0, 50)}...\n` +
+      `💰 Tổng tiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ\n` +
+      `📊 Trạng thái: ${STATUS_LABELS[bill.status] || bill.status}\n\n` +
+      `🎨 PDF được tối ưu với layout compact, không bị đè chồng!`;
+    
+    alert(successMessage);
+
+  } catch (err) {
+    console.error('❌ Compact PDF Error:', err);
+    if (!handleAuthError(err)) {
+      alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
+    }
+  }
+};
+
+// 🛠️ HELPER FUNCTION - Convert hex color to RGB
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 107, g: 114, b: 128 }; // Default gray
+}
 
   const hideBill = async billId => {
     if (userRole !== 'admin') {
