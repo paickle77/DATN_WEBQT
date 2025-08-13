@@ -1,4 +1,4 @@
-// 🔥 UPDATED BillManagement.scss - Hỗ trợ các cột tài chính mới
+// 🔥 OPTIMIZED BillManagement.scss - Thu gọn bảng, tập trung vào thông tin quan trọng
 .bill-management {
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -180,14 +180,14 @@
     .bills-table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1400px; // 🔥 TĂNG WIDTH CHO CÁC CỘT MỚI
+      min-width: 1100px; // 🔥 GIẢM WIDTH CHO BẢNG THU GỌN
 
       thead {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
 
         th {
-          padding: 15px 10px;
+          padding: 15px 12px;
           text-align: left;
           font-weight: 600;
           font-size: 13px;
@@ -203,17 +203,15 @@
             border-radius: 0 15px 0 0;
           }
 
-          // 🔥 CỘT WIDTH CHO TỪNG LOẠI
-          &:nth-child(2) { width: 150px; } // Khách hàng
-          &:nth-child(3) { width: 200px; } // Người nhận
-          &:nth-child(4) { width: 120px; } // Ngày tạo
-          &:nth-child(5) { width: 150px; } // Giao hàng
-          &:nth-child(6) { width: 100px; } // Tiền hàng
-          &:nth-child(7) { width: 90px; }  // Phí ship
-          &:nth-child(8) { width: 90px; }  // Giảm giá
-          &:nth-child(9) { width: 120px; } // Tổng tiền
-          &:nth-child(10) { width: 120px; } // Trạng thái
-          &:nth-child(11) { width: 250px; } // Hành động
+          // 🔥 CỘT WIDTH THU GỌN
+          &:nth-child(2) { width: 140px; } // Đơn hàng
+          &:nth-child(3) { width: 160px; } // Khách hàng
+          &:nth-child(4) { width: 150px; } // Liên hệ nhận hàng
+          &:nth-child(5) { width: 200px; } // Địa chỉ
+          &:nth-child(6) { width: 140px; } // Tổng tiền
+          &:nth-child(7) { width: 120px; } // Trạng thái
+          &:nth-child(8) { width: 110px; } // Thời gian
+          &:nth-child(9) { width: 180px; } // Hành động
         }
       }
 
@@ -224,7 +222,7 @@
 
           &:hover {
             background: rgba(102, 126, 234, 0.05);
-            transform: scale(1.005);
+            transform: scale(1.002);
           }
 
           &:last-child {
@@ -238,7 +236,7 @@
           &.status-cancelled { border-left: 4px solid #ef4444; }
 
           td {
-            padding: 12px 10px;
+            padding: 14px 12px;
             vertical-align: top;
             font-size: 13px;
 
@@ -250,12 +248,48 @@
               font-size: 14px;
             }
 
+            // 🔥 BILL CELL STYLES (ĐƠN HÀNG)
+            &.bill-cell {
+              .bill-info {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+
+                .bill-id {
+                  font-weight: 700;
+                  color: #2d3748;
+                  font-size: 14px;
+                  background: rgba(102, 126, 234, 0.1);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+
+                .bill-date {
+                  font-size: 11px;
+                  color: #6b7280;
+                  font-weight: 500;
+                }
+
+                .shipping-method {
+                  font-size: 10px;
+                  color: #059669;
+                  background: rgba(5, 150, 105, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+              }
+            }
+
             // 🔥 CUSTOMER CELL STYLES
             &.customer-cell {
               .customer-info {
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
+                gap: 4px;
 
                 .customer-name {
                   font-weight: 600;
@@ -264,30 +298,26 @@
                   line-height: 1.2;
                 }
 
-                .bill-id {
-                  font-size: 11px;
-                  color: #718096;
-                  background: rgba(102, 126, 234, 0.1);
-                  padding: 2px 6px;
-                  border-radius: 4px;
-                  display: inline-block;
-                  width: fit-content;
-                }
-
                 .customer-phone {
                   font-size: 11px;
                   color: #059669;
                   text-decoration: none;
+                  display: inline-block;
+
+                  &:hover {
+                    color: #047857;
+                    text-decoration: underline;
+                  }
                 }
               }
             }
 
-            // 🔥 DELIVERY CELL STYLES
-            &.delivery-cell {
-              .delivery-info {
+            // 🔥 DELIVERY CONTACT CELL
+            &.delivery-contact-cell {
+              .delivery-contact {
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
+                gap: 4px;
 
                 .delivery-name {
                   font-weight: 600;
@@ -307,66 +337,37 @@
                     text-decoration: underline;
                   }
                 }
-
-                .delivery-address {
-                  font-size: 11px;
-                  color: #6b7280;
-                  line-height: 1.3;
-                  overflow-wrap: break-word;
-                }
               }
             }
 
-            // 🔥 DATE CELL STYLES
-            &.date-cell {
-              .date-info {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-
-                .date {
-                  font-weight: 600;
-                  color: #374151;
-                  font-size: 13px;
-                }
-
-                .time {
-                  color: #9ca3af;
-                  font-size: 11px;
-                }
+            // 🔥 ADDRESS CELL STYLES
+            &.address-cell {
+              .address-text {
+                font-size: 12px;
+                color: #6b7280;
+                line-height: 1.3;
+                overflow-wrap: break-word;
+                display: block;
               }
             }
 
-            // 🔥 SHIPPING INFO STYLES
-            &.shipping-cell {
-              .shipping-info {
+            // 🔥 TOTAL CELL STYLES
+            &.total-cell {
+              .total-info {
                 display: flex;
                 flex-direction: column;
                 gap: 3px;
 
-                .shipping-method {
-                  font-size: 12px;
-                  color: #1f2937;
-                  font-weight: 600;
-                  background: rgba(6, 182, 212, 0.1);
-                  padding: 2px 6px;
-                  border-radius: 4px;
-                  display: inline-block;
-                  width: fit-content;
-                }
-
-                .payment-method {
-                  font-size: 11px;
+                .total-amount {
+                  font-weight: 700;
+                  font-size: 14px;
                   color: #059669;
-                  background: rgba(16, 185, 129, 0.1);
-                  padding: 2px 6px;
-                  border-radius: 4px;
-                  display: inline-block;
-                  width: fit-content;
+                  display: block;
+                  text-align: left;
                 }
 
-                .voucher {
-                  font-size: 11px;
+                .discount-badge {
+                  font-size: 10px;
                   color: #dc2626;
                   background: rgba(239, 68, 68, 0.1);
                   padding: 2px 6px;
@@ -374,54 +375,16 @@
                   display: inline-block;
                   width: fit-content;
                 }
-              }
-            }
 
-            // 🔥 MONEY CELL STYLES
-            &.subtotal-cell,
-            &.shipping-fee-cell,
-            &.total-cell {
-              .money-amount {
-                font-weight: 600;
-                color: #1f2937;
-                font-size: 13px;
-                display: block;
-                text-align: right;
-                padding: 4px 8px;
-                background: rgba(16, 185, 129, 0.05);
-                border-radius: 6px;
-                border-left: 3px solid #10b981;
-              }
-            }
-
-            &.discount-cell {
-              .money-amount {
-                font-weight: 600;
-                font-size: 13px;
-                display: block;
-                text-align: right;
-                padding: 4px 8px;
-                border-radius: 6px;
-
-                &.discount {
-                  color: #dc2626;
-                  background: rgba(239, 68, 68, 0.05);
-                  border-left: 3px solid #ef4444;
+                .payment-method {
+                  font-size: 10px;
+                  color: #1f2937;
+                  background: rgba(31, 41, 55, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
                 }
-              }
-            }
-
-            &.total-cell {
-              .total-amount {
-                font-weight: 700;
-                font-size: 14px;
-                color: #059669;
-                display: block;
-                text-align: right;
-                padding: 6px 10px;
-                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
-                border-radius: 8px;
-                border: 2px solid #10b981;
               }
             }
 
@@ -434,22 +397,42 @@
                 font-size: 12px;
                 text-align: center;
                 display: inline-block;
-                min-width: 100px;
+                min-width: 90px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+              }
+            }
+
+            // 🔥 TIME CELL STYLES
+            &.time-cell {
+              .time-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                .date {
+                  font-weight: 600;
+                  color: #374151;
+                  font-size: 12px;
+                }
+
+                .time {
+                  color: #9ca3af;
+                  font-size: 10px;
+                }
               }
             }
 
             &.actions-cell {
               .action-buttons {
                 display: flex;
-                gap: 6px;
+                gap: 4px;
                 flex-wrap: wrap;
 
                 button {
-                  padding: 6px 10px;
+                  padding: 5px 8px;
                   border: none;
                   border-radius: 6px;
-                  font-size: 11px;
+                  font-size: 10px;
                   font-weight: 600;
                   cursor: pointer;
                   transition: all 0.3s ease;
@@ -470,11 +453,6 @@
                     color: white;
                   }
 
-                  &.btn-audit {
-                    background: #8b5cf6;
-                    color: white;
-                  }
-
                   &.btn-status {
                     color: white;
                     
@@ -485,11 +463,6 @@
 
                   &.btn-move-to-shipping {
                     background: #06b6d4;
-                    color: white;
-                  }
-
-                  &.btn-hide {
-                    background: #6b7280;
                     color: white;
                   }
                 }
@@ -516,8 +489,8 @@
     }
   }
 
-  // 🔥 RESPONSIVE DESIGN CHO TABLE MỚI
-  @media (max-width: 1600px) {
+  // 🔥 RESPONSIVE DESIGN CHO BẢNG THU GỌN
+  @media (max-width: 1400px) {
     .table-wrapper {
       overflow-x: auto;
 
@@ -526,12 +499,12 @@
 
         thead th {
           padding: 12px 8px;
-          font-size: 12px;
+          font-size: 11px;
         }
 
         tbody td {
-          padding: 10px 8px;
-          font-size: 12px;
+          padding: 12px 8px;
+          font-size: 11px;
         }
       }
     }
@@ -573,7 +546,7 @@
       border-radius: 10px;
 
       .bills-table {
-        min-width: 1200px; // Giảm width cho mobile
+        min-width: 900px; // Giảm width cho mobile
       }
     }
   }
@@ -600,7 +573,7 @@
       border-radius: 0;
 
       .bills-table {
-        min-width: 1000px;
+        min-width: 800px;
       }
     }
   }

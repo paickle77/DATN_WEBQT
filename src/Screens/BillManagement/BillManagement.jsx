@@ -1,4 +1,4 @@
-// 🔥 UPDATED BillManagement - Sử dụng address_snapshot và hiển thị breakdown tài chính
+// 🔥 OPTIMIZED BillManagement - Thu gọn bảng và đưa chi tiết vào modal
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
@@ -186,6 +186,7 @@ const BillManagement = () => {
          setLoading(false);
        }).catch(error => {
          console.error('❌ fetchAll error:', error);
+         if (handleAuthError(error)) return;
          setError('Lỗi khi tải dữ liệu: ' + (error.response?.data?.msg || error.message));
          setLoading(false);
        });
@@ -206,6 +207,26 @@ const BillManagement = () => {
   const getShippingMethod = (bill) => bill.shippingMethodDisplay || bill.shipping_method || 'Chưa chọn';
   const getPaymentMethod = (bill) => bill.paymentMethodDisplay || bill.payment_method || 'Chưa chọn';
   const getVoucherCode = (bill) => bill.voucherDisplayCode || '—';
+
+  // 🔧 FIXED: Cải thiện logic lấy giá sản phẩm
+  const getItemPrice = (item) => {
+    // Thử các field khác nhau theo thứ tự ưu tiên
+    const priceFields = ['unitPrice', 'price', 'unit_price', 'itemPrice', 'productPrice'];
+    
+    for (const field of priceFields) {
+      if (item[field] && Number(item[field]) > 0) {
+        return Number(item[field]);
+      }
+    }
+    
+    // Fallback: tính từ total/quantity nếu có
+    if (item.total && item.quantity && Number(item.quantity) > 0) {
+      return Number(item.total) / Number(item.quantity);
+    }
+    
+    console.warn('⚠️ Không tìm thấy giá hợp lệ cho item:', item);
+    return 0;
+  };
 
   // Filter hóa đơn
   const filtered = bills.filter(bill => {
@@ -339,37 +360,19 @@ const BillManagement = () => {
       const billData = res.data;
       console.log('📋 Bill data received:', billData);
       
-      const items = Array.isArray(billData.items) ? billData.items : [];
-      
-      // 🔥 SỬ DỤNG DỮ LIỆU BREAKDOWN TỪ API
-      const customerInfo = getCustomerInfo(billData);
-      const deliveryInfo = getDeliveryInfo(billData);
-
-      setCurrentBill({
-        ...billData,
-        items,
-        customerInfo,
-        deliveryInfo,
-        // Sử dụng các giá trị đã được tính từ backend
-        subtotal: billData.subtotal || 0,
-        shippingFee: billData.shippingFee || 0,
-        discountAmount: billData.discountAmount || 0,
-        finalTotal: billData.finalTotal || billData.total || 0,
-        // Formatted values
-        subtotal_formatted: billData.subtotal_formatted || '0 đ',
-        shipping_fee_formatted: billData.shipping_fee_formatted || '0 đ',
-        discount_formatted: billData.discount_formatted || '0 đ',
-        total_formatted: billData.total_formatted || '0 đ'
-      });
+      setCurrentBill(billData);
       setShowModal(true);
 
       logAction('VIEW_DETAIL', bill._id, `Xem chi tiết hóa đơn`);
     } catch (err) {
       console.error('❌ Error opening modal:', err);
-      alert('❌ Không thể tải chi tiết hóa đơn: ' + (err.response?.data?.msg || err.message));
+      if (!handleAuthError(err)) {
+        alert('❌ Không thể tải chi tiết hóa đơn: ' + (err.response?.data?.msg || err.message));
+      }
     }
   };
 
+  // 🔧 FIXED: PDF đơn giản, ổn định - Không gặp lỗi font
   const printBillSlip = async billId => {
     try {
       console.log('🖨️ Printing PDF for bill:', billId);
@@ -386,49 +389,65 @@ const BillManagement = () => {
       const customerInfo = getCustomerInfo(bill);
       const deliveryInfo = getDeliveryInfo(bill);
 
+      // 📄 TẠO PDF ĐỚN GIẢN, KHÔNG LỖI FONT
       const doc = new jsPDF({ putOnlyUsedFonts: true, compress: true });
-      doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
-      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto', 'normal');
+      
+      // 🔧 SỬ DỤNG FONT AN TOÀN
+      let fontLoaded = false;
+      try {
+        doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegular);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.setFont('Roboto', 'normal');
+        fontLoaded = true;
+      } catch (fontErr) {
+        console.warn('⚠️ Roboto font failed, using default:', fontErr);
+        doc.setFont('helvetica', 'normal');
+      }
       
       doc.setFontSize(16);
-      doc.text('🧁 CAKESHOP - HÓA ĐƠN', 14, 20);
+      doc.text('CAKESHOP - HOA DON', 14, 20);
       
       doc.setFontSize(12);
-      doc.text(`📄 Mã hóa đơn: ${bill._id}`, 14, 30);
-      doc.text(`👤 Khách hàng: ${customerInfo.name}`, 14, 36);
-      doc.text(`📞 SĐT khách hàng: ${customerInfo.phone}`, 14, 42);
-      doc.text(`📦 Người nhận: ${deliveryInfo.name}`, 14, 48);
-      doc.text(`📞 SĐT người nhận: ${deliveryInfo.phone}`, 14, 54);
-      doc.text(`📍 Địa chỉ giao hàng: ${deliveryInfo.address}`, 14, 60);
-      doc.text(`📊 Trạng thái: ${bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}`, 14, 66);
-      doc.text(`🚚 Phương thức giao hàng: ${getShippingMethod(bill)}`, 14, 72);
-      doc.text(`💳 Phương thức thanh toán: ${getPaymentMethod(bill)}`, 14, 78);
-      doc.text(`🎫 Voucher: ${getVoucherCode(bill)}`, 14, 84);
-      doc.text(`📅 Ngày tạo: ${bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A')}`, 14, 90);
+      doc.text(`Ma hoa don: ${bill._id}`, 14, 30);
+      doc.text(`Khach hang: ${customerInfo.name}`, 14, 36);
+      doc.text(`SDT khach hang: ${customerInfo.phone}`, 14, 42);
+      doc.text(`Nguoi nhan: ${deliveryInfo.name}`, 14, 48);
+      doc.text(`SDT nguoi nhan: ${deliveryInfo.phone}`, 14, 54);
+      doc.text(`Dia chi giao hang: ${deliveryInfo.address}`, 14, 60);
+      doc.text(`Trang thai: ${bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}`, 14, 66);
+      doc.text(`Phuong thuc giao hang: ${getShippingMethod(bill)}`, 14, 72);
+      doc.text(`Phuong thuc thanh toan: ${getPaymentMethod(bill)}`, 14, 78);
+      doc.text(`Voucher: ${getVoucherCode(bill)}`, 14, 84);
+      doc.text(`Ngay tao: ${bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A')}`, 14, 90);
       
       const startY = 96;
-      const tableData = items.map((item, i) => [
-        i + 1,
-        item?.productName || item?.name || 'Sản phẩm không rõ',
-        Number(item?.quantity || 0),
-        (Number(item?.unitPrice || 0)).toLocaleString('vi-VN') + ' đ',
-        ((Number(item?.quantity || 0)) * (Number(item?.unitPrice || 0))).toLocaleString('vi-VN') + ' đ'
-      ]);
+      const tableData = items.map((item, i) => {
+        const itemPrice = getItemPrice(item);
+        const itemQty = Number(item?.quantity || 0);
+        const itemTotal = itemPrice * itemQty;
+        
+        return [
+          i + 1,
+          item?.productName || item?.name || 'San pham khong ro',
+          itemQty,
+          itemPrice.toLocaleString('vi-VN') + ' d',
+          itemTotal.toLocaleString('vi-VN') + ' d'
+        ];
+      });
       
       autoTable(doc, {
-        head: [['#', 'Tên sản phẩm', 'SL', 'Đơn giá', 'Thành tiền']],
+        head: [['#', 'Ten san pham', 'SL', 'Don gia', 'Thanh tien']],
         body: tableData,
         startY,
         styles: {
-          font: 'Roboto',
+          font: fontLoaded ? 'Roboto' : 'helvetica',
           fontStyle: 'normal',
           fontSize: 10,
           cellPadding: 3
         },
         headStyles: {
           fillColor: [41, 128, 185],
-          font: 'Roboto',
+          font: fontLoaded ? 'Roboto' : 'helvetica',
           fontStyle: 'normal'
         }
       });
@@ -436,26 +455,31 @@ const BillManagement = () => {
       const yAfterTable = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       
-      // 🔥 HIỂN THỊ BREAKDOWN TÀI CHÍNH CHÍNH XÁC
-      doc.text(`💰 Tiền hàng: ${bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN')} đ`, 14, yAfterTable);
-      doc.text(`🚚 Phí vận chuyển: ${bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN')} đ`, 14, yAfterTable + 6);
+      doc.text(`Tien hang: ${bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable);
+      doc.text(`Phi van chuyen: ${bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 6);
       
       if (bill.discountAmount && bill.discountAmount > 0) {
-        doc.text(`💸 Giảm giá: -${bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} đ`, 14, yAfterTable + 12);
-        doc.text(`💵 TỔNG THANH TOÁN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`, 14, yAfterTable + 18);
+        doc.text(`Giam gia: -${bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} d`, 14, yAfterTable + 12);
+        doc.text(`TONG THANH TOAN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 18);
       } else {
-        doc.text(`💵 TỔNG THANH TOÁN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`, 14, yAfterTable + 12);
+        doc.text(`TONG THANH TOAN: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} d`, 14, yAfterTable + 12);
       }
       
       doc.setFontSize(10);
-      doc.text('Cảm ơn quý khách đã tin tưởng CakeShop! 🎂', 14, yAfterTable + 30);
+      doc.text('Cam on quy khach da tin tuong CakeShop!', 14, yAfterTable + 30);
       
-      doc.save(`HoaDon_${bill._id.slice(-8)}_${STATUS_LABELS[bill.status] || bill.status}.pdf`);
+      const fileName = `HoaDon_${bill._id.slice(-8)}_${STATUS_LABELS[bill.status] || bill.status}.pdf`;
+      doc.save(fileName);
 
-      logAction('PRINT_PDF', billId, `In hóa đơn PDF`);
+      logAction('PRINT_PDF', billId, `In hóa đơn PDF - ${fileName}`);
+      
+      alert(`✅ Đã tạo PDF thành công!\n\n📄 File: ${fileName}\n💰 Tổng tiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`);
+
     } catch (err) {
       console.error('❌ PDF Error:', err);
-      alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
+      if (!handleAuthError(err)) {
+        alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
+      }
     }
   };
 
@@ -487,6 +511,8 @@ const BillManagement = () => {
       fetchAll();
     } catch (err) {
       console.error(err);
+      if (handleAuthError(err)) return;
+      
       if (window.confirm('⚠️ Backend chưa hỗ trợ ẩn hóa đơn. Bạn có muốn XÓA VĨNH VIỄN không?\n\n⚠️ CẢNH BÁO: Hành động này có thể tạo ra rủi ro bảo mật!')) {
         try {
           await api.delete(`/bills/${billId}`);
@@ -547,14 +573,8 @@ const BillManagement = () => {
             👁️ Chi tiết
           </button>
           <button onClick={() => printBillSlip(bill._id)} className="btn-print">
-            🖨️ In PDF
+            🖨️ PDF
           </button>
-          
-          {(userRole === 'manager' || userRole === 'admin') && (
-            <button onClick={viewActionHistory} className="btn-audit">
-              📜 Lịch sử
-            </button>
-          )}
           
           {allowedNextStates.map(nextStatus => {
             if (nextStatus === BILL_STATUS.CANCELLED && userRole === 'staff') {
@@ -581,13 +601,7 @@ const BillManagement = () => {
               title="Chuyển sang màn quản lý giao hàng"
               style={{ backgroundColor: '#06b6d4' }}
             >
-              🚚 Chuyển giao hàng
-            </button>
-          )}
-          
-          {[BILL_STATUS.PENDING, BILL_STATUS.CANCELLED].includes(currentStatus) && userRole === 'admin' && (
-            <button onClick={() => hideBill(bill._id)} className="btn-hide">
-              👁️‍🗨️ Ẩn
+              🚚 Giao hàng
             </button>
           )}
         </div>
@@ -761,21 +775,19 @@ const BillManagement = () => {
         </div>
       </div>
 
-      {/* 🔥 BẢNG MỚI VỚI CÁC CỘT TÀI CHÍNH RIÊNG BIỆT */}
+      {/* 🔥 BẢNG MỚI THU GỌN - CHỈ NHỮNG CỘT QUAN TRỌNG */}
       <div className="table-wrapper">
         <table className="bills-table">
           <thead>
             <tr>
               <th>#</th>
+              <th>📋 Đơn hàng</th>
               <th>👤 Khách hàng</th>
-              <th>📦 Người nhận</th>
-              <th>📅 Ngày tạo</th>
-              <th>🚚 Giao hàng</th>
-              <th>💰 Tiền hàng</th>
-              <th>🚛 Phí ship</th>
-              <th>💸 Giảm giá</th>
+              <th>📞 Liên hệ nhận hàng</th>
+              <th>📍 Địa chỉ giao hàng</th>
               <th>💵 Tổng tiền</th>
               <th>📊 Trạng thái</th>
+              <th>⏰ Thời gian</th>
               <th>⚙️ Hành động</th>
             </tr>
           </thead>
@@ -788,80 +800,60 @@ const BillManagement = () => {
                 <tr key={bill._id} className={`bill-row status-${bill.status}`}>
                   <td className="row-number">{i + 1}</td>
                   
+                  <td className="bill-cell">
+                    <div className="bill-info">
+                      <span className="bill-id">#{(bill._id || '').slice(-8)}</span>
+                      <span className="bill-date">
+                        {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
+                      </span>
+                      <span className="shipping-method">{getShippingMethod(bill)}</span>
+                    </div>
+                  </td>
+
                   <td className="customer-cell">
                     <div className="customer-info">
                       <span className="customer-name">{customerInfo.name}</span>
-                      <span className="bill-id">#{(bill._id || '').slice(-8)}</span>
                       {customerInfo.phone && (
-                        <span className="customer-phone">📞 {customerInfo.phone}</span>
+                        <a href={`tel:${customerInfo.phone}`} className="customer-phone">
+                          📞 {customerInfo.phone}
+                        </a>
                       )}
                     </div>
                   </td>
 
-                  <td className="delivery-cell">
-                    <div className="delivery-info">
+                  <td className="delivery-contact-cell">
+                    <div className="delivery-contact">
                       <span className="delivery-name">{deliveryInfo.name}</span>
                       {deliveryInfo.phone !== 'Chưa có SĐT' && (
                         <a href={`tel:${deliveryInfo.phone}`} className="delivery-phone">
                           📞 {deliveryInfo.phone}
                         </a>
                       )}
-                      <span className="delivery-address" title={deliveryInfo.address}>
-                        📍 {deliveryInfo.address.length > 40 
-                              ? deliveryInfo.address.substring(0, 40) + '...'
-                              : deliveryInfo.address
-                            }
-                      </span>
-                    </div>
-                  </td>
-                  
-                  <td className="date-cell">
-                    <div className="date-info">
-                      <span className="date">
-                        {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
-                      </span>
-                      <small className="time">
-                        {bill.created_at ? new Date(bill.created_at).toLocaleTimeString('vi-VN') : ''}
-                      </small>
                     </div>
                   </td>
 
-                  <td className="shipping-cell">
-                    <div className="shipping-info">
-                      <span className="shipping-method">{getShippingMethod(bill)}</span>
-                      <span className="payment-method">{getPaymentMethod(bill)}</span>
-                      {getVoucherCode(bill) !== '—' && (
-                        <span className="voucher">🎫 {getVoucherCode(bill)}</span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT */}
-                  <td className="subtotal-cell">
-                    <span className="money-amount">
-                      {bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN')} đ
-                    </span>
-                  </td>
-
-                  <td className="shipping-fee-cell">
-                    <span className="money-amount">
-                      {bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN')} đ
-                    </span>
-                  </td>
-
-                  <td className="discount-cell">
-                    <span className="money-amount discount">
-                      {bill.discountAmount && bill.discountAmount > 0 
-                        ? `-${bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} đ`
-                        : '—'
-                      }
+                  <td className="address-cell">
+                    <span className="address-text" title={deliveryInfo.address}>
+                      {deliveryInfo.address.length > 60 
+                        ? deliveryInfo.address.substring(0, 60) + '...'
+                        : deliveryInfo.address}
                     </span>
                   </td>
 
                   <td className="total-cell">
-                    <span className="total-amount">
-                      {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ
-                    </span>
+                    <div className="total-info">
+                      <span className="total-amount">
+                        {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ
+                      </span>
+                      {bill.discountAmount && bill.discountAmount > 0 && (
+                        <span className="discount-badge">
+                          Giảm: {bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} đ
+                        </span>
+                      )}
+                      <span className="payment-method">
+                        {getPaymentMethod(bill)}
+                      </span>
+                    </div>
                   </td>
 
                   <td className="status-cell">
@@ -872,6 +864,17 @@ const BillManagement = () => {
                       {bill.statusDisplay || STATUS_LABELS[bill.status] || bill.status}
                     </div>
                   </td>
+
+                  <td className="time-cell">
+                    <div className="time-info">
+                      <span className="date">
+                        {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
+                      </span>
+                      <small className="time">
+                        {bill.created_at ? new Date(bill.created_at).toLocaleTimeString('vi-VN') : ''}
+                      </small>
+                    </div>
+                  </td>
                   
                   {renderActionButtons(bill)}
                 </tr>
@@ -880,7 +883,7 @@ const BillManagement = () => {
             
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '40px' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '40px' }}>
                   <div className="no-data">
                     <span style={{ fontSize: '48px' }}>📭</span>
                     <p>Không có đơn hàng phù hợp</p>
