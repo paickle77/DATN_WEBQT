@@ -1,11 +1,11 @@
-/* ✅ Enhanced Shipment Management Styles - Giám sát giao hàng */
+/* ✅ Enhanced Shipment Management Styles - Giám sát giao hàng với breakdown tài chính */
 .shipment-management {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 
   .shipment-content {
-    max-width: 1600px;
+    max-width: 1800px; // Tăng width để chứa thêm cột
     margin: 0 auto;
     padding: 120px 24px 40px;
     
@@ -24,6 +24,7 @@
         color: white;
         margin-bottom: 24px;
         box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        animation: slideInUp 0.8s ease-out;
       }
       
       h1 {
@@ -33,6 +34,7 @@
         margin: 0 0 12px 0;
         text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         letter-spacing: -0.02em;
+        animation: slideInUp 0.8s ease-out 0.1s both;
       }
       
       .subtitle {
@@ -40,10 +42,12 @@
         color: rgba(255, 255, 255, 0.85);
         margin: 0 0 16px 0;
         font-weight: 400;
+        animation: slideInUp 0.8s ease-out 0.2s both;
       }
 
       .auto-refresh-control {
         margin-top: 16px;
+        animation: slideInUp 0.8s ease-out 0.3s both;
         
         label {
           display: flex;
@@ -53,11 +57,18 @@
           color: rgba(255, 255, 255, 0.9);
           font-size: 0.95rem;
           cursor: pointer;
+          transition: all 0.3s ease;
+          
+          &:hover {
+            color: white;
+            transform: scale(1.05);
+          }
           
           input[type="checkbox"] {
             width: 16px;
             height: 16px;
             accent-color: #10b981;
+            cursor: pointer;
           }
         }
       }
@@ -68,6 +79,7 @@
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 24px;
       margin-bottom: 40px;
+      animation: slideInUp 0.8s ease-out 0.4s both;
       
       .stat-card {
         background: rgba(255, 255, 255, 0.95);
@@ -80,10 +92,28 @@
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent);
+          transform: translateX(-100%);
+          transition: transform 0.6s ease;
+        }
         
         &:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+          transform: translateY(-8px);
+          box-shadow: 0 20px 64px rgba(0, 0, 0, 0.15);
+          
+          &::before {
+            transform: translateX(100%);
+          }
         }
         
         .stat-icon {
@@ -95,6 +125,19 @@
           justify-content: center;
           color: white;
           flex-shrink: 0;
+          font-size: 1.5rem;
+          position: relative;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            background: inherit;
+            opacity: 0.1;
+            scale: 1.5;
+            z-index: -1;
+          }
         }
         
         .stat-info {
@@ -107,6 +150,7 @@
             font-weight: 700;
             color: #1a202c;
             line-height: 1;
+            font-variant-numeric: tabular-nums;
           }
           
           .stat-label {
@@ -123,6 +167,7 @@
     // ✅ Alert Section - Cảnh báo đơn hàng chờ lâu
     .alert-section {
       margin-bottom: 32px;
+      animation: slideInUp 0.8s ease-out 0.5s both;
 
       .alert-card {
         background: rgba(255, 255, 255, 0.95);
@@ -134,15 +179,40 @@
         gap: 16px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
 
         &.warning {
           border-left: 4px solid #f59e0b;
           background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.95));
+          
+          &::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%) rotate(12deg);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            border-radius: 12px;
+          }
         }
 
         .alert-icon {
           font-size: 2rem;
           flex-shrink: 0;
+          animation: pulse 2s infinite;
         }
 
         .alert-content {
@@ -159,7 +229,7 @@
             margin: 0;
             color: #78716c;
             font-size: 0.95rem;
-            line-height: 1.4;
+            line-height: 1.5;
           }
         }
       }
@@ -178,6 +248,7 @@
       gap: 32px;
       flex-wrap: wrap;
       align-items: center;
+      animation: slideInUp 0.8s ease-out 0.6s both;
 
       .filter-group {
         display: flex;
@@ -242,11 +313,30 @@
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) scale(0);
+          width: 100%;
+          height: 100%;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          transition: transform 0.3s ease;
+        }
 
         &:hover {
           background: linear-gradient(135deg, #059669, #047857);
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+          
+          &::before {
+            transform: translate(-50%, -50%) scale(1);
+          }
         }
       }
     }
@@ -258,6 +348,7 @@
       overflow: hidden;
       box-shadow: 0 20px 64px rgba(0, 0, 0, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
+      animation: slideInUp 0.8s ease-out 0.7s both;
       
       .table-header {
         padding: 28px 32px;
@@ -275,12 +366,28 @@
       .table-wrapper {
         overflow-x: auto;
         
+        &::-webkit-scrollbar {
+          height: 8px;
+        }
+        
+        &::-webkit-scrollbar-track {
+          background: #f1f5f9;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          border-radius: 4px;
+        }
+        
         table {
           width: 100%;
           border-collapse: collapse;
           
           thead {
             background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            position: sticky;
+            top: 0;
+            z-index: 10;
             
             th {
               padding: 18px 16px;
@@ -292,17 +399,29 @@
               letter-spacing: 0.5px;
               border-bottom: 2px solid rgba(0, 0, 0, 0.05);
               white-space: nowrap;
+              position: relative;
+              
+              &::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.3), transparent);
+              }
             }
           }
           
           tbody {
             .table-row {
-              transition: all 0.2s ease;
+              transition: all 0.3s ease;
               border-bottom: 1px solid rgba(0, 0, 0, 0.05);
               
               &:hover {
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.04));
-                transform: scale(1.005);
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
+                transform: scale(1.002);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
               }
               
               td {
@@ -310,16 +429,18 @@
                 vertical-align: middle;
                 color: #374151;
                 font-size: 0.95rem;
+                position: relative;
                 
                 &.row-number {
                   font-weight: 600;
                   color: #6b7280;
                   text-align: center;
                   width: 60px;
+                  font-variant-numeric: tabular-nums;
                 }
                 
                 &.bill-info {
-                  min-width: 150px;
+                  min-width: 160px;
                   
                   .bill-details {
                     display: flex;
@@ -336,17 +457,37 @@
                       letter-spacing: 0.5px;
                       display: inline-block;
                       width: fit-content;
+                      position: relative;
+                      overflow: hidden;
+                      
+                      &::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: -100%;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                        transition: left 0.5s ease;
+                      }
+                      
+                      &:hover::before {
+                        left: 100%;
+                      }
                     }
                     
-                    .bill-total {
-                      font-size: 0.9rem;
-                      font-weight: 600;
-                      color: #059669;
-                    }
-
-                    .bill-date {
+                    .bill-date,
+                    .shipping-method {
                       font-size: 0.8rem;
                       color: #6b7280;
+                    }
+                    
+                    .shipping-method {
+                      background: #f3f4f6;
+                      padding: 2px 8px;
+                      border-radius: 4px;
+                      font-weight: 500;
+                      width: fit-content;
                     }
                   }
                 }
@@ -354,10 +495,52 @@
                 &.customer-info {
                   min-width: 150px;
                   
-                  .customer-name {
-                    font-weight: 500;
-                    color: #1f2937;
-                    font-size: 0.95rem;
+                  .customer-details {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    
+                    .customer-name {
+                      font-weight: 500;
+                      color: #1f2937;
+                      font-size: 0.95rem;
+                    }
+                    
+                    .customer-phone {
+                      color: #059669;
+                      text-decoration: none;
+                      font-weight: 500;
+                      font-size: 0.85rem;
+                      transition: all 0.2s ease;
+
+                      &:hover {
+                        color: #047857;
+                        text-decoration: underline;
+                        transform: scale(1.05);
+                      }
+                    }
+                  }
+                }
+
+                &.delivery-info {
+                  min-width: 140px;
+                  
+                  .delivery-details {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    
+                    .delivery-name {
+                      font-weight: 500;
+                      color: #1f2937;
+                      font-size: 0.9rem;
+                    }
+                    
+                    .delivery-note {
+                      font-size: 0.75rem;
+                      color: #9ca3af;
+                      font-style: italic;
+                    }
                   }
                 }
 
@@ -371,10 +554,16 @@
                       font-weight: 500;
                       font-size: 0.9rem;
                       transition: all 0.2s ease;
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 4px;
+                      padding: 4px 8px;
+                      border-radius: 6px;
 
                       &:hover {
                         color: #047857;
-                        text-decoration: underline;
+                        background: rgba(16, 185, 129, 0.1);
+                        transform: scale(1.05);
                       }
                     }
 
@@ -382,12 +571,16 @@
                       color: #9ca3af;
                       font-style: italic;
                       font-size: 0.85rem;
+                      padding: 4px 8px;
+                      background: #f9fafb;
+                      border-radius: 6px;
+                      border: 1px dashed #d1d5db;
                     }
                   }
                 }
 
                 &.address-info {
-                  max-width: 300px;
+                  max-width: 250px;
                   
                   .address-text {
                     color: #6b7280;
@@ -395,6 +588,50 @@
                     line-height: 1.4;
                     display: block;
                     cursor: help;
+                    transition: color 0.2s ease;
+                    
+                    &:hover {
+                      color: #374151;
+                    }
+                  }
+                }
+                
+                // 🔥 CÁC CỘT TÀI CHÍNH MỚI
+                &.subtotal-cell,
+                &.shipping-fee-cell,
+                &.total-cell {
+                  min-width: 100px;
+                  text-align: right;
+                  font-variant-numeric: tabular-nums;
+                  
+                  .money-amount {
+                    font-weight: 600;
+                    color: #1f2937;
+                    font-size: 0.95rem;
+                  }
+                }
+                
+                &.subtotal-cell .money-amount {
+                  color: #059669;
+                }
+                
+                &.shipping-fee-cell .money-amount {
+                  color: #0891b2;
+                }
+                
+                &.total-cell {
+                  .total-amount {
+                    font-weight: 700;
+                    color: #dc2626;
+                    font-size: 1rem;
+                  }
+                  
+                  .discount-note {
+                    display: block;
+                    font-size: 0.75rem;
+                    color: #f59e0b;
+                    font-weight: 500;
+                    margin-top: 2px;
                   }
                 }
                 
@@ -417,6 +654,7 @@
                         
                         .online-status {
                           font-size: 0.8rem;
+                          animation: pulse 2s infinite;
                         }
                       }
                       
@@ -426,10 +664,14 @@
                         font-size: 0.8rem;
                         font-weight: 500;
                         transition: all 0.2s ease;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        width: fit-content;
 
                         &:hover {
                           color: #047857;
-                          text-decoration: underline;
+                          background: rgba(16, 185, 129, 0.1);
+                          transform: scale(1.05);
                         }
                       }
                     }
@@ -441,6 +683,26 @@
 
                   .status-badge {
                     margin-bottom: 4px;
+                    display: inline-block;
+                    animation: fadeIn 0.5s ease;
+                    position: relative;
+                    
+                    &::after {
+                      content: '';
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%) scale(0);
+                      width: 100%;
+                      height: 100%;
+                      background: rgba(255, 255, 255, 0.2);
+                      border-radius: inherit;
+                      transition: transform 0.3s ease;
+                    }
+                    
+                    &:hover::after {
+                      transform: translate(-50%, -50%) scale(1.1);
+                    }
                   }
 
                   .waiting-time {
@@ -448,9 +710,11 @@
 
                     small {
                       font-size: 0.75rem;
-                      padding: 2px 6px;
+                      padding: 3px 8px;
                       background: rgba(245, 158, 11, 0.1);
-                      border-radius: 4px;
+                      border-radius: 6px;
+                      border: 1px solid rgba(245, 158, 11, 0.2);
+                      animation: pulse 2s infinite;
                     }
                   }
                 }
@@ -467,19 +731,21 @@
                       font-weight: 500;
                       color: #374151;
                       font-size: 0.9rem;
+                      font-variant-numeric: tabular-nums;
                     }
 
                     .last-update {
                       small {
                         color: #9ca3af;
                         font-size: 0.75rem;
+                        font-variant-numeric: tabular-nums;
                       }
                     }
                   }
                 }
                 
                 &.actions-cell {
-                  min-width: 280px;
+                  min-width: 300px;
                   
                   .action-buttons {
                     display: flex;
@@ -491,6 +757,9 @@
                       padding: 8px 12px;
                       border-radius: 8px;
                       border: 1px dashed #d1d5db;
+                      color: #6b7280;
+                      font-size: 0.85rem;
+                      font-style: italic;
                     }
 
                     .action-btn {
@@ -507,10 +776,28 @@
                       white-space: nowrap;
                       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                       color: white;
+                      position: relative;
+                      overflow: hidden;
+                      
+                      &::before {
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: -100%;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                        transform: translateY(-50%);
+                        transition: left 0.5s ease;
+                      }
                       
                       &:hover {
                         transform: translateY(-2px);
-                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+                        
+                        &::before {
+                          left: 100%;
+                        }
                       }
 
                       &:active {
@@ -519,26 +806,50 @@
                       
                       &.btn-delivered {
                         background: linear-gradient(135deg, #10b981, #059669);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #059669, #047857);
+                        }
                       }
 
                       &.btn-failed {
                         background: linear-gradient(135deg, #ef4444, #dc2626);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #dc2626, #b91c1c);
+                        }
                       }
 
                       &.btn-retry {
                         background: linear-gradient(135deg, #06b6d4, #0891b2);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #0891b2, #0e7490);
+                        }
                       }
 
                       &.btn-return {
                         background: linear-gradient(135deg, #f97316, #ea580c);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #ea580c, #c2410c);
+                        }
                       }
 
                       &.btn-detail {
                         background: linear-gradient(135deg, #667eea, #764ba2);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #764ba2, #68287a);
+                        }
                       }
 
                       &.btn-copy {
                         background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                        
+                        &:hover {
+                          background: linear-gradient(135deg, #7c3aed, #6d28d9);
+                        }
                       }
                     }
                   }
@@ -578,32 +889,6 @@
   }
 
   // ✅ Responsive design
-  @media (max-width: 1200px) {
-    .shipment-content {
-      padding: 100px 20px 40px;
-
-      .stats-overview {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .filters-section {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 20px;
-
-        .filter-group {
-          justify-content: space-between;
-
-          .filter-select,
-          .filter-input {
-            flex: 1;
-            min-width: unset;
-          }
-        }
-      }
-    }
-  }
-
   @media (max-width: 768px) {
     .shipment-content {
       padding: 100px 16px 40px;
@@ -612,6 +897,7 @@
         .header-icon {
           width: 60px;
           height: 60px;
+          font-size: 1.2rem;
         }
         
         h1 {
@@ -633,6 +919,7 @@
           .stat-icon {
             width: 50px;
             height: 50px;
+            font-size: 1.2rem;
           }
           
           .stat-info .stat-number {
@@ -678,6 +965,29 @@
             tbody td {
               padding: 16px 12px;
               
+              // Ẩn các cột ít quan trọng trên mobile
+              &.delivery-info,
+              &.shipping-fee-cell,
+              &.time-info {
+                display: none;
+              }
+              
+              &.bill-info {
+                min-width: 120px;
+                
+                .bill-details .shipping-method {
+                  display: none;
+                }
+              }
+              
+              &.address-info {
+                max-width: 150px;
+                
+                .address-text {
+                  font-size: 0.8rem;
+                }
+              }
+              
               &.actions-cell .action-buttons {
                 flex-direction: column;
                 gap: 6px;
@@ -686,11 +996,20 @@
                   justify-content: center;
                   width: 100%;
                   padding: 10px 12px;
+                  font-size: 0.8rem;
                 }
               }
 
-              &.address-info {
-                max-width: 200px;
+              &.subtotal-cell,
+              &.total-cell {
+                .money-amount,
+                .total-amount {
+                  font-size: 0.85rem;
+                }
+                
+                .discount-note {
+                  font-size: 0.7rem;
+                }
               }
             }
           }
@@ -721,14 +1040,150 @@
         overflow-x: scroll;
         
         table {
-          min-width: 1400px;
+          min-width: 900px; // Giảm từ 1400px xuống để phù hợp mobile
+          
+          tbody td {
+            // Ẩn thêm các cột khác trên màn hình rất nhỏ
+            &.customer-info,
+            &.contact-info {
+              display: none;
+            }
+            
+            &.bill-info {
+              min-width: 100px;
+            }
+            
+            &.shipper-info {
+              min-width: 120px;
+              
+              .shipper-main .shipper-phone {
+                display: none;
+              }
+            }
+            
+            &.actions-cell {
+              min-width: 200px;
+              
+              .action-buttons .action-btn {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+                
+                // Rút gọn text trên mobile
+                &.btn-delivered::after {
+                  content: "✅ Xong";
+                }
+                
+                &.btn-failed::after {
+                  content: "❌ Lỗi";
+                }
+                
+                &.btn-retry::after {
+                  content: "🔄 Thử lại";
+                }
+                
+                &.btn-return::after {
+                  content: "📦 Trả";
+                }
+                
+                &.btn-detail::after {
+                  content: "👁️ Xem";
+                }
+                
+                &.btn-copy::after {
+                  content: "📋";
+                }
+                
+                // Ẩn text gốc và hiển thị text ngắn
+                span:not(.action-btn::after) {
+                  display: none;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ✅ Dark mode support (optional)
+  @media (prefers-color-scheme: dark) {
+    .shipment-management {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      
+      .shipment-content {
+        .header-section {
+          h1 {
+            color: #f8fafc;
+          }
+          
+          .subtitle {
+            color: rgba(248, 250, 252, 0.85);
+          }
+          
+          .auto-refresh-control label {
+            color: rgba(248, 250, 252, 0.9);
+          }
+        }
+        
+        .stats-overview .stat-card,
+        .alert-section .alert-card,
+        .filters-section,
+        .table-container {
+          background: rgba(15, 23, 42, 0.95);
+          border-color: rgba(248, 250, 252, 0.1);
+          
+          * {
+            color: #e2e8f0;
+          }
+        }
+        
+        .table-container {
+          .table-wrapper table {
+            thead {
+              background: linear-gradient(135deg, #1e293b, #334155);
+              
+              th {
+                color: #cbd5e1;
+                border-bottom-color: rgba(248, 250, 252, 0.1);
+              }
+            }
+            
+            tbody .table-row {
+              border-bottom-color: rgba(248, 250, 252, 0.1);
+              
+              &:hover {
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+              }
+              
+              td {
+                color: #e2e8f0;
+                
+                &.bill-info .bill-details .bill-id {
+                  background: linear-gradient(135deg, #4338ca, #7c3aed);
+                }
+                
+                .money-amount,
+                .total-amount {
+                  color: #e2e8f0;
+                }
+                
+                &.subtotal-cell .money-amount {
+                  color: #22d3ee;
+                }
+                
+                &.total-cell .total-amount {
+                  color: #fbbf24;
+                }
+              }
+            }
+          }
         }
       }
     }
   }
 }
 
-// ✅ Animations
+// ✅ Enhanced Animations
 @keyframes slideInUp {
   from { 
     opacity: 0; 
@@ -748,3 +1203,191 @@
     opacity: 1; 
   }
 }
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// ✅ Loading skeleton animation
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+// ✅ Utility classes
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+// ✅ Print styles
+@media print {
+  .shipment-management {
+    background: white !important;
+    
+    .header-section,
+    .stats-overview,
+    .filters-section {
+      display: none !important;
+    }
+    
+    .table-container {
+      background: white !important;
+      box-shadow: none !important;
+      
+      .table-wrapper table {
+        thead {
+          background: #f8f9fa !important;
+        }
+        
+        .actions-cell {
+          display: none !important;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 1400px) {
+  .shipment-content {
+    max-width: 1400px;
+    padding: 100px 20px 40px;
+  }
+}
+
+  @media (max-width: 1200px) {
+    .shipment-content {
+      padding: 100px 20px 40px;
+
+      .stats-overview {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+
+        .filter-group {
+          justify-content: space-between;
+
+          .filter-select,
+          .filter-input {
+            flex: 1;
+            min-width: unset;
+          }
+        }
+      }
+      
+      .table-container .table-wrapper table {
+        // Ẩn một số cột ít quan trọng ở màn hình nhỏ
+        .delivery-info,
+        .shipping-method {
+          display: none;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 992px) {
+    .shipment-content {
+      padding: 80px 16px 40px;
+
+      .header-section h1 {
+        font-size: 2.5rem;
+      }
+
+      .stats-overview {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+
+        .stat-card {
+          padding: 20px;
+
+          .stat-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+          }
+
+          .stat-info .stat-number {
+            font-size: 1.8rem;
+          }
+        }
+      }
+
+      .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+
+        .filter-group {
+          flex-direction: column;
+          gap: 8px;
+
+          .filter-select,
+          .filter-input {
+            width: 100%;
+            min-width: unset;
+          }
+        }
+      }
+      
+      .table-container .table-wrapper table {
+        // Giảm độ rộng của bảng để phù hợp với màn hình nhỏ
+        width: 100%;
+        font-size: 0.875rem;
+
+            th,
+            td {
+              padding: 12px 8px;
+            }
+          }
+        }
+      }

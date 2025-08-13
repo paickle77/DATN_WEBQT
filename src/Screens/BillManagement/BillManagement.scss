@@ -1,3 +1,4 @@
+// 🔥 UPDATED BillManagement.scss - Hỗ trợ các cột tài chính mới
 .bill-management {
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -163,14 +164,9 @@
         .stat-icon { background: rgba(139, 92, 246, 0.1); }
       }
 
-      &.shipping {
-        border-left-color: #06b6d4;
-        .stat-icon { background: rgba(6, 182, 212, 0.1); }
-      }
-
-      &.done {
-        border-left-color: #10b981;
-        .stat-icon { background: rgba(16, 185, 129, 0.1); }
+      &.cancelled {
+        border-left-color: #ef4444;
+        .stat-icon { background: rgba(239, 68, 68, 0.1); }
       }
     }
   }
@@ -184,25 +180,40 @@
     .bills-table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 1400px; // 🔥 TĂNG WIDTH CHO CÁC CỘT MỚI
 
       thead {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
 
         th {
-          padding: 20px 15px;
+          padding: 15px 10px;
           text-align: left;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13px;
           border-bottom: none;
+          white-space: nowrap;
 
           &:first-child {
             border-radius: 15px 0 0 0;
+            width: 50px;
           }
 
           &:last-child {
             border-radius: 0 15px 0 0;
           }
+
+          // 🔥 CỘT WIDTH CHO TỪNG LOẠI
+          &:nth-child(2) { width: 150px; } // Khách hàng
+          &:nth-child(3) { width: 200px; } // Người nhận
+          &:nth-child(4) { width: 120px; } // Ngày tạo
+          &:nth-child(5) { width: 150px; } // Giao hàng
+          &:nth-child(6) { width: 100px; } // Tiền hàng
+          &:nth-child(7) { width: 90px; }  // Phí ship
+          &:nth-child(8) { width: 90px; }  // Giảm giá
+          &:nth-child(9) { width: 120px; } // Tổng tiền
+          &:nth-child(10) { width: 120px; } // Trạng thái
+          &:nth-child(11) { width: 250px; } // Hành động
         }
       }
 
@@ -213,7 +224,7 @@
 
           &:hover {
             background: rgba(102, 126, 234, 0.05);
-            transform: scale(1.01);
+            transform: scale(1.005);
           }
 
           &:last-child {
@@ -221,138 +232,224 @@
           }
 
           // Status row colors
-          &.status-pending {
-            border-left: 4px solid #f59e0b;
-          }
-
-          &.status-confirmed {
-            border-left: 4px solid #3b82f6;
-          }
-
-          &.status-ready {
-            border-left: 4px solid #8b5cf6;
-          }
-
-          &.status-shipping {
-            border-left: 4px solid #06b6d4;
-          }
-
-          &.status-done {
-            border-left: 4px solid #10b981;
-          }
-
-          &.status-cancelled {
-            border-left: 4px solid #ef4444;
-          }
-
-          &.status-failed {
-            border-left: 4px solid #f97316;
-          }
+          &.status-pending { border-left: 4px solid #f59e0b; }
+          &.status-confirmed { border-left: 4px solid #3b82f6; }
+          &.status-ready { border-left: 4px solid #8b5cf6; }
+          &.status-cancelled { border-left: 4px solid #ef4444; }
 
           td {
-            padding: 15px;
-            vertical-align: middle;
+            padding: 12px 10px;
+            vertical-align: top;
+            font-size: 13px;
 
             &.row-number {
               font-weight: 600;
               color: #667eea;
               background: rgba(102, 126, 234, 0.05);
               text-align: center;
-              width: 60px;
+              font-size: 14px;
             }
 
+            // 🔥 CUSTOMER CELL STYLES
             &.customer-cell {
               .customer-info {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+
                 .customer-name {
-                  display: block;
                   font-weight: 600;
                   color: #2d3748;
-                  font-size: 16px;
+                  font-size: 14px;
+                  line-height: 1.2;
                 }
 
                 .bill-id {
-                  display: block;
-                  font-size: 12px;
+                  font-size: 11px;
                   color: #718096;
-                  margin-top: 2px;
+                  background: rgba(102, 126, 234, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+
+                .customer-phone {
+                  font-size: 11px;
+                  color: #059669;
+                  text-decoration: none;
                 }
               }
             }
 
-            &.date-cell {
-              color: #4a5568;
-              font-size: 14px;
+            // 🔥 DELIVERY CELL STYLES
+            &.delivery-cell {
+              .delivery-info {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
 
-              small {
-                color: #718096;
+                .delivery-name {
+                  font-weight: 600;
+                  color: #7c3aed;
+                  font-size: 13px;
+                  line-height: 1.2;
+                }
+
+                .delivery-phone {
+                  font-size: 11px;
+                  color: #059669;
+                  text-decoration: none;
+                  display: inline-block;
+
+                  &:hover {
+                    color: #047857;
+                    text-decoration: underline;
+                  }
+                }
+
+                .delivery-address {
+                  font-size: 11px;
+                  color: #6b7280;
+                  line-height: 1.3;
+                  overflow-wrap: break-word;
+                }
               }
             }
 
-            &.address-cell {
-              max-width: 200px;
-              color: #4a5568;
-              font-size: 14px;
-              line-height: 1.4;
+            // 🔥 DATE CELL STYLES
+            &.date-cell {
+              .date-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                .date {
+                  font-weight: 600;
+                  color: #374151;
+                  font-size: 13px;
+                }
+
+                .time {
+                  color: #9ca3af;
+                  font-size: 11px;
+                }
+              }
             }
 
-            &.voucher-cell {
-              color: #10b981;
-              font-weight: 600;
+            // 🔥 SHIPPING INFO STYLES
+            &.shipping-cell {
+              .shipping-info {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+
+                .shipping-method {
+                  font-size: 12px;
+                  color: #1f2937;
+                  font-weight: 600;
+                  background: rgba(6, 182, 212, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+
+                .payment-method {
+                  font-size: 11px;
+                  color: #059669;
+                  background: rgba(16, 185, 129, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+
+                .voucher {
+                  font-size: 11px;
+                  color: #dc2626;
+                  background: rgba(239, 68, 68, 0.1);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  display: inline-block;
+                  width: fit-content;
+                }
+              }
+            }
+
+            // 🔥 MONEY CELL STYLES
+            &.subtotal-cell,
+            &.shipping-fee-cell,
+            &.total-cell {
+              .money-amount {
+                font-weight: 600;
+                color: #1f2937;
+                font-size: 13px;
+                display: block;
+                text-align: right;
+                padding: 4px 8px;
+                background: rgba(16, 185, 129, 0.05);
+                border-radius: 6px;
+                border-left: 3px solid #10b981;
+              }
+            }
+
+            &.discount-cell {
+              .money-amount {
+                font-weight: 600;
+                font-size: 13px;
+                display: block;
+                text-align: right;
+                padding: 4px 8px;
+                border-radius: 6px;
+
+                &.discount {
+                  color: #dc2626;
+                  background: rgba(239, 68, 68, 0.05);
+                  border-left: 3px solid #ef4444;
+                }
+              }
             }
 
             &.total-cell {
               .total-amount {
                 font-weight: 700;
-                font-size: 16px;
+                font-size: 14px;
                 color: #059669;
+                display: block;
+                text-align: right;
+                padding: 6px 10px;
+                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+                border-radius: 8px;
+                border: 2px solid #10b981;
               }
             }
 
             &.status-cell {
               .status-badge {
-                padding: 8px 15px;
+                padding: 8px 12px;
                 border-radius: 20px;
                 color: white;
                 font-weight: 600;
                 font-size: 12px;
                 text-align: center;
                 display: inline-block;
-                min-width: 120px;
-              }
-            }
-
-            &.shipper-cell {
-              .shipper-name {
-                padding: 6px 12px;
-                border-radius: 15px;
-                font-size: 12px;
-                font-weight: 600;
-
-                &.assigned {
-                  background: rgba(16, 185, 129, 0.1);
-                  color: #059669;
-                }
-
-                &.unassigned {
-                  background: rgba(107, 114, 128, 0.1);
-                  color: #6b7280;
-                }
+                min-width: 100px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
               }
             }
 
             &.actions-cell {
-              width: 300px;
-
               .action-buttons {
                 display: flex;
-                gap: 8px;
+                gap: 6px;
                 flex-wrap: wrap;
 
                 button {
-                  padding: 8px 12px;
+                  padding: 6px 10px;
                   border: none;
                   border-radius: 6px;
-                  font-size: 12px;
+                  font-size: 11px;
                   font-weight: 600;
                   cursor: pointer;
                   transition: all 0.3s ease;
@@ -373,41 +470,26 @@
                     color: white;
                   }
 
-                  &.btn-assign-shipper {
-                    background: #06b6d4;
+                  &.btn-audit {
+                    background: #8b5cf6;
                     color: white;
                   }
 
                   &.btn-status {
                     color: white;
                     
-                    &.btn-confirmed {
-                      background: #3b82f6;
-                    }
-                    
-                    &.btn-ready {
-                      background: #8b5cf6;
-                    }
-                    
-                    &.btn-shipping {
-                      background: #06b6d4;
-                    }
-                    
-                    &.btn-done {
-                      background: #10b981;
-                    }
-                    
-                    &.btn-cancelled {
-                      background: #ef4444;
-                    }
-                    
-                    &.btn-failed {
-                      background: #f97316;
-                    }
+                    &.btn-confirmed { background: #3b82f6; }
+                    &.btn-ready { background: #8b5cf6; }
+                    &.btn-cancelled { background: #ef4444; }
                   }
 
-                  &.btn-delete {
-                    background: #ef4444;
+                  &.btn-move-to-shipping {
+                    background: #06b6d4;
+                    color: white;
+                  }
+
+                  &.btn-hide {
+                    background: #6b7280;
                     color: white;
                   }
                 }
@@ -434,186 +516,27 @@
     }
   }
 
-  // Modal Styles
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(5px);
+  // 🔥 RESPONSIVE DESIGN CHO TABLE MỚI
+  @media (max-width: 1600px) {
+    .table-wrapper {
+      overflow-x: auto;
 
-    .shipper-modal {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      max-width: 600px;
-      width: 90%;
-      max-height: 80vh;
-      overflow: hidden;
-      animation: modalSlideIn 0.3s ease;
+      .bills-table {
+        font-size: 12px;
 
-      @keyframes modalSlideIn {
-        from {
-          opacity: 0;
-          transform: translateY(-50px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 25px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        h3 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
+        thead th {
+          padding: 12px 8px;
+          font-size: 12px;
         }
 
-        .close-btn {
-          background: rgba(255, 255, 255, 0.2);
-          border: none;
-          color: white;
-          font-size: 24px;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.3s ease;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: rotate(90deg);
-          }
-        }
-      }
-
-      .modal-content {
-        padding: 30px;
-        max-height: 60vh;
-        overflow-y: auto;
-
-        .bill-info {
-          background: rgba(102, 126, 234, 0.05);
-          padding: 20px;
-          border-radius: 12px;
-          margin-bottom: 25px;
-          border-left: 4px solid #667eea;
-
-          p {
-            margin: 8px 0;
-            font-size: 14px;
-
-            strong {
-              color: #2d3748;
-            }
-          }
-        }
-
-        .shipper-list {
-          h4 {
-            margin-bottom: 20px;
-            color: #2d3748;
-            font-size: 18px;
-          }
-
-          .shipper-item {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.3s ease;
-
-            &:hover {
-              border-color: #667eea;
-              box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
-            }
-
-            .shipper-info {
-              display: flex;
-              align-items: center;
-              gap: 15px;
-
-              .shipper-details {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-
-                .shipper-name {
-                  font-weight: 600;
-                  color: #2d3748;
-                }
-
-                .shipper-phone {
-                  color: #718096;
-                  font-size: 14px;
-                }
-              }
-
-              .online-status {
-                &.online {
-                  color: #059669;
-                  font-weight: 600;
-                  font-size: 14px;
-                }
-              }
-            }
-
-            .assign-btn {
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              color: white;
-              border: none;
-              padding: 12px 20px;
-              border-radius: 8px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s ease;
-
-              &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
-              }
-            }
-          }
-
-          .no-shipper {
-            text-align: center;
-            padding: 40px;
-            color: #718096;
-
-            p {
-              margin: 15px 0 5px 0;
-              font-size: 18px;
-              font-weight: 600;
-            }
-
-            small {
-              color: #a0aec0;
-            }
-          }
+        tbody td {
+          padding: 10px 8px;
+          font-size: 12px;
         }
       }
     }
   }
 
-  // Responsive Design
   @media (max-width: 1200px) {
     .quick-stats {
       grid-template-columns: repeat(3, 1fr);
@@ -647,16 +570,11 @@
     }
 
     .table-wrapper {
-      overflow-x: auto;
+      border-radius: 10px;
 
       .bills-table {
-        min-width: 1000px;
+        min-width: 1200px; // Giảm width cho mobile
       }
-    }
-
-    .modal-overlay .shipper-modal {
-      width: 95%;
-      margin: 10px;
     }
   }
 
@@ -674,6 +592,15 @@
 
       .stat-content .stat-number {
         font-size: 24px;
+      }
+    }
+
+    .table-wrapper {
+      margin: 0 -10px;
+      border-radius: 0;
+
+      .bills-table {
+        min-width: 1000px;
       }
     }
   }

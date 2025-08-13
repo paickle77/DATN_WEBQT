@@ -1,3 +1,4 @@
+// 🔥 UPDATED ShipmentManagement - Sử dụng address_snapshot và breakdown tài chính
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import StatusBadge from '../../component/StatusBadge';
@@ -132,16 +133,21 @@ export default function ShipmentManagement() {
        });
   };
 
-  // Lấy thông tin customer từ bill
+  // 🔥 SỬ DỤNG DỮ LIỆU TỪ ENRICHED API - KHÔNG CẦN LOOKUP
   const getCustomerInfo = (bill) => ({
-    name: bill.customerName || 'N/A',
-    phone: bill.customerPhone || 'N/A',
-    address: bill.addressString || 'N/A'
+    name: bill.customerName || 'Khách hàng không rõ',
+    phone: bill.customerPhone || ''
+  });
+
+  const getDeliveryInfo = (bill) => ({
+    name: bill.deliveryName || 'Chưa có tên người nhận',
+    phone: bill.deliveryPhone || 'Chưa có SĐT',
+    address: bill.deliveryAddress || 'Chưa có địa chỉ giao hàng'
   });
 
   // Lấy thông tin shipper - CHỈ HIỂN THỊ, KHÔNG CHO CHỈNH SỬA
   const getShipperInfo = (bill) => {
-    // Ưu tiên enriched
+    // Ưu tiên enriched data
     if (bill.shipperName) {
       return {
         name: bill.shipperName || 'Chờ shipper nhận',
@@ -151,7 +157,7 @@ export default function ShipmentManagement() {
       };
     } 
     
-    // Fallback nếu không enrich (nhưng giờ có enrich nên ít dùng)
+    // Fallback nếu không enrich
     const shipperId = bill.shipper_id || bill.assigned_shipper;
     if (!shipperId) {
       return { name: 'Chờ shipper nhận', phone: 'N/A', isOnline: false, id: null };
@@ -166,6 +172,18 @@ export default function ShipmentManagement() {
     } : { name: 'N/A', phone: 'N/A', isOnline: false, id: shipperId };
   };
 
+  // 🔥 LẤY THÔNG TIN TÀI CHÍNH TỪ ENRICHED DATA
+  const getFinancialInfo = (bill) => ({
+    subtotal: bill.subtotal || 0,
+    shippingFee: bill.shippingFee || 0,
+    discountAmount: bill.discountAmount || 0,
+    finalTotal: bill.finalTotal || bill.total || 0,
+    subtotal_formatted: bill.subtotal_formatted || '0 đ',
+    shipping_fee_formatted: bill.shipping_fee_formatted || '0 đ',
+    discount_formatted: bill.discount_formatted || '0 đ',
+    total_formatted: bill.total_formatted || '0 đ'
+  });
+
   // Filter bills
   const filteredBills = bills.filter(bill => {
     const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
@@ -179,12 +197,15 @@ export default function ShipmentManagement() {
     if (searchTerm) {
       const billId = bill._id || '';
       const customerInfo = getCustomerInfo(bill);
+      const deliveryInfo = getDeliveryInfo(bill);
       const shipperInfo = getShipperInfo(bill);
       const searchLower = searchTerm.toLowerCase();
       
       return billId.toLowerCase().includes(searchLower) || 
              customerInfo.name.toLowerCase().includes(searchLower) ||
              customerInfo.phone.toLowerCase().includes(searchLower) ||
+             deliveryInfo.name.toLowerCase().includes(searchLower) ||
+             deliveryInfo.phone.toLowerCase().includes(searchLower) ||
              shipperInfo.name.toLowerCase().includes(searchLower);
     }
     
@@ -336,7 +357,7 @@ export default function ShipmentManagement() {
             <label>🔍 Tìm kiếm:</label>
             <input
               type="text"
-              placeholder="Mã đơn, tên khách hàng, SĐT, tên shipper..."
+              placeholder="Mã đơn, tên khách hàng, người nhận, SĐT, tên shipper..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="filter-input"
@@ -346,7 +367,7 @@ export default function ShipmentManagement() {
           <button onClick={loadData} className="refresh-btn">🔄 Làm mới</button>
         </div>
 
-        {/* Table */}
+        {/* 🔥 TABLE MỚI VỚI BREAKDOWN TÀI CHÍNH */}
         <div className="table-container">
           <div className="table-header">
             <h3>Danh sách đơn hàng giao hàng ({filteredBills.length})</h3>
@@ -359,8 +380,12 @@ export default function ShipmentManagement() {
                   <th>#</th>
                   <th>📋 Đơn hàng</th>
                   <th>👤 Khách hàng</th>
+                  <th>📦 Người nhận</th>
                   <th>📞 Liên hệ</th>
                   <th>📍 Địa chỉ giao hàng</th>
+                  <th>💰 Tiền hàng</th>
+                  <th>🚛 Phí ship</th>
+                  <th>💵 Tổng tiền</th>
                   <th>👨‍💼 Shipper</th>
                   <th>📊 Trạng thái</th>
                   <th>⏰ Thời gian</th>
@@ -370,7 +395,9 @@ export default function ShipmentManagement() {
               <tbody>
                 {filteredBills.map((bill, i) => {
                   const customerInfo = getCustomerInfo(bill);
+                  const deliveryInfo = getDeliveryInfo(bill);
                   const shipperInfo = getShipperInfo(bill);
+                  const financialInfo = getFinancialInfo(bill);
                   const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
                   const orderAge = getOrderAge(bill.created_at);
 
@@ -381,38 +408,76 @@ export default function ShipmentManagement() {
                       <td className="bill-info">
                         <div className="bill-details">
                           <div className="bill-id">#{bill._id.slice(-8)}</div>
-                          <div className="bill-total">
-                            {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'}
-                          </div>
                           <div className="bill-date">
                             {bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A')}
+                          </div>
+                          <div className="shipping-method">
+                            {bill.shippingMethodDisplay || bill.shipping_method || 'N/A'}
                           </div>
                         </div>
                       </td>
                       
                       <td className="customer-info">
-                        <span className="customer-name">{customerInfo.name}</span>
+                        <div className="customer-details">
+                          <span className="customer-name">{customerInfo.name}</span>
+                          {customerInfo.phone && (
+                            <a href={`tel:${customerInfo.phone}`} className="customer-phone">
+                              📞 {customerInfo.phone}
+                            </a>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="delivery-info">
+                        <div className="delivery-details">
+                          <span className="delivery-name">{deliveryInfo.name}</span>
+                          <span className="delivery-note">Người nhận hàng</span>
+                        </div>
                       </td>
 
                       <td className="contact-info">
                         <div className="contact-details">
-                          {customerInfo.phone !== 'N/A' && (
-                            <a href={`tel:${customerInfo.phone}`} className="phone-link">
-                              📞 {customerInfo.phone}
+                          {deliveryInfo.phone !== 'Chưa có SĐT' && (
+                            <a href={`tel:${deliveryInfo.phone}`} className="phone-link">
+                              📞 {deliveryInfo.phone}
                             </a>
                           )}
-                          {customerInfo.phone === 'N/A' && (
+                          {deliveryInfo.phone === 'Chưa có SĐT' && (
                             <span className="no-phone">Chưa có SĐT</span>
                           )}
                         </div>
                       </td>
                       
                       <td className="address-info">
-                        <span className="address-text" title={customerInfo.address}>
-                          {customerInfo.address.length > 50 
-                            ? customerInfo.address.substring(0, 50) + '...' 
-                            : customerInfo.address}
+                        <span className="address-text" title={deliveryInfo.address}>
+                          {deliveryInfo.address.length > 50 
+                            ? deliveryInfo.address.substring(0, 50) + '...' 
+                            : deliveryInfo.address}
                         </span>
+                      </td>
+
+                      {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT */}
+                      <td className="subtotal-cell">
+                        <span className="money-amount">
+                          {financialInfo.subtotal_formatted}
+                        </span>
+                      </td>
+
+                      <td className="shipping-fee-cell">
+                        <span className="money-amount">
+                          {financialInfo.shipping_fee_formatted}
+                        </span>
+                      </td>
+
+                      <td className="total-cell">
+                        <span className="total-amount">
+                          {financialInfo.total_formatted}
+                        </span>
+                        {financialInfo.discountAmount > 0 && (
+                          <span className="discount-note">
+                            (Giảm: {financialInfo.discount_formatted})
+                          </span>
+                        )}
                       </td>
                       
                       <td className="shipper-info">
@@ -540,7 +605,13 @@ export default function ShipmentManagement() {
                           <button
                             className="action-btn btn-copy"
                             onClick={() => {
-                              const info = `Đơn hàng #${bill._id.slice(-8)}\nKhách: ${customerInfo.name}\nSĐT: ${customerInfo.phone}\nĐịa chỉ: ${customerInfo.address}\nTiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ`;
+                              const info = `Đơn hàng #${bill._id.slice(-8)}\n` +
+                                         `Khách: ${customerInfo.name} - ${customerInfo.phone}\n` +
+                                         `Người nhận: ${deliveryInfo.name} - ${deliveryInfo.phone}\n` +
+                                         `Địa chỉ: ${deliveryInfo.address}\n` +
+                                         `Tiền hàng: ${financialInfo.subtotal_formatted}\n` +
+                                         `Phí ship: ${financialInfo.shipping_fee_formatted}\n` +
+                                         `Tổng tiền: ${financialInfo.total_formatted}`;
                               navigator.clipboard.writeText(info);
                               toast.success('Đã copy thông tin!');
                             }}
@@ -557,7 +628,7 @@ export default function ShipmentManagement() {
                 
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="no-data">
+                    <td colSpan="13" className="no-data">
                       <div className="no-data-content">
                         <span style={{ fontSize: '48px', opacity: 0.3 }}>📦</span>
                         <p>Không có đơn hàng nào</p>
