@@ -1,4 +1,4 @@
-// 🔥 FIXED BillDetailModal - Sửa lỗi đơn giá và cải thiện hiển thị
+// 🔥 UPDATED BillDetailModal - VỚI VALIDATION TÀI CHÍNH CHI TIẾT
 import React from 'react';
 import './BillDetailModal.scss';
 
@@ -9,59 +9,8 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
   // 🔥 SỬ DỤNG DỮ LIỆU ĐÃ TÍNH SẴN TỪ API ENRICHED
   const items = Array.isArray(bill.items) ? bill.items : [];
   
-  // 🔥 DEBUG: Log từng item để check cấu trúc dữ liệu
-  items.forEach((item, i) => {
-    console.log(`Item ${i}:`, {
-      productName: item.productName || item.name,
-      unitPrice: item.unitPrice || item.price || item.unit_price,
-      quantity: item.quantity || item.qty,
-      originalItem: item
-    });
-  });
-  
-  // Ưu tiên sử dụng dữ liệu đã format từ backend
-  const financialInfo = {
-    subtotal: bill.subtotal || 0,
-    shippingFee: bill.shippingFee || 0,
-    discountAmount: bill.discountAmount || 0,
-    finalTotal: bill.finalTotal || bill.total || 0,
-    
-    // Formatted values từ backend
-    subtotal_formatted: bill.subtotal_formatted || `${Number(bill.subtotal || 0).toLocaleString('vi-VN')} đ`,
-    shipping_fee_formatted: bill.shipping_fee_formatted || `${Number(bill.shippingFee || 0).toLocaleString('vi-VN')} đ`,
-    discount_formatted: bill.discount_formatted || `${Number(bill.discountAmount || 0).toLocaleString('vi-VN')} đ`,
-    total_formatted: bill.total_formatted || `${Number(bill.total || 0).toLocaleString('vi-VN')} đ`
-  };
-
-  // 🔥 THÔNG TIN KHÁCH HÀNG VÀ GIAO HÀNG TỪ ENRICHED DATA
-  const customerInfo = {
-    name: bill.customerName || bill.userName || 'Khách hàng không rõ',
-    phone: bill.customerPhone || '',
-    address: bill.customerAddress || bill.addressStr || 'Chưa có địa chỉ'
-  };
-
-  const deliveryInfo = {
-    name: bill.deliveryName || 'Chưa có tên người nhận',
-    phone: bill.deliveryPhone || 'Chưa có SĐT',
-    address: bill.deliveryAddress || 'Chưa có địa chỉ giao hàng'
-  };
-
-  // 🔥 THÔNG TIN THANH TOÁN VÀ GIAO HÀNG
-  const orderInfo = {
-    shippingMethod: bill.shippingMethodDisplay || bill.shipping_method || 'Chưa chọn',
-    paymentMethod: bill.paymentMethodDisplay || bill.payment_method || 'Chưa chọn',
-    voucherCode: bill.voucherDisplayCode || bill.voucherCode || '—',
-    status: bill.statusDisplay || bill.status || 'N/A',
-    createdDate: bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A'),
-    updatedDate: bill.updated_at ? new Date(bill.updated_at).toLocaleString('vi-VN') : null
-  };
-
-  // 🔥 LỊCH SỬ TRẠNG THÁI (nếu có)
-  const statusHistory = bill.statusHistory || [];
-
-  // 🔥 HÀM LẤY GIÁ SẢN PHẨM - FIX LOGIC LẤY GIÁ
+  // 🔥 HÀM LẤY GIÁ SẢN PHẨM - FIXED LOGIC
   const getItemPrice = (item) => {
-    // Thử nhiều field khác nhau theo thứ tự ưu tiên
     const priceFields = [
       'unitPrice',        // Field chính từ enriched API
       'price',           // Field phổ biến
@@ -107,6 +56,90 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
     return item.productName || item.name || item.product_name || item.title || 'Sản phẩm không rõ';
   };
 
+  // 🔥 TÍNH TOÁN VÀ VALIDATION TÀI CHÍNH
+  const calculateItemsSubtotal = () => {
+    return items.reduce((total, item) => {
+      const itemPrice = getItemPrice(item);
+      const itemQty = getItemQuantity(item);
+      return total + (itemPrice * itemQty);
+    }, 0);
+  };
+
+  const getFinancialValidation = () => {
+    const calculatedSubtotal = calculateItemsSubtotal();
+    const backendSubtotal = Number(bill.subtotal || 0);
+    const shippingFee = Number(bill.shippingFee || 0);
+    const discountAmount = Number(bill.discountAmount || 0);
+    const backendTotal = Number(bill.finalTotal || bill.total || 0);
+    
+    // Tính toán theo công thức đúng
+    const expectedTotal = calculatedSubtotal + shippingFee - discountAmount;
+    const backendExpectedTotal = backendSubtotal + shippingFee - discountAmount;
+    
+    // Kiểm tra sai lệch (tolerance 1 đ để tránh lỗi làm tròn)
+    const subtotalMismatch = Math.abs(calculatedSubtotal - backendSubtotal);
+    const totalMismatch = Math.abs(expectedTotal - backendTotal);
+    
+    const hasSubtotalIssue = subtotalMismatch > 1;
+    const hasTotalIssue = totalMismatch > 1;
+    
+    return {
+      calculatedSubtotal,
+      backendSubtotal,
+      shippingFee,
+      discountAmount,
+      expectedTotal,
+      backendTotal,
+      subtotalMismatch,
+      totalMismatch,
+      hasSubtotalIssue,
+      hasTotalIssue,
+      hasAnyIssue: hasSubtotalIssue || hasTotalIssue
+    };
+  };
+
+  const financialValidation = getFinancialValidation();
+  
+  // Ưu tiên sử dụng dữ liệu đã format từ backend
+  const financialInfo = {
+    subtotal: financialValidation.backendSubtotal,
+    shippingFee: financialValidation.shippingFee,
+    discountAmount: financialValidation.discountAmount,
+    finalTotal: financialValidation.backendTotal,
+    
+    // Formatted values từ backend
+    subtotal_formatted: bill.subtotal_formatted || `${financialValidation.backendSubtotal.toLocaleString('vi-VN')} đ`,
+    shipping_fee_formatted: bill.shipping_fee_formatted || `${financialValidation.shippingFee.toLocaleString('vi-VN')} đ`,
+    discount_formatted: bill.discount_formatted || `${financialValidation.discountAmount.toLocaleString('vi-VN')} đ`,
+    total_formatted: bill.total_formatted || `${financialValidation.backendTotal.toLocaleString('vi-VN')} đ`
+  };
+
+  // 🔥 THÔNG TIN KHÁCH HÀNG VÀ GIAO HÀNG TỪ ENRICHED DATA
+  const customerInfo = {
+    name: bill.customerName || bill.userName || 'Khách hàng không rõ',
+    phone: bill.customerPhone || '',
+    address: bill.customerAddress || bill.addressStr || 'Chưa có địa chỉ'
+  };
+
+  const deliveryInfo = {
+    name: bill.deliveryName || 'Chưa có tên người nhận',
+    phone: bill.deliveryPhone || 'Chưa có SĐT',
+    address: bill.deliveryAddress || 'Chưa có địa chỉ giao hàng'
+  };
+
+  // 🔥 THÔNG TIN THANH TOÁN VÀ GIAO HÀNG
+  const orderInfo = {
+    shippingMethod: bill.shippingMethodDisplay || bill.shipping_method || 'Chưa chọn',
+    paymentMethod: bill.paymentMethodDisplay || bill.payment_method || 'Chưa chọn',
+    voucherCode: bill.voucherDisplayCode || bill.voucherCode || '—',
+    status: bill.statusDisplay || bill.status || 'N/A',
+    createdDate: bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleString('vi-VN') : 'N/A'),
+    updatedDate: bill.updated_at ? new Date(bill.updated_at).toLocaleString('vi-VN') : null
+  };
+
+  // 🔥 LỊCH SỬ TRẠNG THÁI (nếu có)
+  const statusHistory = bill.statusHistory || [];
+
   return (
     <div className="modal-overlay">
       <div className="modal-box">
@@ -115,6 +148,11 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
             <span className="icon">📋</span>
             Chi tiết Hóa đơn
             <span className="bill-id">#{bill._id?.slice(-8) || 'N/A'}</span>
+            {financialValidation.hasAnyIssue && (
+              <span className="financial-warning-badge" title="Có vấn đề trong tính toán tài chính">
+                ⚠️
+              </span>
+            )}
           </h3>
           <button className="close-btn" onClick={onClose}>
             <span>×</span>
@@ -122,6 +160,64 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
         </div>
 
         <div className="modal-content">
+          {/* 🚨 CẢNH BÁO TÀI CHÍNH (nếu có vấn đề) */}
+          {financialValidation.hasAnyIssue && (
+            <div className="financial-warning-section">
+              <div className="warning-card">
+                <div className="warning-header">
+                  <span className="warning-icon">⚠️</span>
+                  <h4>Phát hiện vấn đề trong tính toán tài chính</h4>
+                </div>
+                <div className="warning-content">
+                  {financialValidation.hasSubtotalIssue && (
+                    <div className="warning-item">
+                      <strong>Tiền hàng không khớp:</strong>
+                      <br />
+                      • Backend: {financialValidation.backendSubtotal.toLocaleString('vi-VN')} đ
+                      <br />
+                      • Tính từ items: {financialValidation.calculatedSubtotal.toLocaleString('vi-VN')} đ
+                      <br />
+                      • Chênh lệch: {financialValidation.subtotalMismatch.toLocaleString('vi-VN')} đ
+                    </div>
+                  )}
+                  
+                  {financialValidation.hasTotalIssue && (
+                    <div className="warning-item">
+                      <strong>Tổng tiền không đúng công thức:</strong>
+                      <br />
+                      • Backend: {financialValidation.backendTotal.toLocaleString('vi-VN')} đ
+                      <br />
+                      • Tính toán: {financialValidation.expectedTotal.toLocaleString('vi-VN')} đ
+                      <br />
+                      • Chênh lệch: {financialValidation.totalMismatch.toLocaleString('vi-VN')} đ
+                    </div>
+                  )}
+                  
+                  <div className="warning-actions">
+                    <button 
+                      className="debug-btn"
+                      onClick={() => {
+                        console.group('🔍 Financial Debug Details');
+                        console.log('📊 Backend Data:', {
+                          subtotal: bill.subtotal,
+                          shippingFee: bill.shippingFee,
+                          discountAmount: bill.discountAmount,
+                          total: bill.total
+                        });
+                        console.log('📦 Items:', items);
+                        console.log('🧮 Validation Results:', financialValidation);
+                        console.groupEnd();
+                        alert('🔍 Debug information đã được log ra console.\nMở Developer Tools > Console để xem chi tiết.');
+                      }}
+                    >
+                      🔍 Debug Console
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 🔥 THÔNG TIN KHÁCH HÀNG VÀ ĐƠN HÀNG */}
           <div className="info-section">
             <h4>
@@ -210,11 +306,14 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
             </div>
           </div>
 
-          {/* 🔥 DANH SÁCH SẢN PHẨM - FIXED PRICING */}
+          {/* 🔥 DANH SÁCH SẢN PHẨM - WITH DETAILED PRICING INFO */}
           <div className="items-section">
             <h4>
               <span className="icon">📦</span>
               Danh sách sản phẩm ({items.length} món)
+              {financialValidation.hasSubtotalIssue && (
+                <span className="section-warning" title="Tổng tiền sản phẩm có vấn đề">⚠️</span>
+              )}
             </h4>
             <div className="table-container">
               <table>
@@ -257,22 +356,32 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
                             {itemPrice === 0 && (
                               <span className="price-warning">⚠️ Không có giá</span>
                             )}
-                            {/* Debug info */}
-                            <small style={{color: '#888', fontSize: '11px'}}>
-                              Fields: {Object.keys(item).join(', ')}
-                            </small>
+                            {/* Debug info - chỉ hiện khi có vấn đề */}
+                            {itemPrice === 0 && (
+                              <details style={{ fontSize: '11px', color: '#888', marginTop: '5px' }}>
+                                <summary>🔍 Debug item data</summary>
+                                <pre>{JSON.stringify(item, null, 2)}</pre>
+                              </details>
+                            )}
                           </div>
                         </td>
                         <td className="unit-price">
                           <span className={itemPrice === 0 ? 'price-error' : 'price-normal'}>
                             {itemPrice.toLocaleString('vi-VN')} đ
                           </span>
+                          {itemPrice === 0 && (
+                            <div style={{ fontSize: '10px', color: '#ef4444' }}>
+                              Missing price data
+                            </div>
+                          )}
                         </td>
                         <td className="quantity">
                           <span className="qty-badge">{itemQty}</span>
                         </td>
                         <td className="total-price">
-                          <strong>{itemTotal.toLocaleString('vi-VN')} đ</strong>
+                          <strong className={itemPrice === 0 ? 'price-error' : ''}>
+                            {itemTotal.toLocaleString('vi-VN')} đ
+                          </strong>
                         </td>
                       </tr>
                     );
@@ -284,21 +393,55 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
                     </tr>
                   )}
                 </tbody>
+                <tfoot>
+                  <tr className="subtotal-row">
+                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                      🧮 Tổng tính từ items:
+                    </td>
+                    <td style={{ fontWeight: 'bold' }}>
+                      <span className={financialValidation.hasSubtotalIssue ? 'price-error' : 'price-normal'}>
+                        {financialValidation.calculatedSubtotal.toLocaleString('vi-VN')} đ
+                      </span>
+                      {financialValidation.hasSubtotalIssue && (
+                        <div style={{ fontSize: '11px', color: '#ef4444' }}>
+                          Backend: {financialValidation.backendSubtotal.toLocaleString('vi-VN')} đ
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
 
-          {/* 🔥 BREAKDOWN TÀI CHÍNH CHI TIẾT */}
+          {/* 🔥 BREAKDOWN TÀI CHÍNH CHI TIẾT VỚI VALIDATION */}
           <div className="financial-section">
             <h4>
               <span className="icon">💰</span>
               Chi tiết thanh toán
+              {financialValidation.hasTotalIssue && (
+                <span className="section-warning" title="Tổng tiền có vấn đề">⚠️</span>
+              )}
             </h4>
             <div className="financial-breakdown">
               <div className="financial-card">
                 <div className="breakdown-item">
                   <span className="label">💰 Tiền hàng:</span>
-                  <span className="value">{financialInfo.subtotal_formatted}</span>
+                  <div className="value-container">
+                    <span className="value">
+                      {financialInfo.subtotal_formatted}
+                    </span>
+                    {financialValidation.hasSubtotalIssue && (
+                      <div className="validation-info">
+                        <small className="calculated-value">
+                          Tính từ items: {financialValidation.calculatedSubtotal.toLocaleString('vi-VN')} đ
+                        </small>
+                        <small className="difference">
+                          Chênh lệch: {financialValidation.subtotalMismatch.toLocaleString('vi-VN')} đ
+                        </small>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="breakdown-item">
@@ -317,16 +460,36 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
 
                 <div className="breakdown-item total-item">
                   <span className="label">💵 TỔNG THANH TOÁN:</span>
-                  <span className="value total-value">{financialInfo.total_formatted}</span>
+                  <div className="value-container">
+                    <span className="value total-value">
+                      {financialInfo.total_formatted}
+                    </span>
+                    {financialValidation.hasTotalIssue && (
+                      <div className="validation-info">
+                        <small className="calculated-value">
+                          Tính toán: {financialValidation.expectedTotal.toLocaleString('vi-VN')} đ
+                        </small>
+                        <small className="difference">
+                          Chênh lệch: {financialValidation.totalMismatch.toLocaleString('vi-VN')} đ
+                        </small>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Hiển thị tính toán chi tiết */}
+                {/* Hiển thị công thức tính */}
                 <div className="calculation-detail">
                   <small>
-                    Tính toán: {financialInfo.subtotal_formatted} + {financialInfo.shipping_fee_formatted}
-                    {financialInfo.discountAmount > 0 && ` - ${financialInfo.discount_formatted}`}
-                    {' = '}{financialInfo.total_formatted}
+                    📊 Công thức: {financialValidation.calculatedSubtotal.toLocaleString('vi-VN')} 
+                    + {financialValidation.shippingFee.toLocaleString('vi-VN')}
+                    {financialValidation.discountAmount > 0 && ` - ${financialValidation.discountAmount.toLocaleString('vi-VN')}`}
+                    {' = '}{financialValidation.expectedTotal.toLocaleString('vi-VN')} đ
                   </small>
+                  {financialValidation.hasTotalIssue && (
+                    <small style={{ display: 'block', color: '#ef4444', marginTop: '5px' }}>
+                      ⚠️ Backend trả về: {financialValidation.backendTotal.toLocaleString('vi-VN')} đ
+                    </small>
+                  )}
                 </div>
               </div>
             </div>
@@ -366,6 +529,9 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
                          `Khách hàng: ${customerInfo.name} - ${customerInfo.phone}\n` +
                          `Người nhận: ${deliveryInfo.name} - ${deliveryInfo.phone}\n` +
                          `Địa chỉ: ${deliveryInfo.address}\n` +
+                         `Tiền hàng: ${financialInfo.subtotal_formatted}\n` +
+                         `Phí ship: ${financialInfo.shipping_fee_formatted}\n` +
+                         `${financialInfo.discountAmount > 0 ? `Giảm giá: ${financialInfo.discount_formatted}\n` : ''}` +
                          `Tổng tiền: ${financialInfo.total_formatted}\n` +
                          `Trạng thái: ${orderInfo.status}\n` +
                          `Ngày tạo: ${orderInfo.createdDate}`;
@@ -375,6 +541,48 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
               <span className="icon">📋</span>
               <span>Copy thông tin</span>
             </button>
+
+            {/* Debug button nếu có vấn đề */}
+            {financialValidation.hasAnyIssue && (
+              <button className="btn-debug" onClick={() => {
+                console.group('🔍 Detailed Financial Debug');
+                console.log('💰 Financial Validation:', financialValidation);
+                console.log('📊 Bill Raw Data:', {
+                  subtotal: bill.subtotal,
+                  shippingFee: bill.shippingFee,
+                  discountAmount: bill.discountAmount,
+                  total: bill.total,
+                  finalTotal: bill.finalTotal
+                });
+                console.log('📦 Items with prices:', items.map((item, i) => ({
+                  index: i + 1,
+                  name: getItemName(item),
+                  price: getItemPrice(item),
+                  quantity: getItemQuantity(item),
+                  total: getItemPrice(item) * getItemQuantity(item),
+                  rawData: item
+                })));
+                console.log('🧮 Calculations:', {
+                  itemsSubtotal: financialValidation.calculatedSubtotal,
+                  backendSubtotal: financialValidation.backendSubtotal,
+                  shippingFee: financialValidation.shippingFee,
+                  discountAmount: financialValidation.discountAmount,
+                  expectedTotal: financialValidation.expectedTotal,
+                  backendTotal: financialValidation.backendTotal
+                });
+                console.groupEnd();
+                
+                alert('🔍 Chi tiết debug đã được log ra console!\n\n' +
+                      'Mở Developer Tools > Console để xem:\n' +
+                      '• Dữ liệu thô từ backend\n' +
+                      '• Chi tiết từng sản phẩm\n' +
+                      '• So sánh tính toán vs backend\n' +
+                      '• Phân tích nguyên nhân sai lệch');
+              }}>
+                <span className="icon">🔍</span>
+                <span>Debug tài chính</span>
+              </button>
+            )}
             
             <button className="btn-close" onClick={onClose}>
               <span className="icon">✕</span>
@@ -383,6 +591,133 @@ const BillDetailModal = ({ bill, onClose, onPrint }) => {
           </div>
         </div>
       </div>
+
+      {/* 🎨 INLINE STYLES CHO VALIDATION */}
+      <style jsx>{`
+        .financial-warning-badge {
+          background: #ef4444;
+          color: white;
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-size: 10px;
+          margin-left: 8px;
+        }
+
+        .financial-warning-section {
+          margin-bottom: 20px;
+        }
+
+        .warning-card {
+          background: #fef2f2;
+          border: 2px solid #fecaca;
+          border-radius: 8px;
+          padding: 15px;
+          border-left: 4px solid #ef4444;
+        }
+
+        .warning-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .warning-header h4 {
+          margin: 0;
+          color: #dc2626;
+        }
+
+        .warning-content {
+          color: #991b1b;
+        }
+
+        .warning-item {
+          margin: 8px 0;
+          padding: 8px;
+          background: rgba(255, 255, 255, 0.5);
+          border-radius: 4px;
+          font-size: 13px;
+        }
+
+        .warning-actions {
+          margin-top: 12px;
+        }
+
+        .debug-btn, .btn-debug {
+          background: #ef4444;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        .debug-btn:hover, .btn-debug:hover {
+          background: #dc2626;
+        }
+
+        .section-warning {
+          color: #ef4444;
+          margin-left: 8px;
+        }
+
+        .price-error {
+          color: #ef4444 !important;
+        }
+
+        .price-normal {
+          color: #059669;
+        }
+
+        .subtotal-row {
+          background-color: #f9fafb;
+          border-top: 2px solid #e5e7eb;
+        }
+
+        .value-container {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+        }
+
+        .validation-info {
+          margin-top: 4px;
+        }
+
+        .calculated-value {
+          color: #059669;
+          font-size: 11px;
+        }
+
+        .difference {
+          color: #ef4444;
+          font-size: 11px;
+        }
+
+        .price-warning {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-size: 10px;
+          margin-left: 8px;
+        }
+
+        .breakdown-divider {
+          height: 2px;
+          background: linear-gradient(90deg, #10b981, #059669);
+          margin: 10px 0;
+          border-radius: 1px;
+        }
+
+        .calculation-detail {
+          margin-top: 10px;
+          padding-top: 8px;
+          border-top: 1px solid #e5e7eb;
+          font-style: italic;
+        }
+      `}</style>
     </div>
   );
 };
