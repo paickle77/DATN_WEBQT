@@ -71,7 +71,7 @@ const CustomerManagement = () => {
     }
   };
 
-  // ✅ Cải tiến chức năng xuất Excel với format đẹp hơn
+  // ✅ Cải tiến chức năng xuất Excel với format đẹp hơn (bỏ cột giới tính và tuổi)
   const exportToExcel = async () => {
     try {
       setLoading(true);
@@ -95,7 +95,7 @@ const CustomerManagement = () => {
       });
 
       // ✅ Tạo tiêu đề báo cáo
-      sheet.mergeCells('A1:M1');
+      sheet.mergeCells('A1:K1'); // Giảm số cột do bỏ giới tính và tuổi
       const titleCell = sheet.getCell('A1');
       titleCell.value = 'BÁO CÁO DANH SÁCH KHÁCH HÀNG';
       titleCell.font = { size: 16, bold: true, color: { argb: 'FF1f2937' } };
@@ -119,18 +119,16 @@ const CustomerManagement = () => {
       sheet.getCell('E2').value = `Tổng số KH: ${customerStats.totalCustomers || allCustomers.length}`;
       sheet.getCell('E2').font = { bold: true };
       
-      sheet.mergeCells('I2:M2');
+      sheet.mergeCells('I2:K2');
       sheet.getCell('I2').value = `Tổng doanh thu: ${formatCurrency(customerStats.totalRevenue)}`;
       sheet.getCell('I2').font = { bold: true, color: { argb: 'FF059669' } };
 
-      // ✅ Header với styling đẹp hơn
+      // ✅ Header với styling đẹp hơn (bỏ cột giới tính và tuổi)
       const headers = [
         { key: 'stt', header: 'STT', width: 8 },
         { key: 'name', header: 'Họ và Tên', width: 25 },
         { key: 'email', header: 'Email', width: 30 },
         { key: 'phone', header: 'Số điện thoại', width: 15 },
-        { key: 'gender', header: 'Giới tính', width: 12 },
-        { key: 'age', header: 'Tuổi', width: 8 },
         { key: 'address', header: 'Địa chỉ', width: 40 },
         { key: 'account_type', header: 'Loại tài khoản', width: 15 },
         { key: 'total_orders', header: 'Tổng đơn', width: 12 },
@@ -160,7 +158,7 @@ const CustomerManagement = () => {
 
       headerRow.height = 25;
 
-      // ✅ Dữ liệu với format đẹp và đầy đủ thông tin
+      // ✅ Dữ liệu với format đẹp và đầy đủ thông tin (bỏ giới tính và tuổi)
       let rowIndex = 5;
       for (const [index, customer] of allCustomers.entries()) {
         const row = sheet.getRow(rowIndex);
@@ -173,10 +171,6 @@ const CustomerManagement = () => {
           customer.name || 'Chưa cập nhật',
           customer.email || 'Chưa có',
           customer.phone || 'Chưa có',
-          customer.gender === 'male' ? 'Nam' : 
-          customer.gender === 'female' ? 'Nữ' : 
-          customer.gender === 'other' ? 'Khác' : 'Chưa xác định',
-          customer.age ? `${customer.age} tuổi` : 'N/A',
           customer.address_detail?.full_address || 'Chưa cập nhật',
           customer.provider === 'local' ? 'Tài khoản thường' : 
           customer.provider === 'google' ? 'Google' : 
@@ -207,17 +201,17 @@ const CustomerManagement = () => {
           };
           
           cell.alignment = { 
-            horizontal: cellIndex === 1 || cellIndex === 2 || cellIndex === 6 ? 'left' : 'center',
+            horizontal: cellIndex === 1 || cellIndex === 2 || cellIndex === 4 ? 'left' : 'center', // Cập nhật index
             vertical: 'middle' 
           };
 
           // Format đặc biệt cho một số cột
-          if (cellIndex === 9) { // Cột tổng chi tiêu
+          if (cellIndex === 7) { // Cột tổng chi tiêu (index thay đổi)
             cell.numFmt = '#,##0" đ"';
             cell.font = { bold: true, color: { argb: 'FF059669' } };
           }
           
-          if (cellIndex === 12) { // Cột trạng thái
+          if (cellIndex === 9) { // Cột trạng thái (index thay đổi)
             cell.font = { 
               bold: true, 
               color: { argb: customer.is_lock ? 'FFef4444' : 'FF10b981' }
@@ -231,7 +225,7 @@ const CustomerManagement = () => {
 
       // ✅ Thêm footer với thống kê
       const footerRow = rowIndex + 1;
-      sheet.mergeCells(`A${footerRow}:M${footerRow}`);
+      sheet.mergeCells(`A${footerRow}:K${footerRow}`);
       const footerCell = sheet.getCell(`A${footerRow}`);
       footerCell.value = `Báo cáo được tạo tự động bởi hệ thống quản lý - ${new Date().toLocaleString('vi-VN')}`;
       footerCell.font = { italic: true, size: 10 };
@@ -394,7 +388,7 @@ const CustomerManagement = () => {
         </div>
       </div>
 
-      {/* ✅ Modal xem chi tiết (chỉ đọc) */}
+      {/* ✅ Modal xem chi tiết (chỉ đọc) - Bỏ giới tính và tuổi */}
       {showDetailModal && selectedCustomer && (
         <div className="modal-overlay">
           <div className="modal-box">
@@ -412,18 +406,6 @@ const CustomerManagement = () => {
                 <div className="detail-row">
                   <label>Số điện thoại:</label>
                   <span>{selectedCustomer.phone || 'Chưa có'}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Giới tính:</label>
-                  <span>
-                    {selectedCustomer.gender === 'male' ? 'Nam' : 
-                     selectedCustomer.gender === 'female' ? 'Nữ' : 
-                     selectedCustomer.gender === 'other' ? 'Khác' : 'Chưa xác định'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <label>Tuổi:</label>
-                  <span>{selectedCustomer.age ? `${selectedCustomer.age} tuổi` : 'N/A'}</span>
                 </div>
                 <div className="detail-row">
                   <label>Địa chỉ:</label>
@@ -467,7 +449,7 @@ const CustomerManagement = () => {
         </div>
       )}
 
-      {/* Bảng danh sách */}
+      {/* Bảng danh sách - Bỏ cột giới tính và tuổi */}
       <div className="table-wrapper">
         {loading && <div className="loading-overlay">⏳ Đang tải...</div>}
         
@@ -478,8 +460,6 @@ const CustomerManagement = () => {
               <th>👤 Tên</th>
               <th>📧 Email</th>
               <th>📱 SĐT</th>
-              <th>⚥ GT</th>
-              <th>🎂 Tuổi</th>
               <th>🏠 Địa chỉ</th>
               <th>🔑 Loại TK</th>
               <th>📊 Đơn hàng</th>
@@ -507,12 +487,6 @@ const CustomerManagement = () => {
                   </td>
                   <td>{c.email || 'Chưa có'}</td>
                   <td>{c.phone || 'Chưa có'}</td>
-                  <td>
-                    {c.gender === 'male' ? '👨 Nam' : 
-                     c.gender === 'female' ? '👩 Nữ' : 
-                     c.gender === 'other' ? '🤷 Khác' : '❓'}
-                  </td>
-                  <td>{c.age ? `${c.age} tuổi` : '❓'}</td>
                   <td className="address-cell">
                     {c.address_detail?.full_address || 'Chưa cập nhật'}
                   </td>
@@ -567,7 +541,7 @@ const CustomerManagement = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="13" className="empty-state">
+                <td colSpan="11" className="empty-state">
                   {loading ? '⏳ Đang tải dữ liệu...' : '📋 Không tìm thấy khách hàng nào'}
                 </td>
               </tr>
