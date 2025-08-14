@@ -1,4 +1,4 @@
-// 🔥 UPDATED ShipmentManagement - Sử dụng address_snapshot và breakdown tài chính
+// 🔥 UPDATED ShipmentManagement - Sử dụng address_snapshot và breakdown tài chính ĐẦY ĐỦ
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import StatusBadge from '../../component/StatusBadge';
@@ -172,16 +172,16 @@ export default function ShipmentManagement() {
     } : { name: 'N/A', phone: 'N/A', isOnline: false, id: shipperId };
   };
 
-  // 🔥 LẤY THÔNG TIN TÀI CHÍNH TỪ ENRICHED DATA
+  // 🔥 LẤY THÔNG TIN TÀI CHÍNH TỪ ENRICHED DATA - ĐẦY ĐỦ
   const getFinancialInfo = (bill) => ({
     subtotal: bill.subtotal || 0,
     shippingFee: bill.shippingFee || 0,
     discountAmount: bill.discountAmount || 0,
     finalTotal: bill.finalTotal || bill.total || 0,
-    subtotal_formatted: bill.subtotal_formatted || '0 đ',
-    shipping_fee_formatted: bill.shipping_fee_formatted || '0 đ',
-    discount_formatted: bill.discount_formatted || '0 đ',
-    total_formatted: bill.total_formatted || '0 đ'
+    subtotal_formatted: bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN') + ' đ',
+    shipping_fee_formatted: bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN') + ' đ',
+    discount_formatted: bill.discount_formatted || (Number(bill.discountAmount) || 0).toLocaleString('vi-VN') + ' đ',
+    total_formatted: bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'
   });
 
   // Filter bills
@@ -367,10 +367,15 @@ export default function ShipmentManagement() {
           <button onClick={loadData} className="refresh-btn">🔄 Làm mới</button>
         </div>
 
-        {/* 🔥 TABLE MỚI VỚI BREAKDOWN TÀI CHÍNH */}
+        {/* 🔥 TABLE MỚI VỚI BREAKDOWN TÀI CHÍNH ĐẦY ĐỦ - THÊM CỘT GIẢM GIÁ */}
         <div className="table-container">
           <div className="table-header">
             <h3>Danh sách đơn hàng giao hàng ({filteredBills.length})</h3>
+            <div className="formula-note">
+              <small style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                💡 Công thức: <strong>Tiền hàng + Phí ship - Giảm giá = Tổng tiền</strong>
+              </small>
+            </div>
           </div>
 
           <div className="table-wrapper">
@@ -385,6 +390,7 @@ export default function ShipmentManagement() {
                   <th>📍 Địa chỉ giao hàng</th>
                   <th>💰 Tiền hàng</th>
                   <th>🚛 Phí ship</th>
+                  <th>🎯 Giảm giá</th>
                   <th>💵 Tổng tiền</th>
                   <th>👨‍💼 Shipper</th>
                   <th>📊 Trạng thái</th>
@@ -456,7 +462,7 @@ export default function ShipmentManagement() {
                         </span>
                       </td>
 
-                      {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT */}
+                      {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT - ĐẦY ĐỦ */}
                       <td className="subtotal-cell">
                         <span className="money-amount">
                           {financialInfo.subtotal_formatted}
@@ -469,15 +475,39 @@ export default function ShipmentManagement() {
                         </span>
                       </td>
 
+                      {/* 🔥 CỘT GIẢM GIÁ MỚI */}
+                      <td className="discount-cell">
+                        <span className="discount-amount" style={{
+                          color: financialInfo.discountAmount > 0 ? '#dc2626' : '#6b7280'
+                        }}>
+                          {financialInfo.discountAmount > 0 ? (
+                            `-${financialInfo.discount_formatted}`
+                          ) : (
+                            '0 đ'
+                          )}
+                        </span>
+                        {financialInfo.discountAmount > 0 && (
+                          <span className="discount-indicator">🎯</span>
+                        )}
+                      </td>
+
                       <td className="total-cell">
                         <span className="total-amount">
                           {financialInfo.total_formatted}
                         </span>
-                        {financialInfo.discountAmount > 0 && (
-                          <span className="discount-note">
-                            (Giảm: {financialInfo.discount_formatted})
-                          </span>
-                        )}
+                        {/* 🔥 HIỂN THỊ VALIDATION CÔNG THỨC */}
+                        <div className="formula-validation" style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                          {(() => {
+                            const calculated = financialInfo.subtotal + financialInfo.shippingFee - financialInfo.discountAmount;
+                            const actual = financialInfo.finalTotal;
+                            const isValid = Math.abs(calculated - actual) < 1; // Tolerance 1đ for rounding
+                            return (
+                              <span style={{ color: isValid ? '#10b981' : '#ef4444' }}>
+                                {isValid ? '✓' : '⚠️'} {calculated.toLocaleString('vi-VN')}đ
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </td>
                       
                       <td className="shipper-info">
@@ -611,6 +641,7 @@ export default function ShipmentManagement() {
                                          `Địa chỉ: ${deliveryInfo.address}\n` +
                                          `Tiền hàng: ${financialInfo.subtotal_formatted}\n` +
                                          `Phí ship: ${financialInfo.shipping_fee_formatted}\n` +
+                                         `Giảm giá: ${financialInfo.discount_formatted}\n` +
                                          `Tổng tiền: ${financialInfo.total_formatted}`;
                               navigator.clipboard.writeText(info);
                               toast.success('Đã copy thông tin!');
@@ -628,7 +659,7 @@ export default function ShipmentManagement() {
                 
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="13" className="no-data">
+                    <td colSpan="14" className="no-data">
                       <div className="no-data-content">
                         <span style={{ fontSize: '48px', opacity: 0.3 }}>📦</span>
                         <p>Không có đơn hàng nào</p>

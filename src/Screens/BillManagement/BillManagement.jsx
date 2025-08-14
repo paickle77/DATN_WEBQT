@@ -1,4 +1,4 @@
-// 🔥 OPTIMIZED BillManagement - Thu gọn bảng và đưa chi tiết vào modal
+// 🔥 OPTIMIZED BillManagement - Thu gọn bảng và đưa chi tiết vào modal - BỎ CHỨC NĂNG HỦY ĐỦN
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
@@ -14,12 +14,12 @@ import { ENUM_PAGE } from '../../component/ENUM/enum.ts';
 import StatusBadge from '../../component/StatusBadge.jsx';
 import BillDetailModal from '../../component/BillDetailModal.jsx';
 
-// 🎯 QUẢN LÝ CÁC TRẠNG THÁI TRƯỚC KHI GIAO HÀNG
+// 🎯 QUẢN LÝ CÁC TRẠNG THÁI TRƯỚC KHI GIAO HÀNG - BỎ CHỨC NĂNG HỦY
 const BILL_STATUS = {
   PENDING: 'pending',      
   CONFIRMED: 'confirmed',  
   READY: 'ready',         
-  CANCELLED: 'cancelled', 
+  CANCELLED: 'cancelled', // CHỈ HIỂN THỊ, KHÔNG CHO HỦY
 };
 
 const STATUS_LABELS = {
@@ -29,11 +29,12 @@ const STATUS_LABELS = {
   [BILL_STATUS.CANCELLED]: 'Đã hủy',
 };
 
+// 🔥 CẬP NHẬT LUỒNG CHUYỂN TRẠNG THÁI - BỎ CHỨC NĂNG HỦY
 const ALLOWED_TRANSITIONS = {
-  [BILL_STATUS.PENDING]: [BILL_STATUS.CONFIRMED, BILL_STATUS.CANCELLED],
-  [BILL_STATUS.CONFIRMED]: [BILL_STATUS.READY, BILL_STATUS.CANCELLED],
-  [BILL_STATUS.READY]: [BILL_STATUS.CANCELLED], 
-  [BILL_STATUS.CANCELLED]: [], 
+  [BILL_STATUS.PENDING]: [BILL_STATUS.CONFIRMED], // BỎ CANCELLED
+  [BILL_STATUS.CONFIRMED]: [BILL_STATUS.READY], // BỎ CANCELLED
+  [BILL_STATUS.READY]: [], // BỎ CANCELLED - chuyển sang shipping thông qua nút riêng
+  [BILL_STATUS.CANCELLED]: [], // Đơn đã hủy không thể thay đổi
 };
 
 const STATUS_COLORS = {
@@ -254,28 +255,15 @@ const BillManagement = () => {
     return true;
   });
 
-  // ✅ CẬP NHẬT TRẠNG THÁI
+  // ✅ CẬP NHẬT TRẠNG THÁI - BỎ LOGIC HỦY ĐƠN
   const updateBillStatus = async (billId, newStatus) => {
     const bill = bills.find(b => b._id === billId);
     if (!bill) return;
 
-    if (userRole === 'staff' && newStatus === BILL_STATUS.CANCELLED) {
-      alert('❌ Staff không có quyền hủy hóa đơn. Vui lòng liên hệ Manager/Admin.');
-      return;
-    }
+    // ❌ BỎ LOGIC HỦY ĐƠN HOÀN TOÀN
+    // Chỉ cho phép chuyển trạng thái tiến bộ: pending -> confirmed -> ready
 
-    let reason = '';
-    if (newStatus === BILL_STATUS.CANCELLED) {
-      reason = prompt('📝 Vui lòng nhập lý do hủy hóa đơn (bắt buộc):');
-      if (!reason || reason.trim() === '') {
-        alert('⚠️ Vui lòng nhập lý do hủy hóa đơn');
-        return;
-      }
-    }
-
-    const confirmMessage = newStatus === BILL_STATUS.CANCELLED 
-      ? `⚠️ Bạn có chắc muốn HỦY hóa đơn này?\n\nLý do: ${reason}\n\nHành động này sẽ được ghi lại trong hệ thống.`
-      : `✅ Xác nhận chuyển trạng thái thành: ${STATUS_LABELS[newStatus]}?`;
+    const confirmMessage = `✅ Xác nhận chuyển trạng thái thành: ${STATUS_LABELS[newStatus]}?`;
 
     if (!window.confirm(confirmMessage)) return;
 
@@ -287,13 +275,12 @@ const BillManagement = () => {
       logAction(
         `STATUS_CHANGE: ${bill.status} → ${newStatus}`,
         billId,
-        reason ? `Lý do: ${reason}` : ''
+        'Cập nhật trạng thái tiến bộ'
       );
 
       const statusEmoji = {
         [BILL_STATUS.CONFIRMED]: '✅',
         [BILL_STATUS.READY]: '📦',
-        [BILL_STATUS.CANCELLED]: '❌',
       };
 
       alert(`${statusEmoji[newStatus]} Đã cập nhật trạng thái thành: ${STATUS_LABELS[newStatus]}`);
@@ -621,6 +608,7 @@ const printBillSlip = async billId => {
     let summaryY = yAfterTable + 4; // Giảm từ 5 xuống 4
     
     doc.setFontSize(8);
+    doc.setFontSize(8);
     doc.setTextColor(75, 85, 99);
     doc.text('Tien hang:', summaryX + 2, summaryY);
     doc.setTextColor(17, 24, 39);
@@ -810,7 +798,7 @@ function hexToRgb(hex) {
     `);
   };
 
-  // Render action buttons cho từng trạng thái
+  // Render action buttons cho từng trạng thái - BỎ NÚT HỦY
   const renderActionButtons = (bill) => {
     const currentStatus = bill.status;
     const allowedNextStates = ALLOWED_TRANSITIONS[currentStatus] || [];
@@ -825,17 +813,14 @@ function hexToRgb(hex) {
             🖨️ PDF
           </button>
           
+          {/* 🔥 CHỈ HIỂN THỊ CÁC NÚT CHUYỂN TRẠNG THÁI TIẾN BỘ - BỎ NÚT HỦY */}
           {allowedNextStates.map(nextStatus => {
-            if (nextStatus === BILL_STATUS.CANCELLED && userRole === 'staff') {
-              return null;
-            }
-            
             return (
               <button
                 key={nextStatus}
                 onClick={() => updateBillStatus(bill._id, nextStatus)}
                 className={`btn-status btn-${nextStatus}`}
-                title={`Chuyển sang: ${STATUS_LABELS[nextStatus]} ${nextStatus === BILL_STATUS.CANCELLED && userRole === 'staff' ? '(Không có quyền)' : ''}`}
+                title={`Chuyển sang: ${STATUS_LABELS[nextStatus]}`}
                 style={{ backgroundColor: STATUS_COLORS[nextStatus] }}
               >
                 {getStatusButtonLabel(nextStatus)}
@@ -853,6 +838,20 @@ function hexToRgb(hex) {
               🚚 Giao hàng
             </button>
           )}
+
+          {/* 🔥 CHỈ HIỂN THỊ TRẠNG THÁI ĐÃ HỦY, KHÔNG CHO THAO TÁC GÌ */}
+          {currentStatus === BILL_STATUS.CANCELLED && (
+            <span className="cancelled-notice" style={{ 
+              color: '#ef4444', 
+              fontSize: '12px', 
+              fontStyle: 'italic',
+              padding: '5px 8px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              borderRadius: '4px'
+            }}>
+              Đơn hàng đã hủy
+            </span>
+          )}
         </div>
       </td>
     );
@@ -862,7 +861,7 @@ function hexToRgb(hex) {
     const labels = {
       [BILL_STATUS.CONFIRMED]: '✅ Xác nhận',
       [BILL_STATUS.READY]: '📦 Chuẩn bị xong',
-      [BILL_STATUS.CANCELLED]: '❌ Hủy đơn',
+      // BỎ CANCELLED LABEL
     };
     return labels[status] || STATUS_LABELS[status];
   };
@@ -920,7 +919,7 @@ function hexToRgb(hex) {
         </div>
         <div className="header-content">
           <h2>Quản lý Đơn hàng</h2>
-          <p>Xử lý đơn hàng từ khi đặt hàng đến sẵn sàng giao</p>
+          <p>Xử lý đơn hàng từ khi đặt hàng đến sẵn sàng giao - Không thể hủy đơn</p>
           
           <div className="user-info-badge" style={{
             marginTop: '10px',
