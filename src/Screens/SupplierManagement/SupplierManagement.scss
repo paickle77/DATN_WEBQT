@@ -5,12 +5,14 @@
   --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
   --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   
   --primary-color: #667eea;
   --secondary-color: #764ba2;
   --success-color: #4facfe;
   --warning-color: #43e97b;
   --danger-color: #fa709a;
+  --info-color: #a8edea;
   
   --text-primary: #1a202c;
   --text-secondary: #718096;
@@ -237,6 +239,10 @@
     overflow: hidden;
     animation: slideUp 0.4s ease;
 
+    &.detail-modal {
+      max-width: 1000px;
+    }
+
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -273,6 +279,156 @@
         svg {
           width: 1.25rem;
           height: 1.25rem;
+        }
+      }
+    }
+  }
+
+  // Detail Modal Styles
+  .detail-content {
+    padding: 2rem;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+
+    .detail-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .detail-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      border: 1px solid var(--border-light);
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--border-light);
+
+        svg {
+          width: 1.5rem;
+          height: 1.5rem;
+          color: var(--primary-color);
+        }
+
+        h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .detail-item {
+        &.full-width {
+          grid-column: 1 / -1;
+        }
+
+        label {
+          display: block;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 0.5rem;
+          font-size: 0.875rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+          background: var(--bg-primary);
+          padding: 0.875rem 1rem;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-color);
+          color: var(--text-primary);
+          font-weight: 500;
+          line-height: 1.5;
+
+          &.highlight {
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+          }
+
+          &.address {
+            line-height: 1.6;
+            min-height: 60px;
+          }
+
+          &.notes {
+            min-height: 80px;
+            font-style: italic;
+            color: var(--text-secondary);
+          }
+
+          &.payment-terms {
+            background: rgba(67, 233, 123, 0.1);
+            border-color: var(--warning-color);
+            color: var(--text-primary);
+            font-weight: 600;
+          }
+
+          &.rating {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+
+            .stars {
+              font-size: 1.5rem;
+              color: #fbbf24;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+
+            .rating-number {
+              font-size: 0.875rem;
+              color: var(--text-muted);
+              font-weight: 500;
+            }
+          }
+
+          .contact-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            &:hover {
+              color: var(--secondary-color);
+              text-decoration: underline;
+            }
+
+            &.phone::before {
+              content: '📞';
+            }
+
+            &.email::before {
+              content: '📧';
+            }
+          }
+
+          .contract-expired {
+            color: var(--danger-color);
+            font-weight: 600;
+          }
+
+          .contract-expiring {
+            color: #f59e0b;
+            font-weight: 600;
+          }
         }
       }
     }
@@ -426,7 +582,7 @@
     }
   }
 
-  // Table Styles
+  // Optimized Table Styles
   .table-container {
     background: var(--bg-primary);
     border-radius: var(--radius-xl);
@@ -502,7 +658,7 @@
           }
 
           .supplier-info {
-            min-width: 200px;
+            min-width: 250px;
 
             .supplier-name {
               font-weight: 600;
@@ -522,7 +678,7 @@
           }
 
           .contact-info {
-            min-width: 180px;
+            min-width: 200px;
 
             .contact-person {
               font-weight: 600;
@@ -540,27 +696,9 @@
               .email {
                 font-size: 0.75rem;
                 color: var(--text-muted);
+                word-break: break-all;
               }
             }
-          }
-
-          .additional-info {
-            min-width: 150px;
-
-            .payment-terms {
-              font-size: 0.75rem;
-              color: var(--text-secondary);
-              background: var(--bg-secondary);
-              padding: 0.5rem;
-              border-radius: var(--radius-sm);
-              border-left: 3px solid var(--primary-color);
-            }
-          }
-
-          .address-cell {
-            max-width: 200px;
-            color: var(--text-secondary);
-            line-height: 1.4;
           }
 
           .status-badge {
@@ -623,38 +761,48 @@
           }
 
           .contract-info {
-            min-width: 160px;
+            min-width: 140px;
 
-            .contract-dates {
-              display: flex;
-              flex-direction: column;
-              gap: 0.25rem;
+            .contract-status {
+              padding: 0.5rem;
+              border-radius: var(--radius-md);
+              text-align: center;
 
-              .start-date,
-              .end-date {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                font-size: 0.75rem;
+              &.active {
+                background: rgba(67, 233, 123, 0.1);
+                border: 1px solid rgba(67, 233, 123, 0.3);
+              }
 
-                .label {
-                  font-weight: 600;
-                  color: var(--text-muted);
-                  min-width: 30px;
-                }
+              &.expiring {
+                background: rgba(245, 158, 11, 0.1);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+              }
 
-                .date {
-                  color: var(--text-secondary);
-                  font-weight: 500;
-                }
+              &.expired {
+                background: rgba(250, 112, 154, 0.1);
+                border: 1px solid rgba(250, 112, 154, 0.3);
+              }
+
+              .contract-date {
+                font-weight: 600;
+                font-size: 0.875rem;
+                margin-bottom: 0.25rem;
+              }
+
+              .contract-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 700;
               }
             }
-          }
 
-          .update-date {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-align: center;
+            .no-contract {
+              color: var(--text-muted);
+              font-style: italic;
+              text-align: center;
+              padding: 0.5rem;
+            }
           }
 
           .actions {
@@ -662,6 +810,7 @@
             gap: 0.5rem;
             justify-content: center;
 
+            .view-btn,
             .edit-btn,
             .delete-btn {
               display: flex;
@@ -677,6 +826,18 @@
               svg {
                 width: 1rem;
                 height: 1rem;
+              }
+            }
+
+            .view-btn {
+              background: rgba(168, 237, 234, 0.3);
+              color: #0891b2;
+
+              &:hover {
+                background: #0891b2;
+                color: white;
+                transform: translateY(-1px);
+                box-shadow: var(--shadow-md);
               }
             }
 
@@ -779,6 +940,10 @@
         justify-content: center;
       }
     }
+
+    .detail-content .detail-section .detail-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 768px) {
@@ -812,12 +977,18 @@
     .modal-container {
       margin: 0.5rem;
       max-width: none;
+
+      &.detail-modal {
+        max-width: none;
+      }
     }
 
-    .modern-form {
+    .modern-form,
+    .detail-content {
       padding: 1rem;
 
-      .form-section .form-grid {
+      .form-section .form-grid,
+      .detail-section .detail-grid {
         grid-template-columns: 1fr;
       }
 
@@ -834,6 +1005,11 @@
         tbody td {
           padding: 0.75rem 0.5rem;
         }
+
+        .actions {
+          flex-direction: column;
+          gap: 0.25rem;
+        }
       }
     }
   }
@@ -847,11 +1023,14 @@
       padding: 1rem;
     }
 
-    .modern-form .form-actions {
-      .cancel-btn,
-      .submit-btn {
-        padding: 1rem;
-        justify-content: center;
+    .modern-form,
+    .detail-content {
+      .form-actions {
+        .cancel-btn,
+        .submit-btn {
+          padding: 1rem;
+          justify-content: center;
+        }
       }
     }
   }
