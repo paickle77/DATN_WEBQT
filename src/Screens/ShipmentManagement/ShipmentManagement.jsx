@@ -1,4 +1,4 @@
-// 🔥 UPDATED ShipmentManagement - Sử dụng address_snapshot và breakdown tài chính ĐẦY ĐỦ
+// 🔥 UPDATED ShipmentManagement - Thêm hiển thị ảnh minh chứng giao hàng
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import StatusBadge from '../../component/StatusBadge';
@@ -46,6 +46,9 @@ export default function ShipmentManagement() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [selectedProofImages, setSelectedProofImages] = useState([]);
+  const [selectedBillId, setSelectedBillId] = useState('');
   
   // Thêm auto refresh mỗi 30 giây để cập nhật real-time
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -133,6 +136,15 @@ export default function ShipmentManagement() {
        });
   };
 
+      // 🔥 XỬ LÝ ẢNH MINH CHỨNG GIAO HÀNG (ăn đủ: array / JSON array string / single base64 string)
+    const handleViewProofImages = (bill) => {
+      const images = getProofImageList(bill);
+      if (!images.length) return toast.warning('Đơn hàng này chưa có ảnh minh chứng');
+      setSelectedProofImages(images);
+      setSelectedBillId(bill._id);
+      setShowProofModal(true);
+      };
+
   // 🔥 SỬ DỤNG DỮ LIỆU TỪ ENRICHED API - KHÔNG CẦN LOOKUP
   const getCustomerInfo = (bill) => ({
     name: bill.customerName || 'Khách hàng không rõ',
@@ -184,6 +196,48 @@ export default function ShipmentManagement() {
     total_formatted: bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'
   });
 
+  // 🔥 KIỂM TRA CÓ ẢNH MINH CHỨNG KHÔNG
+    const hasProofImages = (bill) => {
+      const v = bill?.proof_images;
+      if (!v) return false;
+      // Mảng
+      if (Array.isArray(v)) return v.length > 0;
+      // String
+      if (typeof v === 'string') {
+        const s = v.trim();
+        if (!s) return false;
+        if (s.startsWith('[')) {
+          try {
+            const arr = JSON.parse(s);
+            return Array.isArray(arr) && arr.length > 0;
+          } catch { return false; }
+        }
+        if (s.startsWith('data:image')) return true; // single base64
+        if (s.includes(',')) {
+          const arr = s.split(',').map(x => x.trim()).filter(Boolean);
+          return arr.length > 0;
+        }
+      }
+      return false;
+    };
+
+    // Lấy danh sách ảnh (array) từ bill.proof_images – dùng chung cho thumbnail & modal
+    const getProofImageList = (bill) => {
+      const v = bill?.proof_images;
+      if (!v) return [];
+      if (Array.isArray(v)) return v.filter(Boolean);
+      if (typeof v === 'string') {
+        const s = v.trim();
+        if (!s) return [];
+        if (s.startsWith('[')) {
+          try { const arr = JSON.parse(s); return Array.isArray(arr) ? arr.filter(Boolean) : []; }
+          catch { return []; }
+        }
+        if (s.startsWith('data:image')) return [s];
+        if (s.includes(',')) return s.split(',').map(x => x.trim()).filter(Boolean);
+      }
+      return [];
+    };
   // Filter bills
   const filteredBills = bills.filter(bill => {
     const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
@@ -219,7 +273,8 @@ export default function ShipmentManagement() {
     delivered: bills.filter(b => b.status === 'done').length,
     failed: bills.filter(b => b.status === 'failed').length,
     returned: bills.filter(b => b.status === 'returned').length,
-    onlineShippers: shippers.filter(s => s.is_online).length
+    onlineShippers: shippers.filter(s => s.is_online).length,
+    withProof: bills.filter(b => b.status === 'done' && hasProofImages(b)).length // 🔥 THÊM STATS ẢNH MINH CHỨNG
   };
 
   // Tính thời gian đơn hàng đang pending
@@ -272,7 +327,7 @@ export default function ShipmentManagement() {
           </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Overview - 🔥 THÊM STATS ẢNH MINH CHỨNG */}
         <div className="stats-overview">
           <div className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: STATUS_COLORS.ready }}>⏳</div>
@@ -311,6 +366,15 @@ export default function ShipmentManagement() {
             <div className="stat-info">
               <span className="stat-number">{stats.onlineShippers}</span>
               <span className="stat-label">Shipper online</span>
+            </div>
+          </div>
+
+          {/* 🔥 THÊM STAT CHO ẢNH MINH CHỨNG */}
+          <div className="stat-card">
+            <div className="stat-icon" style={{ backgroundColor: '#8b5cf6' }}>📸</div>
+            <div className="stat-info">
+              <span className="stat-number">{stats.withProof}</span>
+              <span className="stat-label">Có ảnh MC</span>
             </div>
           </div>
         </div>
@@ -367,13 +431,18 @@ export default function ShipmentManagement() {
           <button onClick={loadData} className="refresh-btn">🔄 Làm mới</button>
         </div>
 
-        {/* 🔥 TABLE MỚI VỚI BREAKDOWN TÀI CHÍNH ĐẦY ĐỦ - THÊM CỘT GIẢM GIÁ */}
+        {/* 🔥 TABLE MỚI VỚI CỘT ẢNH MINH CHỨNG */}
         <div className="table-container">
           <div className="table-header">
             <h3>Danh sách đơn hàng giao hàng ({filteredBills.length})</h3>
             <div className="formula-note">
               <small style={{ color: '#6b7280', fontStyle: 'italic' }}>
                 💡 Công thức: <strong>Tiền hàng + Phí ship - Giảm giá = Tổng tiền</strong>
+                {stats.withProof > 0 && (
+                  <span style={{ marginLeft: '20px', color: '#8b5cf6' }}>
+                    📸 {stats.withProof} đơn có ảnh minh chứng
+                  </span>
+                )}
               </small>
             </div>
           </div>
@@ -394,6 +463,7 @@ export default function ShipmentManagement() {
                   <th>💵 Tổng tiền</th>
                   <th>👨‍💼 Shipper</th>
                   <th>📊 Trạng thái</th>
+                  <th>📸 Minh chứng</th> {/* 🔥 CỘT MỚI CHO ẢNH MINH CHỨNG */}
                   <th>⏰ Thời gian</th>
                   <th>⚙️ Hành động</th>
                 </tr>
@@ -406,6 +476,8 @@ export default function ShipmentManagement() {
                   const financialInfo = getFinancialInfo(bill);
                   const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
                   const orderAge = getOrderAge(bill.created_at);
+                  const hasProof = hasProofImages(bill);
+                  const allowProof = [SHIPMENT_STATUS.DELIVERED, SHIPMENT_STATUS.FAILED].includes(displayStatus);
 
                   return (
                     <tr key={bill._id} className="table-row">
@@ -475,7 +547,6 @@ export default function ShipmentManagement() {
                         </span>
                       </td>
 
-                      {/* 🔥 CỘT GIẢM GIÁ MỚI */}
                       <td className="discount-cell">
                         <span className="discount-amount" style={{
                           color: financialInfo.discountAmount > 0 ? '#dc2626' : '#6b7280'
@@ -495,12 +566,11 @@ export default function ShipmentManagement() {
                         <span className="total-amount">
                           {financialInfo.total_formatted}
                         </span>
-                        {/* 🔥 HIỂN THỊ VALIDATION CÔNG THỨC */}
                         <div className="formula-validation" style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
                           {(() => {
                             const calculated = financialInfo.subtotal + financialInfo.shippingFee - financialInfo.discountAmount;
                             const actual = financialInfo.finalTotal;
-                            const isValid = Math.abs(calculated - actual) < 1; // Tolerance 1đ for rounding
+                            const isValid = Math.abs(calculated - actual) < 1; 
                             return (
                               <span style={{ color: isValid ? '#10b981' : '#ef4444' }}>
                                 {isValid ? '✓' : '⚠️'} {calculated.toLocaleString('vi-VN')}đ
@@ -551,6 +621,33 @@ export default function ShipmentManagement() {
                             </small>
                           </div>
                         )}
+                      </td>
+
+                      {/* 🔥 CỘT ẢNH MINH CHỨNG MỚI */}
+                      <td className="proof-images-cell">
+                        <div className="proof-display">
+                          {allowProof && hasProof ? (
+                            <div className="proof-inline">
+                              {(() => {
+                                const imgs = getProofImageList(bill);
+                                const first = imgs[0];
+                                return (
+                                  <>
+                                    <div className="thumb-wrapper" onClick={() => handleViewProofImages(bill)} title="Bấm để xem ảnh lớn">
+                                      <img className="proof-thumb" src={first} alt="Thumbnail minh chứng" />
+                                      {imgs.length > 1 && <span className="thumb-badge">+{imgs.length - 1}</span>}
+                                    </div>
+
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          ) : allowProof && !hasProof ? (
+                            <span className="proof-status no-proof">📷 Chưa có ảnh</span>
+                          ) : (
+                            <span className="proof-status pending">⏳ Chờ giao xong</span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="time-info">
@@ -621,15 +718,27 @@ export default function ShipmentManagement() {
                             </>
                           )}
 
+                          {/* 🔥 NÚT XEM ẢNH MINH CHỨNG CHO ĐƠN ĐÃ GIAO */}
+                          {allowProof && hasProof && (
+                            <button
+                              className="action-btn btn-proof"
+                              onClick={() => handleViewProofImages(bill)}
+                              style={{ backgroundColor: '#8b5cf6' }}
+                              title="Xem ảnh minh chứng giao hàng"
+                            >
+                              📸 Xem ảnh MC
+                            </button>
+                          )}
+
                           {/* Xem chi tiết - luôn có */}
-                          <button
+                          {/* <button
                             className="action-btn btn-detail"
                             onClick={() => window.open(`/admin/bills/${bill._id}`, '_blank')}
                             style={{ backgroundColor: '#667eea' }}
                             title="Xem chi tiết đơn hàng"
                           >
                             👁️ Chi tiết
-                          </button>
+                          </button> */}
 
                           {/* Copy thông tin giao hàng */}
                           <button
@@ -642,7 +751,8 @@ export default function ShipmentManagement() {
                                          `Tiền hàng: ${financialInfo.subtotal_formatted}\n` +
                                          `Phí ship: ${financialInfo.shipping_fee_formatted}\n` +
                                          `Giảm giá: ${financialInfo.discount_formatted}\n` +
-                                         `Tổng tiền: ${financialInfo.total_formatted}`;
+                                         `Tổng tiền: ${financialInfo.total_formatted}\n` +
+                                         `Minh chứng: ${hasProof ? 'Có ảnh' : 'Chưa có ảnh'}`;
                               navigator.clipboard.writeText(info);
                               toast.success('Đã copy thông tin!');
                             }}
@@ -659,7 +769,7 @@ export default function ShipmentManagement() {
                 
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="14" className="no-data">
+                    <td colSpan="15" className="no-data"> {/* 🔥 TĂNG COLSPAN CHO CỘT MỚI */}
                       <div className="no-data-content">
                         <span style={{ fontSize: '48px', opacity: 0.3 }}>📦</span>
                         <p>Không có đơn hàng nào</p>
@@ -673,6 +783,83 @@ export default function ShipmentManagement() {
           </div>
         </div>
       </div>
+
+      {/* 🔥 MODAL HIỂN THỊ ẢNH MINH CHỨNG */}
+      {showProofModal && (
+        <div className="proof-modal-overlay" onClick={() => setShowProofModal(false)}>
+          <div className="proof-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="proof-modal-header">
+              <h3>📸 Ảnh minh chứng giao hàng</h3>
+              <div className="proof-modal-info">
+                <span>Đơn hàng: #{selectedBillId.slice(-8)}</span>
+                <span>{selectedProofImages.length} ảnh</span>
+              </div>
+              <button 
+                className="close-btn"
+                onClick={() => setShowProofModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="proof-modal-content">
+              <div className="proof-images-grid">
+                {selectedProofImages.map((imageUrl, index) => (
+                  <div key={index} className="proof-image-item">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Ảnh minh chứng ${index + 1}`}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-image.png'; // Fallback image
+                        e.target.alt = 'Không thể tải ảnh';
+                      }}
+                      onClick={() => window.open(imageUrl, '_blank')}
+                    />
+                    <div className="image-actions">
+                      <button 
+                        className="download-btn"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = imageUrl;
+                          link.download = `minh-chung-${selectedBillId.slice(-8)}-${index + 1}`;
+                          link.click();
+                        }}
+                      >
+                        💾 Tải về
+                      </button>
+                      <button 
+                        className="view-btn"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      >
+                        👁️ Xem lớn
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {selectedProofImages.length === 0 && (
+                <div className="no-proof-images">
+                  <span style={{ fontSize: '48px', opacity: 0.3 }}>📷</span>
+                  <p>Không có ảnh minh chứng</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="proof-modal-footer">
+              <div className="proof-note">
+                <small>💡 Click vào ảnh để xem kích thước đầy đủ</small>
+              </div>
+              <button 
+                className="close-modal-btn"
+                onClick={() => setShowProofModal(false)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
