@@ -15,27 +15,6 @@ const Sidebar = () => {
         <FaHome />
         <span>Trang chủ Admin</span>
       </div>
-      <div className="sidebar-item" onClick={() => setOpenRevenue(!openRevenue)}>
-        <FaChartLine />
-        <span>Doanh thu</span>
-        <FaChevronDown className={`dropdown-icon ${openRevenue ? 'rotate' : ''}`} />
-      </div>
-      {openRevenue && (
-        <div className="sidebar-sub open">
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.RevenueByDate)}>
-            <FaCalendarDay />
-            <span>Theo ngày</span>
-          </div>
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.RevenueByMonth)}>
-            <FaCalendarAlt />
-            <span>Theo tháng</span>
-          </div>
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.RevenueByYear)}>
-            <FaCalendar />
-            <span>Theo năm</span>
-          </div>
-        </div>
-      )}
       <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ProductManagement)}>
         <FaBoxOpen />
         <span>Quản lý sản phẩm</span>
@@ -80,27 +59,10 @@ const Sidebar = () => {
         <FaClipboardList />
         <span>Nhật ký kiểm toán</span>
       </div>
-      <div className="sidebar-item" onClick={() => setOpenStatistic(!openStatistic)}>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
         <FaChartPie />
         <span>Thống kê & Báo cáo</span>
-        <FaChevronDown className={`dropdown-icon ${openStatistic ? 'rotate' : ''}`} />
       </div>
-      {openStatistic && (
-        <div className="sidebar-sub open">
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
-            <FaCalendarDay />
-            <span>Theo ngày</span>
-          </div>
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
-            <FaCalendarAlt />
-            <span>Theo tháng</span>
-          </div>
-          <div className="sidebar-sub-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
-            <FaCalendar />
-            <span>Theo năm</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -7,9 +7,6 @@ import Home from './Screens/Home/Home';
 import Sidebar from './component/Sidebar/Sidebar';
 import DatePickerComponent from './component/DatePicker/DatePickerComponent';
 import DashboardCards from './component/DashboardCards/DashboardCards';
-import RevenueByDate from './Screens/Revenue/RevenueByDate';
-import RevenueByMonth from './Screens/Revenue/RevenueByMonth';
-import RevenueByYear from './Screens/Revenue/RevenueByYear';
 import ProductManagement from './Screens/ProductManagement/ProductManagement';
 import BillManagement from './Screens/BillManagement/BillManagement';
 import RefundManagement from './Screens/RefundManagement/RefundManagement';
@@ -57,9 +54,6 @@ root.render(
         
         {/* ✅ PROTECTED ROUTES */}
         <Route path={ENUM_PAGE.Home} element={<PrivateRoute><Home /></PrivateRoute>} />
-        <Route path={ENUM_PAGE.RevenueByDate} element={<PrivateRoute><RevenueByDate /></PrivateRoute>} />
-        <Route path={ENUM_PAGE.RevenueByMonth} element={<PrivateRoute><RevenueByMonth /></PrivateRoute>} />
-        <Route path={ENUM_PAGE.RevenueByYear} element={<PrivateRoute><RevenueByYear /></PrivateRoute>} />
         <Route path={ENUM_PAGE.ProductManagement} element={<PrivateRoute><ProductManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.BillManagement} element={<PrivateRoute><BillManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.RefundManagement} element={<PrivateRoute><RefundManagement /></PrivateRoute>} />

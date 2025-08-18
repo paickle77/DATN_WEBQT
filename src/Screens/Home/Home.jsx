@@ -1,5 +1,4 @@
-// src/Screens/Home/Home.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './Home.scss';
 import TabBar from '../../component/tabbar/TabBar';
 import Sidebar from '../../component/Sidebar/Sidebar';
@@ -10,152 +9,200 @@ import api from '../../utils/api';
 import {
   LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
-  BarChart, Bar
+  BarChart, Bar,
 } from 'recharts';
-import { format, subDays } from 'date-fns';
+import { format, subDays, isAfter, startOfDay } from 'date-fns';
 
-// Toast notifications
+// Toast
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
+/* ─────────────────────────── Helpers ─────────────────────────── */
+const VND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+const fmtVND = (n) => VND.format(Math.max(0, Number(n) || 0));
+const dayKey = (d) => format(d, 'dd/MM');
+
+// Chuẩn hoá trạng thái giống backend Analytics
+const norm = (s) => (typeof s === 'string' ? s.toLowerCase() : '');
+const STATUS = {
+  DONE: 'done',
+  CANCELLED: ['cancelled', 'failed'],
+  IN_PROGRESS: ['pending', 'confirmed', 'ready', 'shipping'],
+};
+
+const STATUS_COLORS = {
+  done: '#16a34a',
+  cancelled: '#ef4444',
+  in_progress: '#3b82f6',
+  other: '#a78bfa',
+};
 
 const Home = () => {
   const [lockedUsers, setLockedUsers] = useState([]);
-  const [revData, setRevData]       = useState([]);
-  const [statusData, setStatusData] = useState([]);
-  const [supplierData, setSupplierData] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
-  // Load locked users
+  // toast dedupe
+  const lastPendingCount = useRef(0);
+  const lastLowStock = useRef('');      // join ids
+  const lastExpiring = useRef('');      // join codes
+
+  /* ───────────── Fetch ───────────── */
   useEffect(() => {
-    api.get('/users')
-      .then(res => {
-        const all = res.data.data || [];
-        setLockedUsers(all.filter(u => u.is_lock));
-      })
-      .catch(console.error);
+    let alive = true;
+
+    (async () => {
+      try {
+        const [usersRes, billsRes, suppRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/bills'),
+          api.get('/suppliers'),
+        ]);
+
+        if (!alive) return;
+        const allUsers = usersRes?.data?.data ?? [];
+        setLockedUsers(allUsers.filter((u) => u?.is_lock));
+
+        setBills(billsRes?.data?.data ?? []);
+        setSuppliers(suppRes?.data?.data ?? []);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // Load KPI charts: bills, billdetails, suppliers -
-  useEffect(() => {
-    Promise.all([
-      api.get('/bills'),
-      api.get('/billdetails'),
-      api.get('/suppliers')
-    ])
-      .then(([bRes, bdRes, suppRes]) => {
-        const bills       = bRes.data.data || [];
-        const billDetails = bdRes.data.data || [];
-        const suppliers   = suppRes.data.data || [];
+  /* ───────────── Derived data (memo) ───────────── */
 
-        // a) Doanh thu 7 ngày gần nhất
-        const today = new Date();
-        const days  = Array.from({ length: 7 }).map((_, i) => {
-          const dt = subDays(today, 6 - i);
-          return format(dt, 'dd/MM');
-        });
-        const revenueMap = days.reduce((acc, day) => {
-          acc[day] = 0;
-          return acc;
-        }, {});
-        bills.forEach(b => {
-          const d = format(new Date(b.createdAt || b.created_at), 'dd/MM');
-          if (revenueMap[d] !== undefined) {
-            billDetails
-              .filter(dt => dt.bill_id._id === b._id)
-              .forEach(dt => {
-                revenueMap[d] += dt.price * dt.quantity;
-              });
-          }
-        });
-        setRevData(days.map(day => ({ day, revenue: revenueMap[day] })));
+  // a) Revenue – chỉ đơn DONE trong 7 ngày gần nhất, ưu tiên bill.total
+  const revenue7 = useMemo(() => {
+    const today = startOfDay(new Date());
+    const days = Array.from({ length: 7 }).map((_, i) => dayKey(subDays(today, 6 - i)));
+    const map = Object.fromEntries(days.map((k) => [k, 0]));
 
-        // b) Tỷ lệ trạng thái hóa đơn
-        const statusCount = {};
-        bills.forEach(b => {
-          const status = b.status || 'Chưa xác định';
-          statusCount[status] = (statusCount[status] || 0) + 1;
-        });
-        setStatusData(
-          Object.entries(statusCount).map(([name, value]) => ({ name, value }))
-        );
+    bills.forEach((b) => {
+      const st = norm(b?.status);
+      if (st !== STATUS.DONE) return;
+      const created = new Date(b?.created_at || b?.createdAt);
+      if (!isAfter(startOfDay(created), subDays(today, 8))) {
+        const k = dayKey(created);
+        if (map[k] !== undefined) {
+          const total = Number(b?.total) || 0;
+          map[k] += total > 0 ? total : 0;
+        }
+      }
+    });
 
-        // c) Top 8 nhà cung cấp theo tổng giá trị đơn hàng
-        const supplierStats = {};
-        
-        suppliers.forEach(supplier => {
-          const totalValue = supplier.stock_quantity * (supplier.unit_price || 10000);
-          const rating = Math.floor(Math.random() * 5) + 1; // Mock rating
-          supplierStats[supplier.name || supplier.supplier_name || 'Không tên'] = {
-            name: supplier.name || supplier.supplier_name || 'Không tên',
-            shortName: (supplier.name || supplier.supplier_name || 'Không tên').length > 12 
-              ? (supplier.name || supplier.supplier_name || 'Không tên').substring(0, 12) + '...' 
-              : (supplier.name || supplier.supplier_name || 'Không tên'),
-            value: totalValue,
-            stock: supplier.stock_quantity || 0,
-            rating: rating,
-            category: supplier.category || 'Khác'
-          };
-        });
+    return days.map((k) => ({ day: k, revenue: map[k] }));
+  }, [bills]);
 
-        const topSuppliers = Object.values(supplierStats)
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 8);
+  // b) Status distribution – gom nhóm
+  const statusPie = useMemo(() => {
+    const acc = { done: 0, cancelled: 0, in_progress: 0, other: 0 };
 
-        setSupplierData(topSuppliers);
-      })
-      .catch(console.error);
-  }, []);
+    bills.forEach((b) => {
+      const s = norm(b?.status);
+      if (s === 'done') acc.done += 1;
+      else if (STATUS.CANCELLED.includes(s)) acc.cancelled += 1;
+      else if (STATUS.IN_PROGRESS.includes(s)) acc.in_progress += 1;
+      else acc.other += 1;
+    });
 
-  // Polling & toast alerts mỗi 30s
+    return [
+      { name: 'Hoàn thành', key: 'done', value: acc.done, color: STATUS_COLORS.done },
+      { name: 'Đã hủy / thất bại', key: 'cancelled', value: acc.cancelled, color: STATUS_COLORS.cancelled },
+      { name: 'Đang xử lý', key: 'in_progress', value: acc.in_progress, color: STATUS_COLORS.in_progress },
+      { name: 'Khác', key: 'other', value: acc.other, color: STATUS_COLORS.other },
+    ].filter((d) => d.value > 0);
+  }, [bills]);
+
+  // c) Top suppliers theo giá trị tồn kho ước tính
+  const topSuppliers = useMemo(() => {
+    const rows = (suppliers || []).map((s) => {
+      const name = s?.name || s?.supplier_name || 'Không tên';
+      const price = Number(s?.unit_price ?? s?.import_price ?? 0);
+      const qty = Number(s?.stock_quantity ?? 0);
+      const value = Math.max(0, price * qty);
+      const shortName = name.length > 16 ? name.slice(0, 16) + '…' : name;
+      return { id: String(s?._id ?? name), name, shortName, value, qty };
+    });
+
+    return rows.sort((a, b) => b.value - a.value).slice(0, 8);
+  }, [suppliers]);
+
+  /* ───────────── Polling + Toast (chống trùng) ───────────── */
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const oRes = await api.get('/bills?status=pending');
-        if (oRes.data.data.length) {
-          toast.info(`Có ${oRes.data.data.length} hóa đơn mới chờ xử lý`);
+        const [pendingRes, suppRes, voucherRes] = await Promise.all([
+          api.get('/bills?status=pending'),
+          api.get('/suppliers'),
+          api.get('/vouchers'),
+        ]);
+
+        // pending orders
+        const pendingCount = pendingRes?.data?.data?.length || 0;
+        if (pendingCount > 0 && pendingCount !== lastPendingCount.current) {
+          toast.info(`Có ${pendingCount} hóa đơn mới chờ xử lý`);
+          lastPendingCount.current = pendingCount;
         }
 
-        const iRes = await api.get('/suppliers');
-        iRes.data.data
-          .filter(i => i.stock_quantity < 10)
-          .forEach(i => {
-            toast.warn(`Tồn kho thấp: ${i.name} dưới 10`);
-          });
+        // low stock (gộp)
+        const low = (suppRes?.data?.data || []).filter((i) => Number(i?.stock_quantity ?? 0) < 10);
+        const lowIds = low.map((i) => String(i?._id)).sort().join(',');
+        if (low.length && lowIds !== lastLowStock.current) {
+          const preview = low.slice(0, 3).map((i) => i?.name || 'Không tên').join(', ');
+          toast.warn(`Tồn kho thấp (${low.length}): ${preview}${low.length > 3 ? '…' : ''}`);
+          lastLowStock.current = lowIds;
+        }
 
-        const vRes = await api.get('/vouchers');
-        const now  = new Date();
-        vRes.data.data
-          .filter(v => {
-            const end  = new Date(v.end_date || v.endDate);
-            const diff = (end - now) / (1000 * 60 * 60 * 24);
-            return diff > 0 && diff < 3;
-          })
-          .forEach(v => {
-            const daysLeft = Math.ceil((new Date(v.end_date) - now) / (1000 * 60 * 60 * 24));
-            toast.warning(`Voucher ${v.code} hết hạn sau ${daysLeft} ngày`);
-          });
-      } catch (err) {
-        console.error(err);
+        // vouchers nearly expires (<=3 ngày)
+        const now = new Date();
+        const expiring = (voucherRes?.data?.data || []).filter((v) => {
+          const end = new Date(v?.end_date || v?.endDate);
+          const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+          return diffDays > 0 && diffDays <= 3;
+        });
+        const codes = expiring.map((v) => v?.code).sort().join(',');
+        if (expiring.length && codes !== lastExpiring.current) {
+          const list = expiring.slice(0, 3).map((v) => v.code).join(', ');
+          toast.warning(`Voucher sắp hết hạn: ${list}${expiring.length > 3 ? '…' : ''}`);
+          lastExpiring.current = codes;
+        }
+      } catch (e) {
+        console.error(e);
       }
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const CustomTooltip = ({ active, payload, label }) => {
+  /* ───────────── UI ───────────── */
+
+  const CurrencyTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      const val = payload[0].value || 0;
       return (
         <div className="custom-tooltip">
-          <p className="tooltip-label">{`${label}`}</p>
-          <p className="tooltip-value">
-            {`Giá trị: ${payload[0].value.toLocaleString('vi-VN')} đ`}
-          </p>
-          {payload[0].payload.rating && (
-            <p className="tooltip-rating">
-              {`Đánh giá: ${'★'.repeat(payload[0].payload.rating)}${'☆'.repeat(5-payload[0].payload.rating)}`}
-            </p>
-          )}
+          <p className="tooltip-label">{`Ngày: ${label}`}</p>
+          <p className="tooltip-value">{`Doanh thu: ${fmtVND(val)}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const SupplierTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const p = payload[0].payload;
+      return (
+        <div className="custom-tooltip">
+          <p className="tooltip-label">{p?.name}</p>
+          <p className="tooltip-value">{`Giá trị ước tính: ${fmtVND(p?.value)}`}</p>
+          <p className="tooltip-sub">{`Tồn kho: ${p?.qty ?? 0}`}</p>
         </div>
       );
     }
@@ -167,171 +214,129 @@ const Home = () => {
       <div className="home-header">
         <TabBar />
       </div>
+
       <div className="home-body">
         <div className="home-left">
           <Sidebar />
         </div>
-        <div className="home-right">
-          <DashboardCards 
-            lockedUsers={lockedUsers}
-          />
 
-          {/* KPI Charts - Always Visible */}
+        <div className="home-right">
+          <DashboardCards lockedUsers={lockedUsers} />
+
+          {/* KPI Charts */}
           <div className="kpi-charts">
+            {/* Revenue 7 days */}
             <div className="chart-box revenue-chart">
               <div className="chart-header">
                 <h3>📈 Doanh thu 7 ngày gần nhất</h3>
-                <div className="chart-subtitle">Theo dõi xu hướng doanh thu hàng ngày</div>
+                <div className="chart-subtitle">Chỉ tính các đơn hoàn thành (done)</div>
               </div>
+
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={revData}>
+                <LineChart data={revenue7}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.7} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.15} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
-                  <XAxis 
-                    dataKey="day" 
-                    axisLine={false} 
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis
+                    axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 12, fill: '#64748b' }}
+                    tickFormatter={(v) => (v >= 1_000_000 ? `${Math.round(v / 1_000_000)}M` : `${Math.round(v / 1_000)}K`)}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                  />
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="custom-tooltip">
-                            <p className="tooltip-label">{`Ngày: ${label}`}</p>
-                            <p className="tooltip-value">
-                              {`Doanh thu: ${payload[0].value.toLocaleString('vi-VN')} đ`}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#667eea" 
-                    strokeWidth={4}
-                    dot={{ fill: '#667eea', strokeWidth: 3, r: 6 }}
-                    activeDot={{ r: 8, fill: '#ffffff', stroke: '#667eea', strokeWidth: 3 }}
+                  <Tooltip content={<CurrencyTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
                     fill="url(#revenueGradient)"
                   />
                 </LineChart>
               </ResponsiveContainer>
+
+              {!revenue7.some((r) => r.revenue > 0) && (
+                <div className="empty-overlay">Chưa có doanh thu trong 7 ngày gần nhất</div>
+              )}
             </div>
 
+            {/* Status distribution */}
             <div className="chart-box status-chart">
               <div className="chart-header">
                 <h3>📊 Tỷ lệ trạng thái hóa đơn</h3>
-                <div className="chart-subtitle">Phân tích tình trạng đơn hàng</div>
+                <div className="chart-subtitle">Gom nhóm theo quy ước: done / cancelled+failed / in-progress / other</div>
               </div>
+
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <defs>
-                    {COLORS.map((color, index) => (
-                      <linearGradient key={index} id={`statusGradient${index}`} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor={color} />
-                        <stop offset="100%" stopColor={color} stopOpacity={0.8} />
-                      </linearGradient>
-                    ))}
-                  </defs>
                   <Pie
-                    data={statusData}
+                    data={statusPie}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    innerRadius={35}
+                    outerRadius={86}
+                    innerRadius={38}
                     paddingAngle={2}
-                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                   >
-                    {statusData.map((entry, idx) => (
-                      <Cell 
-                        key={idx} 
-                        fill={`url(#statusGradient${idx % COLORS.length})`}
-                      />
+                    {statusPie.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36}
-                    wrapperStyle={{
-                      fontSize: '12px',
-                      color: '#64748b'
-                    }}
-                  />
-                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip formatter={(v) => `${v} đơn`} />
                 </PieChart>
               </ResponsiveContainer>
+
+              {statusPie.length === 0 && <div className="empty-overlay">Chưa có dữ liệu trạng thái</div>}
             </div>
 
+            {/* Top suppliers */}
             <div className="chart-box supplier-chart">
               <div className="chart-header">
-                <h3>🏆 Top nhà cung cấp theo giá trị</h3>
-                <div className="chart-subtitle">Đánh giá hiệu suất đối tác chiến lược</div>
+                <h3>🏆 Top nhà cung cấp theo giá trị tồn</h3>
+                <div className="chart-subtitle">Giá trị = số lượng tồn × đơn giá nhập/đơn vị</div>
               </div>
+
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={supplierData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <BarChart data={topSuppliers} margin={{ top: 20, right: 30, left: 10, bottom: 60 }}>
                   <defs>
                     <linearGradient id="supplierGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4facfe" />
-                      <stop offset="50%" stopColor="#00f2fe" />
-                      <stop offset="100%" stopColor="#667eea" />
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#059669" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
-                  <XAxis 
-                    dataKey="shortName" 
-                    axisLine={false} 
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="shortName"
+                    axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fill: '#64748b' }}
-                    angle={-45}
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    angle={-35}
                     textAnchor="end"
-                    height={80}
+                    height={70}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar 
-                    dataKey="value" 
-                    fill="url(#supplierGradient)" 
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={50}
-                  />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }}
+                         tickFormatter={(v) => (v >= 1_000_000 ? `${Math.round(v / 1_000_000)}M` : `${Math.round(v / 1_000)}K`)} />
+                  <Tooltip content={<SupplierTooltip />} />
+                  <Bar dataKey="value" fill="url(#supplierGradient)" radius={[6, 6, 0, 0]} maxBarSize={56} />
                 </BarChart>
               </ResponsiveContainer>
+
+              {topSuppliers.length === 0 && <div className="empty-overlay">Chưa có dữ liệu nhà cung cấp</div>}
             </div>
           </div>
         </div>
       </div>
 
-      <ToastContainer 
-        position="top-right" 
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
+      <ToastContainer position="top-right" autoClose={5000} closeOnClick pauseOnHover theme="light" />
     </div>
   );
 };
