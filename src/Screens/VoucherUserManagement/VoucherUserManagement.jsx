@@ -119,7 +119,7 @@ export default function VoucherUserManagement() {
 
   const saveStatus = async (id, status) => {
     try {
-      await api.put(`/voucher_users/${id}`, { status });
+      await api.put(`/admin/voucher_users/${id}`, { status });
       await fetchAll();
       setSelectedIds((prev) => prev.filter(x => x !== id));
     } catch (e) {
@@ -130,7 +130,7 @@ export default function VoucherUserManagement() {
   const del = async (id) => {
     if (!window.confirm('Xóa voucher user này?')) return;
     try {
-      await api.delete(`/voucher_users/${id}`);
+      await api.delete(`/admin/voucher_users/${id}`);
       await fetchAll();
       setSelectedIds((prev) => prev.filter(x => x !== id));
     } catch (e) {
@@ -149,7 +149,7 @@ export default function VoucherUserManagement() {
     try {
       for (const id of selectedIds) {
         // eslint-disable-next-line no-await-in-loop
-        await api.delete(`/voucher_users/${id}`);
+        await api.delete(`/admin/voucher_users/${id}`);
       }
       await fetchAll();
       setSelectedIds([]);
@@ -163,7 +163,7 @@ export default function VoucherUserManagement() {
     try {
       for (const id of selectedIds) {
         // eslint-disable-next-line no-await-in-loop
-        await api.put(`/voucher_users/${id}`, { status });
+        await api.put(`/admin/voucher_users/${id}`, { status });
       }
       await fetchAll();
       setSelectedIds([]);
@@ -196,6 +196,62 @@ export default function VoucherUserManagement() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+      // === Excel Export (HTML table -> .xls) ===
+    function exportExcelVoucherUsers(rows) {
+      const th = `
+        <tr style="font-weight:bold;text-align:center;background:#f2f2f2">
+          <td>User</td><td>Liên hệ</td><td>Voucher Code</td><td>Discount (%)</td>
+          <td>Ngày lưu</td><td>Đã dùng/Tối đa</td><td>Trạng thái</td><td>Ngày dùng gần nhất</td><td>Trong hạn?</td>
+        </tr>`;
+
+      const body = rows.map(vu => {
+        const name = vu?.Account_id?.full_name || vu?.Account_id?.name || '';
+        const contact = vu?.Account_id?.email || vu?.Account_id?.phone || '';
+        const code = vu?.voucher_id?.code || '';
+        const discount = vu?.voucher_id?.discount_percent || 0;
+        const limit = vu?.voucher_id?.max_usage_per_user || 0;
+        const limitText = limit === 0 ? '∞' : limit;
+        const savedAt = vu?.saved_at ? fmtVN(vu.saved_at) : '-';
+        const usedAt = vu?.used_at ? fmtVN(vu.used_at) : '-';
+        const used = vu?.usage_count || 0;
+
+        const v = vu?.voucher_id || {};
+        const inRange = v.start_date && v.end_date &&
+          (new Date() >= new Date(v.start_date)) &&
+          (new Date() <= new Date(v.end_date));
+
+        return `
+          <tr>
+            <td>${(name || '').replace(/</g,'&lt;')}</td>
+            <td>${(contact || '').replace(/</g,'&lt;')}</td>
+            <td>${code}</td>
+            <td style="text-align:right">${discount}</td>
+            <td>${savedAt}</td>
+            <td style="text-align:right">${used} / ${limitText}</td>
+            <td>${vu.status || ''}</td>
+            <td>${usedAt}</td>
+            <td>${inRange ? 'Trong hạn' : 'Hết hạn/Chưa hiệu lực'}</td>
+          </tr>`;
+      }).join('');
+
+      const html = `
+        <html><head><meta charset="utf-8"></head>
+        <body>
+          <table border="1" style="border-collapse:collapse">
+            ${th}
+            ${body}
+          </table>
+        </body></html>`;
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voucher_users_${Date.now()}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
   // UI helpers
   const headerClick = (key) => {
@@ -286,13 +342,13 @@ export default function VoucherUserManagement() {
               <button className="refresh-btn" onClick={fetchAll}>Làm mới</button>
 
               <div className="split">
-                <button className="refresh-btn" onClick={() => exportCSV(sorted)}>Xuất CSV (lọc)</button>
+                <button className="refresh-btn" onClick={() => exportExcelVoucherUsers(sorted)}>Xuất Excel (lọc)</button>
                 <button
                   className="refresh-btn"
-                  onClick={() => exportCSV(data.filter(v => selectedIds.includes(v._id)))}
+                  onClick={() => exportExcelVoucherUsers(data.filter(v => selectedIds.includes(v._id)))}
                   disabled={!selectedIds.length}
                 >
-                  Xuất CSV (chọn)
+                  Xuất Excel (chọn)
                 </button>
               </div>
             </div>

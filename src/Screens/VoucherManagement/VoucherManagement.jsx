@@ -256,6 +256,67 @@ export default function VoucherManagement() {
     URL.revokeObjectURL(url);
   };
 
+      // === Excel Export (HTML table -> .xls) ===
+    function exportExcelVouchers(rows) {
+      const th = `
+        <tr style="font-weight:bold;text-align:center;background:#f2f2f2">
+          <td>Code</td><td>Mô tả</td><td>Giảm (%)</td>
+          <td>Bắt đầu</td><td>Kết thúc</td>
+          <td>Phát hành</td><td>Đã dùng</td><td>Còn lại</td>
+          <td>Lượt/User</td><td>Trạng thái</td><td>Tình trạng hiệu lực</td>
+        </tr>`;
+
+      const body = rows.map(v => {
+        const limited = Number(v.quantity) || 0;
+        const used    = Number(v.used_count) || 0;
+        const remain  = limited === 0 ? '∞' : Math.max(0, limited - used);
+        const perUser = (v.max_usage_per_user || 0) === 0 ? '∞' : v.max_usage_per_user;
+        const validity = v.start_date && v.end_date
+          ? (isVoucherValid(v) ? 'Còn hạn' : (isVoucherUpcoming(v) ? 'Sắp hiệu lực' : 'Hết hạn'))
+          : 'Không đặt thời gian';
+        return `
+          <tr>
+            <td>${v.code || ''}</td>
+            <td>${(v.description || '').replace(/</g,'&lt;')}</td>
+            <td style="text-align:right">${v.discount_percent || 0}</td>
+            <td>${fmtVN(v.start_date)}</td>
+            <td>${fmtVN(v.end_date)}</td>
+            <td style="text-align:right">${limited === 0 ? '∞' : limited}</td>
+            <td style="text-align:right">${used}</td>
+            <td style="text-align:right">${remain}</td>
+            <td style="text-align:right">${perUser}</td>
+            <td>${v.status || ''}</td>
+            <td>${validity}</td>
+          </tr>`;
+      }).join('');
+
+      const stats = `
+        <tr><td colspan="11" style="font-weight:bold;padding:8px 0">Báo cáo Voucher</td></tr>
+        <tr><td colspan="11" style="padding-bottom:8px;font-style:italic">
+          Tổng: ${rows.length} • Đang hiệu lực: ${rows.filter(isVoucherValid).length} •
+          Sắp hiệu lực: ${rows.filter(isVoucherUpcoming).length} •
+          Hết hạn: ${rows.filter(isVoucherExpired).length}
+        </td></tr>`;
+
+      const html = `
+        <html><head><meta charset="utf-8"></head>
+        <body>
+          <table border="1" style="border-collapse:collapse">
+            ${stats}
+            ${th}
+            ${body}
+          </table>
+        </body></html>`;
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vouchers_${Date.now()}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
   const handleImportCSV = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -600,21 +661,21 @@ export default function VoucherManagement() {
                 <div className="split">
                   <button
                     className="secondary"
-                    onClick={() => exportCSV(sorted)}
+                    onClick={() => exportExcelVouchers(sorted)}
                     title="Xuất toàn bộ (theo lọc hiện tại)"
                   >
-                    Xuất CSV (lọc)
+                    Xuất Excel (lọc)
                   </button>
                   <button
                     className="secondary"
-                    onClick={() => exportCSV(vouchers.filter(v => selectedIds.includes(v._id)))}
+                    onClick={() => exportExcelVouchers(vouchers.filter(v => selectedIds.includes(v._id)))}
                     disabled={!selectedIds.length}
                     title="Xuất những dòng đã chọn"
                   >
-                    Xuất CSV (chọn)
+                    Xuất Excel (chọn)
                   </button>
                   <label className="import-btn">
-                    Nhập CSV
+                    Nhập Excel
                     <input type="file" accept=".csv" onChange={handleImportCSV} />
                   </label>
                 </div>
