@@ -735,8 +735,9 @@ export default function VoucherManagement() {
                     const valid = isVoucherValid(v);
                     const rowCls = valid ? 'valid-row' : (isVoucherExpired(v) ? 'expired-row' : (isVoucherUpcoming(v) ? 'upcoming-row' : ''));
                     const limited = Number(v.quantity) || 0;
-                    const used = Number(v.used_count) || 0;
-                    const hasLeft = limited === 0 ? '∞' : Math.max(0, limited - used);
+                    const claimed = Number(v.claimed_count) || 0; // từ API mới trả về
+                    const used = Number(v.used_count) || 0; // fix: define used
+                    const hasLeft = limited === 0 ? '∞' : Math.max(0, limited - claimed);
                     return (
                       <tr key={v._id} className={rowCls}>
                         <td>

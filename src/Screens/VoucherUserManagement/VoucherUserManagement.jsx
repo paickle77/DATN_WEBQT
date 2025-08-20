@@ -48,6 +48,13 @@ export default function VoucherUserManagement() {
     return a?.Account_id?.email || a?.Account_id?.phone || '';
   }
 
+  function getUsed(vu) {
+    // nếu usage_count=0 nhưng có used_at (dữ liệu cũ), vẫn hiển thị tối thiểu là 1
+    const cnt = Number(vu?.usage_count ?? 0);
+    return Math.max(cnt, vu?.used_at ? 1 : 0);
+  }
+
+
   async function fetchAll() {
     try {
       setLoading(true);
@@ -76,7 +83,7 @@ export default function VoucherUserManagement() {
         if (!userStr.includes(term) && !codeStr.includes(term)) return false;
       }
 
-      const used = Number(vu.usage_count) || 0;
+      const used = getUsed(vu);
       if (uMin != null && used < uMin) return false;
       if (uMax != null && used > uMax) return false;
 
@@ -93,7 +100,7 @@ export default function VoucherUserManagement() {
           case 'discount': return Number(row?.voucher_id?.discount_percent) || 0;
           case 'code': return (row?.voucher_id?.code || '').toLowerCase();
           case 'user': return normalizeUserName(row).toLowerCase();
-          case 'usage_count': return Number(row?.usage_count) || 0;
+          case 'usage_count': return getUsed(row);
           case 'saved_at': return new Date(row?.saved_at || 0).getTime();
           case 'used_at': return new Date(row?.used_at || 0).getTime();
           default: return 0;
@@ -116,16 +123,6 @@ export default function VoucherUserManagement() {
   const activeCount = data.filter(vu => vu.status === 'active').length;
   const usedCount = data.filter(vu => vu.status === 'used').length;
   const expiredCount = data.filter(vu => vu.status === 'expired').length;
-
-  const saveStatus = async (id, status) => {
-    try {
-      await api.put(`/admin/voucher_users/${id}`, { status });
-      await fetchAll();
-      setSelectedIds((prev) => prev.filter(x => x !== id));
-    } catch (e) {
-      alert(e?.response?.data?.msg || e.message);
-    }
-  };
 
   const del = async (id) => {
     if (!window.confirm('Xóa voucher user này?')) return;
@@ -150,20 +147,6 @@ export default function VoucherUserManagement() {
       for (const id of selectedIds) {
         // eslint-disable-next-line no-await-in-loop
         await api.delete(`/admin/voucher_users/${id}`);
-      }
-      await fetchAll();
-      setSelectedIds([]);
-    } catch (e) {
-      alert(e?.response?.data?.msg || e.message);
-    }
-  };
-
-  const bulkSetStatus = async (status) => {
-    if (!selectedIds.length) return alert('Chưa chọn dòng nào');
-    try {
-      for (const id of selectedIds) {
-        // eslint-disable-next-line no-await-in-loop
-        await api.put(`/admin/voucher_users/${id}`, { status });
       }
       await fetchAll();
       setSelectedIds([]);
@@ -357,9 +340,6 @@ export default function VoucherUserManagement() {
             <div className="controls" style={{ marginTop: 10 }}>
               <div className="filter-select" style={{ gap: 8 }}>
                 <span>Đang chọn: <b>{selectedIds.length}</b></span>
-                <button className="refresh-btn" onClick={() => bulkSetStatus('active')} disabled={!selectedIds.length}>Set active</button>
-                <button className="refresh-btn" onClick={() => bulkSetStatus('used')} disabled={!selectedIds.length}>Set used</button>
-                <button className="refresh-btn" onClick={() => bulkSetStatus('expired')} disabled={!selectedIds.length}>Set expired</button>
                 <button className="refresh-btn" onClick={bulkDelete} disabled={!selectedIds.length}>Xóa đã chọn</button>
                 <button className="refresh-btn" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>Bỏ chọn</button>
               </div>
@@ -383,7 +363,6 @@ export default function VoucherUserManagement() {
                   <th className="clickable" onClick={() => { headerClick('discount'); setPage(1); }}>Discount</th>
                   <th className="clickable" onClick={() => { headerClick('saved_at'); setPage(1); }}>Ngày lưu</th>
                   <th className="clickable" onClick={() => { headerClick('usage_count'); setPage(1); }}>Đã dùng / Tối đa</th>
-                  <th>Status</th>
                   <th className="clickable" onClick={() => { headerClick('used_at'); setPage(1); }}>Ngày dùng gần nhất</th>
                   <th>Hành động</th>
                 </tr>
@@ -394,7 +373,7 @@ export default function VoucherUserManagement() {
                 ) : pageData.length ? (
                   pageData.map((vu) => {
                     const limit = vu.voucher_id?.max_usage_per_user || 0; // 0 = ∞
-                    const used = vu.usage_count || 0;
+                    const used = getUsed(vu);
                     const limitText = limit === 0 ? '∞' : limit;
                     return (
                       <tr key={vu._id} className={`status-${vu.status}`}>
@@ -418,15 +397,6 @@ export default function VoucherUserManagement() {
                         <td className="discount-cell"><span className="discount-badge">{vu.voucher_id?.discount_percent}%</span></td>
                         <td className="date-cell">{fmtVN(vu.saved_at)}</td>
                         <td className="usage-cell">{used} / {limitText}</td>
-                        <td className="status-cell">
-                          <select
-                            className={`status-select status-${vu.status}`}
-                            value={vu.status}
-                            onChange={(e) => saveStatus(vu._id, e.target.value)}
-                          >
-                            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </td>
                         <td className="used-date-cell">{fmtVN(vu.used_at)}</td>
                         <td className="actions-cell">
                           <button className="delete-btn" onClick={() => del(vu._id)}>Xóa</button>
