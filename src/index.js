@@ -22,6 +22,7 @@ import ShipperManagement from './Screens/ShipperManagement/ShipperManagement';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ENUM_PAGE } from './component/ENUM/enum.ts';
 import PrivateRoute from './component/PrivateRoute';
+import AdminChat from './Screens/AdminChat/AdminChat.jsx';
 
 // ✅ HELPER FUNCTION - Kiểm tra authentication status
 const isAuthenticated = () => {
@@ -70,6 +71,7 @@ root.render(
         <Route path={ENUM_PAGE.SupplierManagement} element={<PrivateRoute><SupplierManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.LogManagement} element={<PrivateRoute><LogManagement /></PrivateRoute>} />
         <Route path={ENUM_PAGE.NotificationManagement} element={<PrivateRoute><NotificationManagement /></PrivateRoute>} />
+        <Route path={ENUM_PAGE.AdminChat} element={<PrivateRoute><AdminChat /></PrivateRoute>} />
         
         {/* ✅ FALLBACK - Redirect to appropriate page */}
         <Route path="*" element={

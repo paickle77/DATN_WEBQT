@@ -63,6 +63,10 @@ const Sidebar = () => {
         <FaChartPie />
         <span>Thống kê & Báo cáo</span>
       </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.AdminChat)}>
+        <FaChartLine />
+        <span>Admin message</span>
+      </div>
     </div>
   );
 };
