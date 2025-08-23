@@ -1,4 +1,4 @@
-// 🔥 OPTIMIZED BillManagement - Thu gọn bảng và đưa chi tiết vào modal - BỎ CHỨC NĂNG HỦY ĐỦN
+// 🔥 FIXED BillManagement - Sửa logic tài chính đồng bộ với dữ liệu MongoDB
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
@@ -209,10 +209,62 @@ const BillManagement = () => {
   const getPaymentMethod = (bill) => bill.paymentMethodDisplay || bill.payment_method || 'Chưa chọn';
   const getVoucherCode = (bill) => bill.voucherDisplayCode || '—';
 
+  // 🔥 FIXED: Tính toán tài chính chính xác từ dữ liệu MongoDB
+  const calculateFinancialInfo = (bill) => {
+    // 1. TIỀN HÀNG: Tính từ items thực tế hoặc original_total từ DB
+    let itemsSubtotal = 0;
+    if (Array.isArray(bill.items) && bill.items.length > 0) {
+      itemsSubtotal = bill.items.reduce((sum, item) => {
+        const itemPrice = getItemPrice(item);
+        const quantity = Number(item.quantity) || 0;
+        return sum + (itemPrice * quantity);
+      }, 0);
+    } else {
+      // Fallback: Sử dụng original_total từ MongoDB
+      itemsSubtotal = Number(bill.original_total) || 0;
+    }
+
+    // 2. PHI SHIP: Từ MongoDB
+    const shippingFee = Number(bill.shipping_fee) || 0;
+
+    // 3. GIẢM GIÁ: Từ MongoDB 
+    const discountAmount = Number(bill.discount_amount) || 0;
+
+    // 4. TỔNG TIỀN: Từ MongoDB (đã tính sẵn)
+    const finalTotal = Number(bill.total) || 0;
+
+    // 5. VERIFICATION: Kiểm tra công thức
+    const calculatedTotal = itemsSubtotal + shippingFee - discountAmount;
+    const isFormulaCorrect = Math.abs(calculatedTotal - finalTotal) < 1;
+
+    console.log(`💰 Financial calculation for bill ${bill._id.slice(-8)}:`, {
+      itemsSubtotal,
+      shippingFee,
+      discountAmount,
+      calculatedTotal,
+      finalTotal,
+      isFormulaCorrect
+    });
+
+    return {
+      itemsSubtotal,
+      shippingFee,
+      discountAmount,
+      finalTotal,
+      calculatedTotal,
+      isFormulaCorrect,
+      // Formatted versions
+      itemsSubtotal_formatted: itemsSubtotal.toLocaleString('vi-VN') + ' đ',
+      shippingFee_formatted: shippingFee.toLocaleString('vi-VN') + ' đ',
+      discountAmount_formatted: discountAmount.toLocaleString('vi-VN') + ' đ',
+      finalTotal_formatted: finalTotal.toLocaleString('vi-VN') + ' đ'
+    };
+  };
+
   // 🔧 FIXED: Cải thiện logic lấy giá sản phẩm
   const getItemPrice = (item) => {
     // Thử các field khác nhau theo thứ tự ưu tiên
-    const priceFields = ['unitPrice', 'price', 'unit_price', 'itemPrice', 'productPrice'];
+    const priceFields = ['unitPrice', 'unit_price', 'price', 'itemPrice', 'productPrice'];
     
     for (const field of priceFields) {
       if (item[field] && Number(item[field]) > 0) {
@@ -375,6 +427,7 @@ const printBillSlip = async billId => {
     const items = Array.isArray(bill.items) ? bill.items : [];
     const customerInfo = getCustomerInfo(bill);
     const deliveryInfo = getDeliveryInfo(bill);
+    const financialInfo = calculateFinancialInfo(bill); // 🔥 SỬ DỤNG LOGIC MỚI
 
     // 📄 TẠO PDF VỚI THIẾT KẾ COMPACT
     const doc = new jsPDF({ 
@@ -589,14 +642,14 @@ const printBillSlip = async billId => {
       margin: { left: margin, right: margin }
     });
     
-    // 💰 COMPACT SUMMARY SECTION - Right aligned
-    const yAfterTable = doc.lastAutoTable.finalY + 6; // Giảm từ 8 xuống 6
-    const summaryWidth = 60; // Giảm từ 65 xuống 60
+    // 💰 COMPACT SUMMARY SECTION - Right aligned với dữ liệu chính xác
+    const yAfterTable = doc.lastAutoTable.finalY + 6;
+    const summaryWidth = 60;
     const summaryX = pageWidth - margin - summaryWidth;
     
     // Calculate summary height dynamically
-    const hasDiscount = bill.discountAmount && bill.discountAmount > 0;
-    const summaryHeight = hasDiscount ? 24 : 18; // Giảm height
+    const hasDiscount = financialInfo.discountAmount > 0;
+    const summaryHeight = hasDiscount ? 24 : 18;
     
     // Summary background
     doc.setFillColor(249, 250, 251);
@@ -605,49 +658,55 @@ const printBillSlip = async billId => {
     doc.rect(summaryX, yAfterTable, summaryWidth, summaryHeight, 'S');
     
     // Summary content with tighter spacing
-    let summaryY = yAfterTable + 4; // Giảm từ 5 xuống 4
+    let summaryY = yAfterTable + 4;
     
-    doc.setFontSize(8);
+    // 🔥 SỬ DỤNG DỮ LIỆU TỪ calculateFinancialInfo
     doc.setFontSize(8);
     doc.setTextColor(75, 85, 99);
     doc.text('Tien hang:', summaryX + 2, summaryY);
     doc.setTextColor(17, 24, 39);
-    const subtotalText = bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN') + ' d';
-    const subtotalWidth = doc.getTextWidth(subtotalText);
-    doc.text(subtotalText, summaryX + summaryWidth - 2 - subtotalWidth, summaryY);
+    const subtotalWidth = doc.getTextWidth(financialInfo.itemsSubtotal_formatted);
+    doc.text(financialInfo.itemsSubtotal_formatted, summaryX + summaryWidth - 2 - subtotalWidth, summaryY);
     
-    summaryY += 4; // Giảm từ 5 xuống 4
+    summaryY += 4;
     doc.setTextColor(75, 85, 99);
     doc.text('Phi van chuyen:', summaryX + 2, summaryY);
     doc.setTextColor(17, 24, 39);
-    const shippingText = bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN') + ' d';
-    const shippingWidth = doc.getTextWidth(shippingText);
-    doc.text(shippingText, summaryX + summaryWidth - 2 - shippingWidth, summaryY);
+    const shippingWidth = doc.getTextWidth(financialInfo.shippingFee_formatted);
+    doc.text(financialInfo.shippingFee_formatted, summaryX + summaryWidth - 2 - shippingWidth, summaryY);
     
     if (hasDiscount) {
-      summaryY += 4; // Giảm từ 5 xuống 4
+      summaryY += 4;
       doc.setTextColor(220, 38, 38);
       doc.text('Giam gia:', summaryX + 2, summaryY);
-      const discountText = '-' + (bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN') + ' d');
+      const discountText = '-' + financialInfo.discountAmount_formatted;
       const discountWidth = doc.getTextWidth(discountText);
       doc.text(discountText, summaryX + summaryWidth - 2 - discountWidth, summaryY);
     }
     
-    summaryY += 5; // Giảm từ 7 xuống 5
+    summaryY += 5;
     // Total with separator line
     doc.setDrawColor(16, 185, 129);
     doc.setLineWidth(0.5);
     doc.line(summaryX + 2, summaryY, summaryX + summaryWidth - 2, summaryY);
     
-    doc.setFontSize(9); // Giảm từ 10 xuống 9
+    doc.setFontSize(9);
     doc.setTextColor(16, 185, 129);
     doc.text('TONG CONG:', summaryX + 2, summaryY + 4);
-    const totalText = bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' d';
-    const totalWidth = doc.getTextWidth(totalText);
-    doc.text(totalText, summaryX + summaryWidth - 2 - totalWidth, summaryY + 4);
+    const totalWidth = doc.getTextWidth(financialInfo.finalTotal_formatted);
+    doc.text(financialInfo.finalTotal_formatted, summaryX + summaryWidth - 2 - totalWidth, summaryY + 4);
+
+    // 🔥 THÊM CÔNG THỨC VALIDATION VÀO PDF
+    if (!financialInfo.isFormulaCorrect) {
+      summaryY += 8;
+      doc.setFontSize(7);
+      doc.setTextColor(220, 38, 38);
+      doc.text('⚠️ Cong thuc:', summaryX + 2, summaryY);
+      doc.text(`${financialInfo.calculatedTotal.toLocaleString('vi-VN')}d`, summaryX + 25, summaryY);
+    }
     
     // 📝 FOOTER - Positioned properly with enough space
-    const footerY = yAfterTable + summaryHeight + 10; // Giảm từ 15 xuống 10
+    const footerY = yAfterTable + summaryHeight + 10;
     
     // Kiểm tra xem có đủ chỗ cho footer không
     if (footerY < pageHeight - 25) {
@@ -657,7 +716,7 @@ const printBillSlip = async billId => {
       doc.line(margin, footerY, pageWidth - margin, footerY);
       
       // Thank you message - centered and compact
-      doc.setFontSize(10); // Tăng từ 9 lên 10 để nổi bật hơn
+      doc.setFontSize(10);
       doc.setTextColor(59, 130, 246);
       const thankYouText = 'Cam on quy khach da tin tuong CakeShop!';
       const thankYouWidth = doc.getTextWidth(thankYouText);
@@ -689,21 +748,22 @@ const printBillSlip = async billId => {
     doc.save(fileName);
 
     // Log action
-    logAction('PRINT_COMPACT_PDF', billId, `In hóa đơn PDF compact - ${fileName}`);
+    logAction('PRINT_FIXED_PDF', billId, `In hóa đơn PDF đã sửa - ${fileName}`);
     
-    // Success message
-    const successMessage = `✅ Đã tạo PDF compact thành công!\n\n` +
+    // Success message với thông tin tài chính
+    const successMessage = `✅ Đã tạo PDF thành công!\n\n` +
       `📄 File: ${fileName}\n` +
       `👤 Khách hàng: ${customerInfo.name}\n` +
-      `📍 Địa chỉ: ${deliveryInfo.address.substring(0, 50)}...\n` +
-      `💰 Tổng tiền: ${bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ\n` +
-      `📊 Trạng thái: ${STATUS_LABELS[bill.status] || bill.status}\n\n` +
-      `🎨 PDF được tối ưu với layout compact, không bị đè chồng!`;
+      `💰 Tiền hàng: ${financialInfo.itemsSubtotal_formatted}\n` +
+      `🚛 Phí ship: ${financialInfo.shippingFee_formatted}\n` +
+      `🎯 Giảm giá: ${financialInfo.discountAmount_formatted}\n` +
+      `💵 Tổng tiền: ${financialInfo.finalTotal_formatted}\n` +
+      `${financialInfo.isFormulaCorrect ? '✅ Công thức đúng' : '⚠️ Công thức sai: ' + financialInfo.calculatedTotal.toLocaleString('vi-VN') + 'đ'}`;
     
     alert(successMessage);
 
   } catch (err) {
-    console.error('❌ Compact PDF Error:', err);
+    console.error('❌ Fixed PDF Error:', err);
     if (!handleAuthError(err)) {
       alert('❌ Không thể tạo PDF: ' + (err.response?.data?.msg || err.message));
     }
@@ -919,7 +979,7 @@ function hexToRgb(hex) {
         </div>
         <div className="header-content">
           <h2>Quản lý Đơn hàng</h2>
-          <p>Xử lý đơn hàng từ khi đặt hàng đến sẵn sàng giao - Không thể hủy đơn</p>
+          <p>Xử lý đơn hàng từ khi đặt hàng đến sẵn sàng giao - Logic tài chính đã được sửa</p>
           
           <div className="user-info-badge" style={{
             marginTop: '10px',
@@ -1023,7 +1083,7 @@ function hexToRgb(hex) {
         </div>
       </div>
 
-      {/* 🔥 BẢNG MỚI THU GỌN - CHỈ NHỮNG CỘT QUAN TRỌNG */}
+      {/* 🔥 BẢNG MỚI THU GỌN - CHỈ NHỮNG CỘT QUAN TRỌNG VỚI LOGIC TÀI CHÍNH CHÍNH XÁC */}
       <div className="table-wrapper">
         <table className="bills-table">
           <thead>
@@ -1043,6 +1103,7 @@ function hexToRgb(hex) {
             {filtered.map((bill, i) => {
               const customerInfo = getCustomerInfo(bill);
               const deliveryInfo = getDeliveryInfo(bill);
+              const financialInfo = calculateFinancialInfo(bill); // 🔥 SỬ DỤNG LOGIC MỚI
               
               return (
                 <tr key={bill._id} className={`bill-row status-${bill.status}`}>
@@ -1091,13 +1152,35 @@ function hexToRgb(hex) {
                   <td className="total-cell">
                     <div className="total-info">
                       <span className="total-amount">
-                        {bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN')} đ
+                        {financialInfo.finalTotal_formatted}
                       </span>
-                      {bill.discountAmount && bill.discountAmount > 0 && (
-                        <span className="discount-badge">
-                          Giảm: {bill.discount_formatted || (Number(bill.discountAmount)).toLocaleString('vi-VN')} đ
-                        </span>
+                      
+                      {/* 🔥 HIỂN THỊ CHI TIẾT TÀI CHÍNH CHÍNH XÁC */}
+                      <div className="financial-breakdown" style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                        <div>💰 Hàng: {financialInfo.itemsSubtotal_formatted}</div>
+                        {financialInfo.shippingFee > 0 && (
+                          <div>🚛 Ship: {financialInfo.shippingFee_formatted}</div>
+                        )}
+                        {financialInfo.discountAmount > 0 && (
+                          <div style={{ color: '#dc2626' }}>🎯 Giảm: -{financialInfo.discountAmount_formatted}</div>
+                        )}
+                      </div>
+                      
+                      {/* 🔥 CẢNH BÁO CÔNG THỨC SAI */}
+                      {!financialInfo.isFormulaCorrect && (
+                        <div style={{ 
+                          color: '#ef4444', 
+                          fontSize: '10px', 
+                          fontWeight: 'bold',
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                          padding: '2px 4px',
+                          borderRadius: '3px',
+                          marginTop: '2px'
+                        }}>
+                          ⚠️ Sai CT: {financialInfo.calculatedTotal.toLocaleString('vi-VN')}đ
+                        </div>
                       )}
+                      
                       <span className="payment-method">
                         {getPaymentMethod(bill)}
                       </span>

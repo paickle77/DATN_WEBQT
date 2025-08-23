@@ -1,4 +1,4 @@
-// 🔥 UPDATED ShipmentManagement - Thêm hiển thị ảnh minh chứng giao hàng
+// 🔥 FIXED ShipmentManagement - Sửa logic tài chính đồng bộ với MongoDB
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import StatusBadge from '../../component/StatusBadge';
@@ -136,14 +136,14 @@ export default function ShipmentManagement() {
        });
   };
 
-      // 🔥 XỬ LÝ ẢNH MINH CHỨNG GIAO HÀNG (ăn đủ: array / JSON array string / single base64 string)
-    const handleViewProofImages = (bill) => {
-      const images = getProofImageList(bill);
-      if (!images.length) return toast.warning('Đơn hàng này chưa có ảnh minh chứng');
-      setSelectedProofImages(images);
-      setSelectedBillId(bill._id);
-      setShowProofModal(true);
-      };
+  // 🔥 XỬ LÝ ẢNH MINH CHỨNG GIAO HÀNG (ăn đủ: array / JSON array string / single base64 string)
+  const handleViewProofImages = (bill) => {
+    const images = getProofImageList(bill);
+    if (!images.length) return toast.warning('Đơn hàng này chưa có ảnh minh chứng');
+    setSelectedProofImages(images);
+    setSelectedBillId(bill._id);
+    setShowProofModal(true);
+  };
 
   // 🔥 SỬ DỤNG DỮ LIỆU TỪ ENRICHED API - KHÔNG CẦN LOOKUP
   const getCustomerInfo = (bill) => ({
@@ -184,60 +184,91 @@ export default function ShipmentManagement() {
     } : { name: 'N/A', phone: 'N/A', isOnline: false, id: shipperId };
   };
 
-  // 🔥 LẤY THÔNG TIN TÀI CHÍNH TỪ ENRICHED DATA - ĐẦY ĐỦ
-  const getFinancialInfo = (bill) => ({
-    subtotal: bill.subtotal || 0,
-    shippingFee: bill.shippingFee || 0,
-    discountAmount: bill.discountAmount || 0,
-    finalTotal: bill.finalTotal || bill.total || 0,
-    subtotal_formatted: bill.subtotal_formatted || (Number(bill.subtotal) || 0).toLocaleString('vi-VN') + ' đ',
-    shipping_fee_formatted: bill.shipping_fee_formatted || (Number(bill.shippingFee) || 0).toLocaleString('vi-VN') + ' đ',
-    discount_formatted: bill.discount_formatted || (Number(bill.discountAmount) || 0).toLocaleString('vi-VN') + ' đ',
-    total_formatted: bill.total_formatted || (Number(bill.total) || 0).toLocaleString('vi-VN') + ' đ'
-  });
+  // 🔥 FIXED: Tính toán tài chính chính xác từ dữ liệu MongoDB - ĐỒNG BỘ VỚI BillManagement
+  const calculateFinancialInfo = (bill) => {
+    // 1. TIỀN HÀNG: Ưu tiên original_total từ MongoDB (chính xác nhất)
+    const itemsSubtotal = Number(bill.original_total) || 0;
+
+    // 2. PHI SHIP: Từ MongoDB
+    const shippingFee = Number(bill.shipping_fee) || 0;
+
+    // 3. GIẢM GIÁ: Từ MongoDB 
+    const discountAmount = Number(bill.discount_amount) || 0;
+
+    // 4. TỔNG TIỀN: Từ MongoDB (đã tính sẵn)
+    const finalTotal = Number(bill.total) || 0;
+
+    // 5. VERIFICATION: Kiểm tra công thức
+    const calculatedTotal = itemsSubtotal + shippingFee - discountAmount;
+    const isFormulaCorrect = Math.abs(calculatedTotal - finalTotal) < 1;
+
+    console.log(`💰 Shipment financial calculation for bill ${bill._id.slice(-8)}:`, {
+      itemsSubtotal,
+      shippingFee,
+      discountAmount,
+      calculatedTotal,
+      finalTotal,
+      isFormulaCorrect
+    });
+
+    return {
+      itemsSubtotal,
+      shippingFee,
+      discountAmount,
+      finalTotal,
+      calculatedTotal,
+      isFormulaCorrect,
+      // Formatted versions
+      itemsSubtotal_formatted: itemsSubtotal.toLocaleString('vi-VN') + ' đ',
+      shippingFee_formatted: shippingFee.toLocaleString('vi-VN') + ' đ',
+      discountAmount_formatted: discountAmount.toLocaleString('vi-VN') + ' đ',
+      finalTotal_formatted: finalTotal.toLocaleString('vi-VN') + ' đ'
+    };
+  };
 
   // 🔥 KIỂM TRA CÓ ẢNH MINH CHỨNG KHÔNG
-    const hasProofImages = (bill) => {
-      const v = bill?.proof_images;
-      if (!v) return false;
-      // Mảng
-      if (Array.isArray(v)) return v.length > 0;
-      // String
-      if (typeof v === 'string') {
-        const s = v.trim();
-        if (!s) return false;
-        if (s.startsWith('[')) {
-          try {
-            const arr = JSON.parse(s);
-            return Array.isArray(arr) && arr.length > 0;
-          } catch { return false; }
-        }
-        if (s.startsWith('data:image')) return true; // single base64
-        if (s.includes(',')) {
-          const arr = s.split(',').map(x => x.trim()).filter(Boolean);
-          return arr.length > 0;
-        }
+  const hasProofImages = (bill) => {
+    const v = bill?.proof_images;
+    if (!v) return false;
+    // Mảng
+    if (Array.isArray(v)) return v.length > 0;
+    // String
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (!s) return false;
+      if (s.startsWith('[')) {
+        try {
+          const arr = JSON.parse(s);
+          return Array.isArray(arr) && arr.length > 0;
+        } catch { return false; }
       }
-      return false;
-    };
+      if (s.startsWith('data:image')) return true; // single base64
+      if (s.includes(',')) {
+        const arr = s.split(',').map(x => x.trim()).filter(Boolean);
+        return arr.length > 0;
+      }
+    }
+    return false;
+  };
 
-    // Lấy danh sách ảnh (array) từ bill.proof_images – dùng chung cho thumbnail & modal
-    const getProofImageList = (bill) => {
-      const v = bill?.proof_images;
-      if (!v) return [];
-      if (Array.isArray(v)) return v.filter(Boolean);
-      if (typeof v === 'string') {
-        const s = v.trim();
-        if (!s) return [];
-        if (s.startsWith('[')) {
-          try { const arr = JSON.parse(s); return Array.isArray(arr) ? arr.filter(Boolean) : []; }
-          catch { return []; }
-        }
-        if (s.startsWith('data:image')) return [s];
-        if (s.includes(',')) return s.split(',').map(x => x.trim()).filter(Boolean);
+  // Lấy danh sách ảnh (array) từ bill.proof_images – dùng chung cho thumbnail & modal
+  const getProofImageList = (bill) => {
+    const v = bill?.proof_images;
+    if (!v) return [];
+    if (Array.isArray(v)) return v.filter(Boolean);
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (!s) return [];
+      if (s.startsWith('[')) {
+        try { const arr = JSON.parse(s); return Array.isArray(arr) ? arr.filter(Boolean) : []; }
+        catch { return []; }
       }
-      return [];
-    };
+      if (s.startsWith('data:image')) return [s];
+      if (s.includes(',')) return s.split(',').map(x => x.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
   // Filter bills
   const filteredBills = bills.filter(bill => {
     const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
@@ -274,7 +305,11 @@ export default function ShipmentManagement() {
     failed: bills.filter(b => b.status === 'failed').length,
     returned: bills.filter(b => b.status === 'returned').length,
     onlineShippers: shippers.filter(s => s.is_online).length,
-    withProof: bills.filter(b => b.status === 'done' && hasProofImages(b)).length // 🔥 THÊM STATS ẢNH MINH CHỨNG
+    withProof: bills.filter(b => b.status === 'done' && hasProofImages(b)).length, // 🔥 THÊM STATS ẢNH MINH CHỨNG
+    incorrectFormula: bills.filter(b => {
+      const financialInfo = calculateFinancialInfo(b);
+      return !financialInfo.isFormulaCorrect;
+    }).length // 🔥 STATS CHO ĐƠN CÓ CÔNG THỨC SAI
   };
 
   // Tính thời gian đơn hàng đang pending
@@ -313,7 +348,7 @@ export default function ShipmentManagement() {
           </div>
           <div className="header-content">
             <h1>Giám sát Giao hàng</h1>
-            <p className="subtitle">Theo dõi các đơn hàng trong quá trình giao hàng - Shipper tự nhận đơn</p>
+            <p className="subtitle">Theo dõi các đơn hàng trong quá trình giao hàng - Logic tài chính đã được sửa</p>
             <div className="auto-refresh-control">
               <label>
                 <input 
@@ -327,7 +362,7 @@ export default function ShipmentManagement() {
           </div>
         </div>
 
-        {/* Stats Overview - 🔥 THÊM STATS ẢNH MINH CHỨNG */}
+        {/* Stats Overview - 🔥 THÊM STATS ẢNH MINH CHỨNG VÀ CÔNG THỨC SAI */}
         <div className="stats-overview">
           <div className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: STATUS_COLORS.ready }}>⏳</div>
@@ -377,27 +412,56 @@ export default function ShipmentManagement() {
               <span className="stat-label">Có ảnh MC</span>
             </div>
           </div>
-        </div>
 
-        {/* Alert cho đơn hàng chờ lâu */}
-        {bills.filter(b => b.status === 'ready').some(b => {
-          const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
-          return hours >= 2;
-        }) && (
-          <div className="alert-section">
-            <div className="alert-card warning">
-              <span className="alert-icon">⚠️</span>
-              <div className="alert-content">
-                <h4>Cảnh báo: Có đơn hàng chờ lâu!</h4>
-                <p>
-                  {bills.filter(b => {
-                    const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
-                    return b.status === 'ready' && hours >= 2;
-                  }).length} đơn hàng đã chờ shipper nhận hơn 2 tiếng. 
-                  Hãy kiểm tra lại hoặc liên hệ với các shipper.
-                </p>
+          {/* 🔥 THÊM STAT CHO CÔNG THỨC SAI */}
+          {stats.incorrectFormula > 0 && (
+            <div className="stat-card">
+              <div className="stat-icon" style={{ backgroundColor: '#ef4444' }}>⚠️</div>
+              <div className="stat-info">
+                <span className="stat-number">{stats.incorrectFormula}</span>
+                <span className="stat-label">Công thức sai</span>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Alert cho đơn hàng chờ lâu và công thức sai */}
+        {(bills.filter(b => b.status === 'ready').some(b => {
+          const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
+          return hours >= 2;
+        }) || stats.incorrectFormula > 0) && (
+          <div className="alert-section">
+            {bills.filter(b => {
+              const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
+              return b.status === 'ready' && hours >= 2;
+            }).length > 0 && (
+              <div className="alert-card warning">
+                <span className="alert-icon">⚠️</span>
+                <div className="alert-content">
+                  <h4>Cảnh báo: Có đơn hàng chờ lâu!</h4>
+                  <p>
+                    {bills.filter(b => {
+                      const hours = Math.floor((new Date() - new Date(b.created_at)) / (1000 * 60 * 60));
+                      return b.status === 'ready' && hours >= 2;
+                    }).length} đơn hàng đã chờ shipper nhận hơn 2 tiếng. 
+                    Hãy kiểm tra lại hoặc liên hệ với các shipper.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {stats.incorrectFormula > 0 && (
+              <div className="alert-card error">
+                <span className="alert-icon">🔢</span>
+                <div className="alert-content">
+                  <h4>Cảnh báo: Có {stats.incorrectFormula} đơn hàng tính toán sai công thức!</h4>
+                  <p>
+                    Các đơn hàng có dấu ⚠️ cần được kiểm tra lại tính toán tài chính.
+                    Công thức đúng: <strong>Tiền hàng + Phí ship - Giảm giá = Tổng tiền</strong>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -431,7 +495,7 @@ export default function ShipmentManagement() {
           <button onClick={loadData} className="refresh-btn">🔄 Làm mới</button>
         </div>
 
-        {/* 🔥 TABLE MỚI VỚI CỘT ẢNH MINH CHỨNG */}
+        {/* 🔥 TABLE MỚI VỚI CỘT ẢNH MINH CHỨNG VÀ LOGIC TÀI CHÍNH CHÍNH XÁC */}
         <div className="table-container">
           <div className="table-header">
             <h3>Danh sách đơn hàng giao hàng ({filteredBills.length})</h3>
@@ -441,6 +505,11 @@ export default function ShipmentManagement() {
                 {stats.withProof > 0 && (
                   <span style={{ marginLeft: '20px', color: '#8b5cf6' }}>
                     📸 {stats.withProof} đơn có ảnh minh chứng
+                  </span>
+                )}
+                {stats.incorrectFormula > 0 && (
+                  <span style={{ marginLeft: '20px', color: '#ef4444' }}>
+                    ⚠️ {stats.incorrectFormula} đơn công thức sai
                   </span>
                 )}
               </small>
@@ -463,7 +532,7 @@ export default function ShipmentManagement() {
                   <th>💵 Tổng tiền</th>
                   <th>👨‍💼 Shipper</th>
                   <th>📊 Trạng thái</th>
-                  <th>📸 Minh chứng</th> {/* 🔥 CỘT MỚI CHO ẢNH MINH CHỨNG */}
+                  <th>📸 Minh chứng</th>
                   <th>⏰ Thời gian</th>
                   <th>⚙️ Hành động</th>
                 </tr>
@@ -473,7 +542,7 @@ export default function ShipmentManagement() {
                   const customerInfo = getCustomerInfo(bill);
                   const deliveryInfo = getDeliveryInfo(bill);
                   const shipperInfo = getShipperInfo(bill);
-                  const financialInfo = getFinancialInfo(bill);
+                  const financialInfo = calculateFinancialInfo(bill); // 🔥 SỬ DỤNG LOGIC MỚI
                   const displayStatus = BILL_TO_SHIPMENT_STATUS[bill.status] || bill.status;
                   const orderAge = getOrderAge(bill.created_at);
                   const hasProof = hasProofImages(bill);
@@ -534,16 +603,16 @@ export default function ShipmentManagement() {
                         </span>
                       </td>
 
-                      {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT - ĐẦY ĐỦ */}
+                      {/* 🔥 CÁC CỘT TÀI CHÍNH RIÊNG BIỆT - LOGIC MỚI CHÍNH XÁC */}
                       <td className="subtotal-cell">
                         <span className="money-amount">
-                          {financialInfo.subtotal_formatted}
+                          {financialInfo.itemsSubtotal_formatted}
                         </span>
                       </td>
 
                       <td className="shipping-fee-cell">
                         <span className="money-amount">
-                          {financialInfo.shipping_fee_formatted}
+                          {financialInfo.shippingFee_formatted}
                         </span>
                       </td>
 
@@ -552,7 +621,7 @@ export default function ShipmentManagement() {
                           color: financialInfo.discountAmount > 0 ? '#dc2626' : '#6b7280'
                         }}>
                           {financialInfo.discountAmount > 0 ? (
-                            `-${financialInfo.discount_formatted}`
+                            `-${financialInfo.discountAmount_formatted}`
                           ) : (
                             '0 đ'
                           )}
@@ -564,13 +633,13 @@ export default function ShipmentManagement() {
 
                       <td className="total-cell">
                         <span className="total-amount">
-                          {financialInfo.total_formatted}
+                          {financialInfo.finalTotal_formatted}
                         </span>
                         <div className="formula-validation" style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
                           {(() => {
-                            const calculated = financialInfo.subtotal + financialInfo.shippingFee - financialInfo.discountAmount;
+                            const calculated = financialInfo.calculatedTotal;
                             const actual = financialInfo.finalTotal;
-                            const isValid = Math.abs(calculated - actual) < 1; 
+                            const isValid = financialInfo.isFormulaCorrect;
                             return (
                               <span style={{ color: isValid ? '#10b981' : '#ef4444' }}>
                                 {isValid ? '✓' : '⚠️'} {calculated.toLocaleString('vi-VN')}đ
@@ -637,7 +706,6 @@ export default function ShipmentManagement() {
                                       <img className="proof-thumb" src={first} alt="Thumbnail minh chứng" />
                                       {imgs.length > 1 && <span className="thumb-badge">+{imgs.length - 1}</span>}
                                     </div>
-
                                   </>
                                 );
                               })()}
@@ -730,17 +798,7 @@ export default function ShipmentManagement() {
                             </button>
                           )}
 
-                          {/* Xem chi tiết - luôn có */}
-                          {/* <button
-                            className="action-btn btn-detail"
-                            onClick={() => window.open(`/admin/bills/${bill._id}`, '_blank')}
-                            style={{ backgroundColor: '#667eea' }}
-                            title="Xem chi tiết đơn hàng"
-                          >
-                            👁️ Chi tiết
-                          </button> */}
-
-                          {/* Copy thông tin giao hàng */}
+                          {/* Copy thông tin giao hàng với financial info chính xác */}
                           <button
                             className="action-btn btn-copy"
                             onClick={() => {
@@ -748,11 +806,12 @@ export default function ShipmentManagement() {
                                          `Khách: ${customerInfo.name} - ${customerInfo.phone}\n` +
                                          `Người nhận: ${deliveryInfo.name} - ${deliveryInfo.phone}\n` +
                                          `Địa chỉ: ${deliveryInfo.address}\n` +
-                                         `Tiền hàng: ${financialInfo.subtotal_formatted}\n` +
-                                         `Phí ship: ${financialInfo.shipping_fee_formatted}\n` +
-                                         `Giảm giá: ${financialInfo.discount_formatted}\n` +
-                                         `Tổng tiền: ${financialInfo.total_formatted}\n` +
-                                         `Minh chứng: ${hasProof ? 'Có ảnh' : 'Chưa có ảnh'}`;
+                                         `💰 Tiền hàng: ${financialInfo.itemsSubtotal_formatted}\n` +
+                                         `🚛 Phí ship: ${financialInfo.shippingFee_formatted}\n` +
+                                         `🎯 Giảm giá: ${financialInfo.discountAmount_formatted}\n` +
+                                         `💵 Tổng tiền: ${financialInfo.finalTotal_formatted}\n` +
+                                         `${financialInfo.isFormulaCorrect ? '✅ Công thức đúng' : '⚠️ Công thức sai: ' + financialInfo.calculatedTotal.toLocaleString('vi-VN') + 'đ'}\n` +
+                                         `📸 Minh chứng: ${hasProof ? 'Có ảnh' : 'Chưa có ảnh'}`;
                               navigator.clipboard.writeText(info);
                               toast.success('Đã copy thông tin!');
                             }}
@@ -761,6 +820,33 @@ export default function ShipmentManagement() {
                           >
                             📋 Copy
                           </button>
+
+                          {/* 🔥 NÚT DEBUG CHO ĐƠN CÓ CÔNG THỨC SAI */}
+                          {!financialInfo.isFormulaCorrect && (
+                            <button
+                              className="action-btn btn-debug"
+                              onClick={() => {
+                                const debugInfo = `🔍 DEBUG ĐƠN #${bill._id.slice(-8)}\n\n` +
+                                  `📊 Dữ liệu từ MongoDB:\n` +
+                                  `• original_total: ${bill.original_total}\n` +
+                                  `• shipping_fee: ${bill.shipping_fee}\n` +
+                                  `• discount_amount: ${bill.discount_amount}\n` +
+                                  `• total: ${bill.total}\n\n` +
+                                  `🧮 Tính toán:\n` +
+                                  `• ${financialInfo.itemsSubtotal} + ${financialInfo.shippingFee} - ${financialInfo.discountAmount}\n` +
+                                  `• = ${financialInfo.calculatedTotal}\n` +
+                                  `• Thực tế: ${financialInfo.finalTotal}\n` +
+                                  `• Chênh lệch: ${Math.abs(financialInfo.calculatedTotal - financialInfo.finalTotal)}`;
+                                
+                                console.log('🔍 DEBUG BILL:', bill);
+                                alert(debugInfo);
+                              }}
+                              style={{ backgroundColor: '#ef4444', fontSize: '10px', padding: '2px 6px' }}
+                              title="Debug thông tin tài chính"
+                            >
+                              🔍 Debug
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -769,7 +855,7 @@ export default function ShipmentManagement() {
                 
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="15" className="no-data"> {/* 🔥 TĂNG COLSPAN CHO CỘT MỚI */}
+                    <td colSpan="15" className="no-data">
                       <div className="no-data-content">
                         <span style={{ fontSize: '48px', opacity: 0.3 }}>📦</span>
                         <p>Không có đơn hàng nào</p>
