@@ -305,7 +305,7 @@ export default function ShipmentManagement() {
     failed: bills.filter(b => b.status === 'failed').length,
     returned: bills.filter(b => b.status === 'returned').length,
     onlineShippers: shippers.filter(s => s.is_online).length,
-    withProof: bills.filter(b => b.status === 'done' && hasProofImages(b)).length, // 🔥 THÊM STATS ẢNH MINH CHỨNG
+    withProof: bills.filter(b => ['done', 'failed'].includes(b.status) && hasProofImages(b)).length, // 🔥 BAO GỒM CẢ ĐƠN THẤT BẠI // 🔥 THÊM STATS ẢNH MINH CHỨNG
     incorrectFormula: bills.filter(b => {
       const financialInfo = calculateFinancialInfo(b);
       return !financialInfo.isFormulaCorrect;
@@ -504,7 +504,7 @@ export default function ShipmentManagement() {
                 💡 Công thức: <strong>Tiền hàng + Phí ship - Giảm giá = Tổng tiền</strong>
                 {stats.withProof > 0 && (
                   <span style={{ marginLeft: '20px', color: '#8b5cf6' }}>
-                    📸 {stats.withProof} đơn có ảnh minh chứng
+                    📸 {stats.withProof} đơn có ảnh MC (giao xong + thất bại)
                   </span>
                 )}
                 {stats.incorrectFormula > 0 && (
@@ -742,27 +742,19 @@ export default function ShipmentManagement() {
                             </div>
                           )}
                           
-                          {displayStatus === SHIPMENT_STATUS.SHIPPING && (
-                            <>
-                              <button
-                                className="action-btn btn-delivered"
-                                onClick={() => updateBillStatus(bill._id, 'done')}
-                                style={{ backgroundColor: '#10b981' }}
-                                title="Xác nhận đã giao thành công"
-                              >
-                                ✅ Xác nhận giao xong
-                              </button>
-                              
-                              <button
-                                className="action-btn btn-failed"
-                                onClick={() => updateBillStatus(bill._id, 'failed')}
-                                style={{ backgroundColor: '#ef4444' }}
-                                title="Báo cáo giao hàng thất bại"
-                              >
-                                ❌ Báo cáo thất bại
-                              </button>
-                            </>
-                          )}
+                            {displayStatus === SHIPMENT_STATUS.SHIPPING && (
+                              <div className="readonly-notice">
+                                <small style={{ color: '#06b6d4', fontStyle: 'italic' }}>
+                                  🚚 Chờ shipper xác nhận kết quả
+                                </small>
+                                {/* Có thể thêm nút gọi điện nếu cần */}
+                                {shipperInfo.phone !== 'N/A' && (
+                                  <a href={`tel:${shipperInfo.phone}`} className="action-btn btn-call">
+                                    📞 Gọi shipper
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           
                           {displayStatus === SHIPMENT_STATUS.FAILED && (
                             <>
