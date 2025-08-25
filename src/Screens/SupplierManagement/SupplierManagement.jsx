@@ -334,25 +334,30 @@ const SupplierManagement = () => {
                       </div>
                       <div className="form-group">
                         <label>Mã số thuế</label>
-                      <input
-                        type="text"
-                        value={formData.tax_code}
-                        onChange={e=>setFormData({...formData, tax_code: e.target.value})}
-                        className="form-input"
-                        disabled={Boolean(editingId)}
-                      />
+                        <input
+                          type="text"
+                          value={formData.tax_code}
+                          onChange={e=>setFormData({...formData, tax_code: e.target.value})}
+                          className="form-input"
+                          disabled={Boolean(editingId)}
+                        />
                       </div>
+                      {/* ✅ THÊM TRƯỜNG RATING */}
                       <div className="form-group">
-                        <label>Trạng thái</label>
+                        <label>Đánh giá chất lượng</label>
                         <select
-                          value={formData.status}
-                          onChange={e=>setFormData({...formData, status: e.target.value})}
+                          value={formData.rating}
+                          onChange={e=>setFormData({...formData, rating: Number(e.target.value)})}
                           className="form-select"
                         >
-                          <option value="active">Hoạt động</option>
-                          <option value="inactive">Ngừng hoạt động</option>
+                          <option value={5}>⭐⭐⭐⭐⭐ (5/5) - Xuất sắc</option>
+                          <option value={4}>⭐⭐⭐⭐☆ (4/5) - Tốt</option>
+                          <option value={3}>⭐⭐⭐☆☆ (3/5) - Trung bình</option>
+                          <option value={2}>⭐⭐☆☆☆ (2/5) - Kém</option>
+                          <option value={1}>⭐☆☆☆☆ (1/5) - Rất kém</option>
                         </select>
                       </div>
+                      {/* ✅ SỬA: Chỉ giữ 1 trường trạng thái, xóa duplicate */}
                       <div className="form-group">
                         <label>Trạng thái</label>
                         <select

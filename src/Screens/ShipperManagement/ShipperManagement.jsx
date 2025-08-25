@@ -37,7 +37,7 @@ const ShipperManagement = () => {
     license_number: '',
     vehicle_type: '',
     is_online: false,
-    image: null
+    //image: null
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -328,33 +328,6 @@ const ShipperManagement = () => {
     }
   };
 
-  // ✅ Xử lý upload ảnh
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Kiểm tra định dạng file
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Chỉ chấp nhận file ảnh (JPEG, JPG, PNG, GIF, WEBP)');
-        return;
-      }
-
-      // Kiểm tra kích thước file (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File ảnh không được vượt quá 5MB');
-        return;
-      }
-
-      setFormData(prev => ({ ...prev, image: file }));
-      
-      // Tạo preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -394,50 +367,46 @@ const handleSubmit = async (e) => {
       }
     }
 
-    // ✅ Sử dụng FormData để gửi cả text và file
-    const formDataToSend = new FormData();
-    
-    if (!isEditing) {
-      // ✅ KHI TẠO MỚI: Thêm thông tin account
-      formDataToSend.append('email', formData.email.trim());
-      formDataToSend.append('password', formData.password);
-    }
-    
-    // Thêm các field shipper
-    formDataToSend.append('full_name', formData.full_name.trim());
-    formDataToSend.append('phone', formData.phone.trim());
-    formDataToSend.append('license_number', formData.license_number || '');
-    formDataToSend.append('vehicle_type', formData.vehicle_type || '');
-    formDataToSend.append('is_online', formData.is_online);
-    
-    // ✅ Thêm file ảnh nếu có
-    if (formData.image instanceof File) {
-      formDataToSend.append('image', formData.image);
-    }
+    // ✅ THAY ĐỔI: Gửi JSON thay vì FormData (bỏ ảnh)
+    const dataToSend = {
+      // Thông tin account (chỉ khi tạo mới)
+      ...((!isEditing) && {
+        email: formData.email.trim(),
+        password: formData.password
+      }),
+      
+      // Thông tin shipper
+      full_name: formData.full_name.trim(),
+      phone: formData.phone.trim(),
+      license_number: formData.license_number || '',
+      vehicle_type: formData.vehicle_type || '',
+      is_online: formData.is_online
+      // Bỏ image - shipper sẽ tự thêm sau
+    };
 
-    console.log('📤 Submitting FormData...');
+    console.log('📤 Submitting JSON data:', dataToSend);
 
     const config = {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'application/json' // Thay đổi từ multipart/form-data
       }
     };
 
     if (isEditing) {
       // ✅ CẬP NHẬT: Chỉ cập nhật thông tin shipper
-      await api.put(`/shippers/${selectedShipper._id}`, formDataToSend, config);
+      await api.put(`/shippers/${selectedShipper._id}`, dataToSend, config);
       alert('Cập nhật thông tin shipper thành công!');
     } else {
       // ✅ TẠO MỚI: Tạo cả account và shipper
-      await api.post('/shippers/create-with-account', formDataToSend, config);
+      await api.post('/shippers/create-with-account', dataToSend, config);
       alert('Tạo tài khoản và shipper thành công!');
     }
     
     setShowModal(false);
     setPreviewImage(null);
     
-    // 🔧 SỬA: Sau khi cập nhật, phải reload lại data để có account info mới
+    // 🔧 Reload lại data
     await fetchData();
   } catch (error) {
     console.error('Error saving shipper:', error);
@@ -764,44 +733,12 @@ const handleSubmit = async (e) => {
                     <FaUser /> Thông Tin Shipper
                   </h4>
 
-                  {/* ✅ Upload ảnh */}
-                  <div className="form-group image-upload">
-                    <label>Ảnh Shipper:</label>
-                    <div className="image-upload-container">
-                      {previewImage ? (
-                        <div className="image-preview">
-                          <img src={previewImage} alt="Preview" className="preview-img" />
-                          <button 
-                            type="button" 
-                            className="remove-image"
-                            onClick={() => {
-                              setPreviewImage(null);
-                              setFormData(prev => ({ ...prev, image: null }));
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="upload-placeholder">
-                          <FaImage size={30} />
-                          <p>Chưa có ảnh</p>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        id="image"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="file-input"
-                      />
-                      <label htmlFor="image" className="upload-btn">
-                        <FaImage /> Chọn Ảnh
-                      </label>
+                  {/* ✅ Thông báo về ảnh */}
+                  <div className="form-note-section">
+                    <div className="form-note">
+                      <FaImage className="icon" />
+                      <strong>Lưu ý về ảnh đại diện:</strong> Shipper sẽ tự cập nhật ảnh đại diện sau khi đăng nhập vào ứng dụng di động.
                     </div>
-                    <span className="form-note">
-                      Hỗ trợ: JPG, PNG, GIF, WEBP. Tối đa 5MB
-                    </span>
                   </div>
 
                   <div className="form-group">

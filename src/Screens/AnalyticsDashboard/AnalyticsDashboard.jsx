@@ -52,6 +52,9 @@ const AnalyticsDashboard = () => {
     billDetails: [],
     users: [],
     products: [],
+    // 🆕 Thêm dữ liệu từ server
+    serverKPI: null,
+    serverDailyRevenue: {}
   });
   const [timeFilter, setTimeFilter] = useState('all');
 
@@ -83,25 +86,43 @@ const AnalyticsDashboard = () => {
     },
   });
 
-  // ── Fetch
+  // ── Fetch (Sử dụng endpoints mới)
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [billsRes, billDetailsRes, usersRes, productsRes] = await Promise.all([
+      // Gọi endpoints mới song song với endpoints cũ
+      const dateFrom = dateRange.from.toISOString().slice(0, 10);
+      const dateTo = dateRange.to.toISOString().slice(0, 10);
+      
+      const [billsRes, billDetailsRes, usersRes, productsRes, kpiRes, dailyRevenueRes] = await Promise.all([
         api.get('/bills'),
-        api.get('/billdetails'),
+        api.get('/billdetails'), 
         api.get('/users'),
         api.get('/products'),
+        // 🆕 Endpoints mới cho thống kê nhanh
+        api.get('/bills/admin/kpi'),
+        api.get(`/bills/admin/daily-revenue?from=${dateFrom}&to=${dateTo}`)
       ]);
+      
       setRawData({
         bills: billsRes?.data?.data ?? [],
         billDetails: billDetailsRes?.data?.data ?? [],
         users: usersRes?.data?.data ?? [],
         products: productsRes?.data?.data ?? [],
+        // 🆕 Dữ liệu từ endpoints mới
+        serverKPI: kpiRes?.data?.data ?? null,
+        serverDailyRevenue: dailyRevenueRes?.data?.data ?? {}
       });
     } catch (err) {
       console.error('Error fetching data:', err);
-      setRawData({ bills: [], billDetails: [], users: [], products: [] });
+      setRawData({ 
+        bills: [], 
+        billDetails: [], 
+        users: [], 
+        products: [],
+        serverKPI: null,
+        serverDailyRevenue: {}
+      });
     } finally {
       setIsLoading(false);
     }
@@ -109,11 +130,18 @@ const AnalyticsDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]); // 🆕 Thêm dateRange dependency để re-fetch khi đổi ngày
 
   // ───────────────────────────── 2) Lõi tính toán ─────────────────────────────
   const analytics = useMemo(() => {
-    const { bills, users, billDetails, products } = rawData;
+    const { bills, users, billDetails, products, serverKPI, serverDailyRevenue } = rawData;
+
+    // 🆕 Nếu có dữ liệu từ server, ưu tiên sử dụng
+    if (serverKPI && Object.keys(serverDailyRevenue).length > 0) {
+      console.log('📊 Sử dụng dữ liệu từ server endpoints');
+      // Có thể trả về kết quả nhanh từ server tại đây
+      // Hoặc kết hợp với tính toán client-side
+    }
 
     if (!Array.isArray(bills) || bills.length === 0) return getEmptyAnalytics();
 
@@ -127,6 +155,18 @@ const AnalyticsDashboard = () => {
       const d = new Date(b.created_at);
       return !isNaN(d) && d >= from && d <= to;
     });
+
+    // 🆕 Tùy chọn: Sử dụng dữ liệu từ server cho các metric cơ bản
+    if (serverKPI) {
+      console.log('📊 Server KPI:', serverKPI);
+      // Có thể sử dụng serverKPI.totalOrders, serverKPI.completedRevenue, etc.
+      // Ưu tiên server data nếu có
+    }
+
+    if (Object.keys(serverDailyRevenue).length > 0) {
+      console.log('📈 Server Daily Revenue:', serverDailyRevenue);
+      // Có thể sử dụng serverDailyRevenue thay vì tính toán từ bills
+    }
 
     // Phân loại theo trạng thái đúng với backend
     const byStatus = {
@@ -155,7 +195,7 @@ const AnalyticsDashboard = () => {
     const totalInRange   = filteredBills.length;
 
     // ✅ Doanh thu chỉ tính từ đơn DONE và lấy thẳng từ bill.total
-    const completedRevenue = completedBills.reduce((sum, b) => {
+    const completedRevenue = serverKPI?.completedRevenue || completedBills.reduce((sum, b) => {
       const val = Number(b?.total) || 0;
       return sum + (val > 0 ? val : 0);
     }, 0);
@@ -164,7 +204,7 @@ const AnalyticsDashboard = () => {
     const totalOrders = completedBills.length;
 
     // ✅ Khách hàng có ít nhất 1 đơn DONE
-    const uniqueCustomerIds = Array.from(new Set(completedBills.map(b => String(b.user_id)).filter(Boolean)));
+    const uniqueCustomerIds = Array.from(new Set(completedBills.map(b => String(b.Account_id)).filter(Boolean)));
     const totalCustomers = uniqueCustomerIds.length;
 
     // ✅ Giá trị TB/đơn DONE
@@ -176,7 +216,7 @@ const AnalyticsDashboard = () => {
     // ✅ Thống kê khách hàng từ đơn DONE
     const customerStats = {};
     for (const b of completedBills) {
-      const uid = String(b.user_id || '');
+      const uid = String(b.Account_id || '');
       if (!uid) continue;
       const amount = Number(b.total) || 0;
 
@@ -217,11 +257,14 @@ const AnalyticsDashboard = () => {
       .slice(0, 20);
 
     // ✅ Doanh thu và số đơn theo ngày
-    const dailyRevenue = completedBills.reduce((acc, b) => {
-      const key = new Date(b.created_at).toISOString().slice(0,10);
-      acc[key] = (acc[key] || 0) + (Number(b.total) || 0);
-      return acc;
-    }, {});
+    // 🆕 Ưu tiên server daily revenue nếu có data
+    const dailyRevenue = Object.keys(serverDailyRevenue).length > 0 
+      ? serverDailyRevenue 
+      : completedBills.reduce((acc, b) => {
+          const key = new Date(b.created_at).toISOString().slice(0,10);
+          acc[key] = (acc[key] || 0) + (Number(b.total) || 0);
+          return acc;
+        }, {});
     const dailyOrders = completedBills.reduce((acc, b) => {
       const key = new Date(b.created_at).toISOString().slice(0,10);
       acc[key] = (acc[key] || 0) + 1;

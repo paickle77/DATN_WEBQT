@@ -26,8 +26,9 @@ const emptyVoucher = {
   discount_percent: 0,
   start_date: null,
   end_date: null,
-  quantity: 0, // 0 = unlimited
-  max_usage_per_user: 1, // 0 = unlimited
+  quantity: 0,
+  max_usage_per_user: 1,
+  min_order_value: 0, // ✅ THÊM DÒNG NÀY
   status: 'active',
 };
 
@@ -112,6 +113,7 @@ export default function VoucherManagement() {
       end_date: parseDate(v.end_date),
       quantity: v.quantity ?? 0,
       max_usage_per_user: v.max_usage_per_user ?? 1,
+      min_order_value: Number(v.min_order_value) || 0, // ✅ THÊM DÒNG NÀY
       status: v.status || 'active',
     });
     setShowForm(true);
@@ -155,6 +157,7 @@ export default function VoucherManagement() {
       end_date: toISO(formData.end_date),
       quantity: Number(formData.quantity) || 0,
       max_usage_per_user: Number(formData.max_usage_per_user) || 0,
+      min_order_value: Number(formData.min_order_value) || 0, // ✅ THÊM DÒNG NÀY
       status: formData.status,
     };
     try {
@@ -887,6 +890,17 @@ export default function VoucherManagement() {
                     onChange={(e) => setFormData({ ...formData, max_usage_per_user: +e.target.value })}
                   />
                 </div>
+
+                  <div className="form-group">
+                    <label>Đơn hàng tối thiểu (0 = không yêu cầu)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.min_order_value}
+                      onChange={(e) => setFormData({ ...formData, min_order_value: +e.target.value })}
+                      placeholder="VD: 100000 (100k)"
+                    />
+                  </div>
 
                 <div className="form-group">
                   <label>Trạng thái</label>
