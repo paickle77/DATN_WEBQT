@@ -9,41 +9,99 @@ import api from '../../utils/api';
 
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState([]);
-  const [addresses, setAddresses] = useState([]);
   const [customerStats, setCustomerStats] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Chỉ giữ lại modal xem chi tiết, không cho sửa
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'locked'
+
+  // Helper functions để xử lý dữ liệu từ API
+  const getCustomerAddress = (customer) => {
+    console.log('Customer address data:', {
+      customer_id: customer._id,
+      address_detail: customer.address_detail,
+      raw_customer: customer
+    });
+    
+    // FIX: Xử lý đúng cấu trúc address_detail từ backend
+    if (customer.address_detail && customer.address_detail.full_address) {
+      return customer.address_detail.full_address;
+    }
+    
+    // Fallback: Tự tạo địa chỉ từ các trường riêng lẻ
+    if (customer.address_detail) {
+      const { street, ward, district, city } = customer.address_detail;
+      const parts = [street, ward, district, city].filter(part => part && part.trim() !== '');
+      if (parts.length > 0) {
+        return parts.join(', ');
+      }
+    }
+    
+    return 'Chưa cập nhật địa chỉ';
+  };
+
+  const getCustomerOrderCount = (customer) => {
+    console.log('Customer orders data:', {
+      customer_id: customer._id,
+      total_orders: customer.total_orders,
+      raw_customer: customer
+    });
+    
+    return customer.total_orders || 0;
+  };
+
+  const getCustomerTotalSpent = (customer) => {
+    console.log('Customer spending data:', {
+      customer_id: customer._id,
+      total_spent: customer.total_spent,
+      raw_customer: customer
+    });
+    
+    return customer.total_spent || 0;
+  };
+
+  // Modal xem chi tiết
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
     fetchCustomersWithDetails();
-    fetchAddresses();
     fetchCustomerStats();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm, statusFilter]);
 
   const fetchCustomersWithDetails = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/with-accounts', {
-        params: {
-          page: currentPage,
-          limit: 20,
-          search: searchTerm
-        }
-      });
+      const params = {
+        page: currentPage,
+        limit: 20,
+        search: searchTerm
+      };
+      
+      // Thêm filter theo trạng thái
+      if (statusFilter === 'active') {
+        params.is_lock = false;
+      } else if (statusFilter === 'locked') {
+        params.is_lock = true;
+      }
+      
+      const response = await api.get('/users/with-accounts', { params });
       
       if (response.data.success) {
+        console.log('API Response:', response.data);
+        console.log('Customer data sample:', response.data.data.customers[0]);
         setCustomers(response.data.data.customers);
         setTotalPages(response.data.data.pagination.totalPages);
+      } else {
+        console.error('API returned success: false');
+        alert('Không thể lấy danh sách khách hàng');
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách khách hàng:', error);
-      alert('Không thể lấy danh sách khách hàng');
+      alert('Không thể lấy danh sách khách hàng: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -51,27 +109,31 @@ const CustomerManagement = () => {
 
   const fetchCustomerStats = async () => {
     try {
-      const response = await api.get('/users/stats');
+      // Lấy tất cả khách hàng để tính toán thống kê chính xác
+      const response = await api.get('/users/with-accounts', { 
+        params: { limit: 1000 } // Lấy nhiều để tính đúng stats
+      });
+      
       if (response.data.success) {
-        setCustomerStats(response.data.data);
+        const allCustomers = response.data.data.customers;
+        
+        // Tính toán thống kê từ dữ liệu thực tế
+        const stats = {
+          totalCustomers: allCustomers.length,
+          activeCustomers: allCustomers.filter(c => !c.is_lock).length,
+          customersWithOrders: allCustomers.filter(c => getCustomerOrderCount(c) > 0).length,
+          totalRevenue: allCustomers.reduce((sum, c) => sum + (getCustomerTotalSpent(c) || 0), 0)
+        };
+        
+        setCustomerStats(stats);
+        console.log('Calculated stats:', stats);
       }
     } catch (error) {
       console.error('Lỗi khi lấy thống kê:', error);
     }
   };
 
-  const fetchAddresses = async () => {
-    try {
-      const response = await api.get('/addresses');
-      if (response.data.success) {
-        setAddresses(response.data.data);
-      }
-    } catch (error) {
-      console.error('Lỗi khi lấy địa chỉ:', error);
-    }
-  };
-
-  // ✅ Cải tiến chức năng xuất Excel với format đẹp hơn (bỏ cột giới tính và tuổi)
+  // Xuất Excel với format đẹp hơn
   const exportToExcel = async () => {
     try {
       setLoading(true);
@@ -94,8 +156,8 @@ const CustomerManagement = () => {
         pageSetup: { paperSize: 9, orientation: 'landscape' }
       });
 
-      // ✅ Tạo tiêu đề báo cáo
-      sheet.mergeCells('A1:K1'); // Giảm số cột do bỏ giới tính và tuổi
+      // Tạo tiêu đề báo cáo
+      sheet.mergeCells('A1:K1');
       const titleCell = sheet.getCell('A1');
       titleCell.value = 'BÁO CÁO DANH SÁCH KHÁCH HÀNG';
       titleCell.font = { size: 16, bold: true, color: { argb: 'FF1f2937' } };
@@ -123,7 +185,7 @@ const CustomerManagement = () => {
       sheet.getCell('I2').value = `Tổng doanh thu: ${formatCurrency(customerStats.totalRevenue)}`;
       sheet.getCell('I2').font = { bold: true, color: { argb: 'FF059669' } };
 
-      // ✅ Header với styling đẹp hơn (bỏ cột giới tính và tuổi)
+      // Header với styling đẹp hơn
       const headers = [
         { key: 'stt', header: 'STT', width: 8 },
         { key: 'name', header: 'Họ và Tên', width: 25 },
@@ -158,7 +220,7 @@ const CustomerManagement = () => {
 
       headerRow.height = 25;
 
-      // ✅ Dữ liệu với format đẹp và đầy đủ thông tin (bỏ giới tính và tuổi)
+      // Dữ liệu với format đẹp
       let rowIndex = 5;
       for (const [index, customer] of allCustomers.entries()) {
         const row = sheet.getRow(rowIndex);
@@ -171,12 +233,12 @@ const CustomerManagement = () => {
           customer.name || 'Chưa cập nhật',
           customer.email || 'Chưa có',
           customer.phone || 'Chưa có',
-          customer.address_detail?.full_address || 'Chưa cập nhật',
+          getCustomerAddress(customer),
           customer.provider === 'local' ? 'Tài khoản thường' : 
           customer.provider === 'google' ? 'Google' : 
           customer.provider === 'facebook' ? 'Facebook' : 'Khác',
-          customer.total_orders || 0,
-          customer.total_spent || 0,
+          getCustomerOrderCount(customer),
+          getCustomerTotalSpent(customer),
           customer.last_order_date ? formatDate(customer.last_order_date) : 'Chưa có',
           customer.is_lock ? 'Đã khóa' : 'Hoạt động',
           formatDate(customer.created_at)
@@ -201,17 +263,17 @@ const CustomerManagement = () => {
           };
           
           cell.alignment = { 
-            horizontal: cellIndex === 1 || cellIndex === 2 || cellIndex === 4 ? 'left' : 'center', // Cập nhật index
+            horizontal: cellIndex === 1 || cellIndex === 2 || cellIndex === 4 ? 'left' : 'center',
             vertical: 'middle' 
           };
 
           // Format đặc biệt cho một số cột
-          if (cellIndex === 7) { // Cột tổng chi tiêu (index thay đổi)
+          if (cellIndex === 7) { // Cột tổng chi tiêu
             cell.numFmt = '#,##0" đ"';
             cell.font = { bold: true, color: { argb: 'FF059669' } };
           }
           
-          if (cellIndex === 9) { // Cột trạng thái (index thay đổi)
+          if (cellIndex === 9) { // Cột trạng thái
             cell.font = { 
               bold: true, 
               color: { argb: customer.is_lock ? 'FFef4444' : 'FF10b981' }
@@ -223,7 +285,7 @@ const CustomerManagement = () => {
         rowIndex++;
       }
 
-      // ✅ Thêm footer với thống kê
+      // Thêm footer với thống kê
       const footerRow = rowIndex + 1;
       sheet.mergeCells(`A${footerRow}:K${footerRow}`);
       const footerCell = sheet.getCell(`A${footerRow}`);
@@ -261,36 +323,16 @@ const CustomerManagement = () => {
       const buffer = await workbook.xlsx.writeBuffer();
       saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName);
       
-      alert(`✅ Xuất Excel thành công!\nFile: ${fileName}\nSố KH: ${allCustomers.length}`);
+      alert(`Xuất Excel thành công!\nFile: ${fileName}\nSố KH: ${allCustomers.length}`);
     } catch (error) {
       console.error('Lỗi xuất Excel:', error);
-      alert('❌ Lỗi khi xuất Excel: ' + (error.message || 'Unknown error'));
+      alert('Lỗi khi xuất Excel: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Thay đổi từ xóa thành vô hiệu hóa tài khoản
-  const handleDeactivateAccount = async (id, customerName) => {
-    const reason = prompt(`Vô hiệu hóa tài khoản "${customerName}"?\nVui lòng nhập lý do:`);
-    if (!reason) {
-      alert('Vui lòng nhập lý do vô hiệu hóa');
-      return;
-    }
-
-    if (window.confirm(`Xác nhận vô hiệu hóa tài khoản "${customerName}"?\nLý do: ${reason}`)) {
-      try {
-        await api.put(`/users/${id}/deactivate`, { reason });
-        fetchCustomersWithDetails();
-        alert('✅ Vô hiệu hóa tài khoản thành công!');
-      } catch (error) {
-        console.error('Lỗi khi vô hiệu hóa:', error);
-        alert('❌ Lỗi khi vô hiệu hóa tài khoản');
-      }
-    }
-  };
-
-  // ✅ Khóa/Mở khóa tài khoản với lý do rõ ràng
+  // Khóa/Mở khóa tài khoản
   const handleToggleLock = async (userId, currentLockStatus, customerName) => {
     const action = currentLockStatus ? 'mở khóa' : 'khóa';
     let reason = '';
@@ -312,15 +354,15 @@ const CustomerManagement = () => {
         });
         
         fetchCustomersWithDetails();
-        alert(`✅ ${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công!`);
+        alert(`${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản thành công!`);
       } catch (error) {
         console.error(`Lỗi khi ${action}:`, error);
-        alert(`❌ Lỗi khi ${action} tài khoản`);
+        alert(`Lỗi khi ${action} tài khoản: ` + (error.response?.data?.message || error.message));
       }
     }
   };
 
-  // ✅ Chỉ xem chi tiết, không cho sửa
+  // Xem chi tiết khách hàng
   const handleViewDetail = (customer) => {
     setSelectedCustomer(customer);
     setShowDetailModal(true);
@@ -328,6 +370,11 @@ const CustomerManagement = () => {
 
   const handleSearch = (value) => {
     setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status);
     setCurrentPage(1);
   };
 
@@ -380,15 +427,28 @@ const CustomerManagement = () => {
             onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
+        
+        {/* Filter theo trạng thái */}
+        <div className="filter-container">
+          <select 
+            value={statusFilter} 
+            onChange={(e) => handleStatusFilter(e.target.value)}
+            className="status-filter"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="locked">Đã khóa</option>
+          </select>
+        </div>
+        
         <div className="action-buttons">
-          {/* ✅ Bỏ nút thêm khách hàng - KH tự đăng ký */}
           <button className="btn-success" onClick={exportToExcel} disabled={loading}>
             {loading ? '⏳ Đang xuất...' : '📊 Xuất Excel'}
           </button>
         </div>
       </div>
 
-      {/* ✅ Modal xem chi tiết (chỉ đọc) - Bỏ giới tính và tuổi */}
+      {/* Modal xem chi tiết */}
       {showDetailModal && selectedCustomer && (
         <div className="modal-overlay">
           <div className="modal-box">
@@ -409,7 +469,7 @@ const CustomerManagement = () => {
                 </div>
                 <div className="detail-row">
                   <label>Địa chỉ:</label>
-                  <span>{selectedCustomer.address_detail?.full_address || 'Chưa cập nhật'}</span>
+                  <span>{getCustomerAddress(selectedCustomer)}</span>
                 </div>
                 <div className="detail-row">
                   <label>Loại tài khoản:</label>
@@ -421,11 +481,11 @@ const CustomerManagement = () => {
                 </div>
                 <div className="detail-row">
                   <label>Tổng đơn hàng:</label>
-                  <span>{selectedCustomer.total_orders || 0} đơn</span>
+                  <span>{getCustomerOrderCount(selectedCustomer)} đơn</span>
                 </div>
                 <div className="detail-row">
                   <label>Tổng chi tiêu:</label>
-                  <span className="currency">{formatCurrency(selectedCustomer.total_spent)}</span>
+                  <span className="currency">{formatCurrency(getCustomerTotalSpent(selectedCustomer))}</span>
                 </div>
                 <div className="detail-row">
                   <label>Ngày tạo:</label>
@@ -449,7 +509,7 @@ const CustomerManagement = () => {
         </div>
       )}
 
-      {/* Bảng danh sách - Bỏ cột giới tính và tuổi */}
+      {/* Bảng danh sách */}
       <div className="table-wrapper">
         {loading && <div className="loading-overlay">⏳ Đang tải...</div>}
         
@@ -476,19 +536,13 @@ const CustomerManagement = () => {
                   <td>{(currentPage - 1) * 20 + i + 1}</td>
                   <td>
                     <div className="customer-info">
-                      <img 
-                        src={c.display_avatar} 
-                        alt="avatar" 
-                        className="customer-avatar"
-                        onError={(e) => {e.target.src = '/default-avatar.png'}}
-                      />
                       <span>{c.name || 'Chưa cập nhật'}</span>
                     </div>
                   </td>
                   <td>{c.email || 'Chưa có'}</td>
                   <td>{c.phone || 'Chưa có'}</td>
                   <td className="address-cell">
-                    {c.address_detail?.full_address || 'Chưa cập nhật'}
+                    {getCustomerAddress(c)}
                   </td>
                   <td>
                     <span className={`provider-badge provider-${c.provider}`}>
@@ -497,8 +551,8 @@ const CustomerManagement = () => {
                        c.provider === 'facebook' ? '📘 Facebook' : '❓'}
                     </span>
                   </td>
-                  <td>{c.total_orders || 0} đơn</td>
-                  <td className="currency">{formatCurrency(c.total_spent)}</td>
+                  <td>{getCustomerOrderCount(c)} đơn</td>
+                  <td className="currency">{formatCurrency(getCustomerTotalSpent(c))}</td>
                   <td>{formatDate(c.created_at)}</td>
                   <td>
                     {c.is_lock ? (
@@ -508,7 +562,7 @@ const CustomerManagement = () => {
                     )}
                   </td>
                   <td className="actions-cell">
-                    {/* ✅ Chỉ xem chi tiết, không sửa */}
+                    {/* Xem chi tiết */}
                     <button 
                       className="btn-view"
                       onClick={() => handleViewDetail(c)}
@@ -517,7 +571,7 @@ const CustomerManagement = () => {
                       👁️
                     </button>
                     
-                    {/* ✅ Khóa/mở khóa với lý do */}
+                    {/* Khóa/mở khóa */}
                     <button 
                       className={c.is_lock ? "btn-unlock" : "btn-lock"}
                       onClick={() => handleToggleLock(c._id, c.is_lock, c.name)}
@@ -525,17 +579,6 @@ const CustomerManagement = () => {
                     >
                       {c.is_lock ? '🔓' : '🔒'}
                     </button>
-                    
-                    {/* ✅ Vô hiệu hóa thay vì xóa */}
-                    {!c.is_lock && (
-                      <button 
-                        className="btn-deactivate"
-                        onClick={() => handleDeactivateAccount(c._id, c.name)}
-                        title="Vô hiệu hóa tài khoản"
-                      >
-                        🚫
-                      </button>
-                    )}
                   </td>
                 </tr>
               ))

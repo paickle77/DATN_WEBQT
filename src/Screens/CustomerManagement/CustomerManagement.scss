@@ -233,6 +233,43 @@ $primary-background: #e0e7ff;
       }
     }
 
+    .filter-container {
+      display: flex;
+      align-items: center;
+      
+      .status-filter {
+        padding: 1rem 1.5rem;
+        border: 2px solid $border-color;
+        border-radius: 15px;
+        background: $bg-secondary;
+        color: $text-secondary;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 180px;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+          background: $bg-primary;
+          transform: translateY(-2px);
+        }
+
+        &:hover {
+          border-color: $primary-color;
+          background: $bg-primary;
+        }
+
+        option {
+          padding: 0.5rem;
+          background: $bg-primary;
+          color: $text-secondary;
+        }
+      }
+    }
+
     .action-buttons {
       display: flex;
       gap: 0.75rem;
