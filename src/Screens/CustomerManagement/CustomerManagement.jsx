@@ -81,12 +81,15 @@ const CustomerManagement = () => {
         search: searchTerm
       };
       
-      // Thêm filter theo trạng thái
+      // Thêm filter theo trạng thái - FIX: Chỉ thêm khi không phải 'all'
       if (statusFilter === 'active') {
         params.is_lock = false;
       } else if (statusFilter === 'locked') {
         params.is_lock = true;
       }
+      // Không thêm is_lock nếu statusFilter === 'all'
+      
+      console.log('🔍 API Params:', params); // Debug log
       
       const response = await api.get('/users/with-accounts', { params });
       
@@ -298,7 +301,7 @@ const CustomerManagement = () => {
       const summaryData = [
         ['THỐNG KÊ TỔNG QUAN', '', '', ''],
         ['Tổng số khách hàng:', allCustomers.length, 'Đang hoạt động:', allCustomers.filter(c => !c.is_lock).length],
-        ['Đã khóa:', allCustomers.filter(c => c.is_lock).length, 'Có đơn hàng:', allCustomers.filter(c => c.total_orders > 0).length],
+        ['Đã khóa:', allCustomers.filter(c => c.is_lock).length, 'Khách hàng có đơn hàng:', allCustomers.filter(c => c.total_orders > 0).length],
         ['Doanh thu tổng:', formatCurrency(allCustomers.reduce((sum, c) => sum + (c.total_spent || 0), 0)), '', '']
       ];
 
@@ -384,6 +387,27 @@ const CustomerManagement = () => {
       currency: 'VND'
     }).format(amount || 0);
   };
+
+  // Thêm client-side filtering nếu backend không hỗ trợ
+  const getFilteredCustomers = () => {
+    let filtered = customers;
+    
+    if (statusFilter === 'active') {
+      filtered = customers.filter(c => !c.is_lock);
+    } else if (statusFilter === 'locked') {
+      filtered = customers.filter(c => c.is_lock);
+    }
+    
+    console.log('🔍 Client Filter:', { 
+      statusFilter, 
+      originalCount: customers.length, 
+      filteredCount: filtered.length 
+    });
+    
+    return filtered;
+  };
+
+  const filteredCustomers = getFilteredCustomers();
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -530,8 +554,8 @@ const CustomerManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {customers.length > 0 ? (
-              customers.map((c, i) => (
+            {filteredCustomers.length > 0 ? (
+              filteredCustomers.map((c, i) => (
                 <tr key={c._id} className={c.is_lock ? 'locked-row' : ''}>
                   <td>{(currentPage - 1) * 20 + i + 1}</td>
                   <td>
@@ -585,7 +609,9 @@ const CustomerManagement = () => {
             ) : (
               <tr>
                 <td colSpan="11" className="empty-state">
-                  {loading ? '⏳ Đang tải dữ liệu...' : '📋 Không tìm thấy khách hàng nào'}
+                  {loading ? '⏳ Đang tải dữ liệu...' : 
+                   statusFilter !== 'all' ? `📋 Không tìm thấy khách hàng ${statusFilter === 'active' ? 'đang hoạt động' : 'đã khóa'} nào` :
+                   '📋 Không tìm thấy khách hàng nào'}
                 </td>
               </tr>
             )}
