@@ -23,13 +23,13 @@ const Sidebar = () => {
         <FaShoppingCart />
         <span>Quản lý đơn hàng</span>
       </div>
-      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.RefundManagement)}>
-        <FaUndo />
-        <span>Hoàn trả</span>
-      </div>
       <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ShipmentManagement)}>
         <FaTruck />
         <span>Quản lý giao hàng</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.RefundManagement)}>
+        <FaUndo />
+        <span>Quản lý hoàn tiền & hoàn hàng</span>
       </div>
       <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ShipperManagement)}>
         <FaUserTie />
@@ -55,10 +55,10 @@ const Sidebar = () => {
         <FaBell />
         <span>Quản lý thông báo</span>
       </div>
-      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.LogManagement)}>
+      {/* <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.LogManagement)}>
         <FaClipboardList />
         <span>Nhật ký kiểm toán</span>
-      </div>
+      </div> */}
       <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
         <FaChartPie />
         <span>Thống kê & Báo cáo</span>

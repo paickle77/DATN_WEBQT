@@ -14,19 +14,31 @@ import { ENUM_PAGE } from '../../component/ENUM/enum.ts';
 import StatusBadge from '../../component/StatusBadge.jsx';
 import BillDetailModal from '../../component/BillDetailModal.jsx';
 
-// 🎯 QUẢN LÝ CÁC TRẠNG THÁI TRƯỚC KHI GIAO HÀNG - BỎ CHỨC NĂNG HỦY
+// 🆕 THÊM TẤT CẢ TRẠNG THÁI BILLS
 const BILL_STATUS = {
   PENDING: 'pending',      
   CONFIRMED: 'confirmed',  
   READY: 'ready',         
-  CANCELLED: 'cancelled', // CHỈ HIỂN THỊ, KHÔNG CHO HỦY
+  SHIPPING: 'shipping',    // 🆕 THÊM
+  DONE: 'done',            // 🆕 THÊM  
+  FAILED: 'failed',        // 🆕 THÊM
+  CANCELLED: 'cancelled',
+  RETURNED: 'returned',    // 🆕 THÊM
+  REFUND_PENDING: 'refund_pending', // 🆕 THÊM
+  REFUNDED: 'refunded'     // 🆕 THÊM
 };
 
 const STATUS_LABELS = {
   [BILL_STATUS.PENDING]: 'Chờ xác nhận',
   [BILL_STATUS.CONFIRMED]: 'Đã xác nhận',
   [BILL_STATUS.READY]: 'Sẵn sàng giao',
+  [BILL_STATUS.SHIPPING]: 'Đang giao hàng',      // 🆕 THÊM
+  [BILL_STATUS.DONE]: 'Hoàn thành',              // 🆕 THÊM
+  [BILL_STATUS.FAILED]: 'Giao thất bại',         // 🆕 THÊM
   [BILL_STATUS.CANCELLED]: 'Đã hủy',
+  [BILL_STATUS.RETURNED]: 'Đã hoàn trả',         // 🆕 THÊM
+  [BILL_STATUS.REFUND_PENDING]: 'Chờ hoàn tiền', // 🆕 THÊM
+  [BILL_STATUS.REFUNDED]: 'Đã hoàn tiền'         // 🆕 THÊM
 };
 
 // 🔥 CẬP NHẬT LUỒNG CHUYỂN TRẠNG THÁI - BỎ CHỨC NĂNG HỦY
@@ -37,11 +49,18 @@ const ALLOWED_TRANSITIONS = {
   [BILL_STATUS.CANCELLED]: [], // Đơn đã hủy không thể thay đổi
 };
 
+// 🆕 THÊM MÀU CHO TẤT CẢ TRẠNG THÁI
 const STATUS_COLORS = {
-  [BILL_STATUS.PENDING]: '#f59e0b',      
-  [BILL_STATUS.CONFIRMED]: '#3b82f6',    
-  [BILL_STATUS.READY]: '#8b5cf6',        
-  [BILL_STATUS.CANCELLED]: '#ef4444',    
+  [BILL_STATUS.PENDING]: '#f59e0b',           // Vàng - chờ xác nhận
+  [BILL_STATUS.CONFIRMED]: '#3b82f6',         // Xanh dương - đã xác nhận  
+  [BILL_STATUS.READY]: '#8b5cf6',             // Tím - sẵn sàng giao
+  [BILL_STATUS.SHIPPING]: '#06b6d4',          // 🆕 Cyan - đang giao hàng
+  [BILL_STATUS.DONE]: '#10b981',              // 🆕 Xanh lá - hoàn thành
+  [BILL_STATUS.FAILED]: '#ef4444',            // 🆕 Đỏ - giao thất bại
+  [BILL_STATUS.CANCELLED]: '#6b7280',         // Xám - đã hủy
+  [BILL_STATUS.RETURNED]: '#f97316',          // 🆕 Cam - đã hoàn trả
+  [BILL_STATUS.REFUND_PENDING]: '#eab308',    // 🆕 Vàng đậm - chờ hoàn tiền
+  [BILL_STATUS.REFUNDED]: '#84cc16'           // 🆕 Xanh lá nhạt - đã hoàn tiền
 };
 
 // 🔐 USER ROLE FUNCTIONS
@@ -156,41 +175,39 @@ const BillManagement = () => {
   };
 
   function fetchAll() {
-    console.log('📊 Starting fetchAll...');
+    console.log('🔊 Starting fetchAll...');
     setLoading(true);
     setError(null);
     
-    // 🔥 CHỈ FETCH ENRICHED BILLS
-    api.get('/GetAllBills?enrich=true')
-       .then((billsRes) => {
-         console.log('📊 API Results:');
-         console.log('📋 Bills:', billsRes.data.data?.length || 0);
-         
-         const billData = billsRes.data.data || [];
-         
-         console.log('🔍 Sample bill data:', billData[0]);
-         
-         const managementBills = billData.filter(bill => 
-           ['pending', 'confirmed', 'ready', 'cancelled'].includes(bill.status)
-         );
-         
-         setBills(managementBills);
+    api.get('/bills/enhanced?enrich=true')
+      .then((billsRes) => {
+        console.log('🔊 API Results:');
+        console.log('📋 Bills:', billsRes.data.data?.length || 0);
+        
+        const billData = billsRes.data.data || [];
+        
+        // 🔥 CHỈ HIỂN THỊ CÁC TRẠNG THÁI QUẢN LÝ ĐƠN HÀNG BAN ĐẦU
+        const managementBills = billData.filter(bill => 
+          [BILL_STATUS.PENDING, BILL_STATUS.CONFIRMED, BILL_STATUS.READY].includes(bill.status)
+        );
+        
+        setBills(managementBills);
+        
+        const existingLogs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
+        setActionHistory(existingLogs);
 
-         const existingLogs = JSON.parse(localStorage.getItem('bill_action_logs') || '[]');
-         setActionHistory(existingLogs);
+        if (!billsRes.data.success) {
+          setError('Không thể tải danh sách hóa đơn');
+          console.error('❌ Bills API failed');
+        }
 
-         if (!billsRes.data.success) {
-           setError('Không thể tải danh sách hóa đơn');
-           console.error('❌ Bills API failed');
-         }
-
-         setLoading(false);
-       }).catch(error => {
-         console.error('❌ fetchAll error:', error);
-         if (handleAuthError(error)) return;
-         setError('Lỗi khi tải dữ liệu: ' + (error.response?.data?.msg || error.message));
-         setLoading(false);
-       });
+        setLoading(false);
+      }).catch(error => {
+        console.error('❌ fetchAll error:', error);
+        if (handleAuthError(error)) return;
+        setError('Lỗi khi tải dữ liệu: ' + (error.response?.data?.msg || error.message));
+        setLoading(false);
+      });
   }
 
   // 🔥 SỬ DỤNG DỮ LIỆU TỪ ENRICHED API - KHÔNG CẦN LOOKUP
@@ -1071,14 +1088,6 @@ function hexToRgb(hex) {
           <div className="stat-content">
             <span className="stat-number">{bills.filter(b => b.status === BILL_STATUS.READY).length}</span>
             <span className="stat-label">Sẵn sàng giao</span>
-          </div>
-        </div>
-        
-        <div className="stat-card cancelled">
-          <div className="stat-icon">❌</div>
-          <div className="stat-content">
-            <span className="stat-number">{bills.filter(b => b.status === BILL_STATUS.CANCELLED).length}</span>
-            <span className="stat-label">Đã hủy</span>
           </div>
         </div>
       </div>
