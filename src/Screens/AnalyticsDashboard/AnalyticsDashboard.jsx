@@ -1283,13 +1283,13 @@ const AnalyticsDashboard = () => {
           <div className="kpi-grid">
             {[
               {
-                title: 'Tổng doanh thu (đơn done)',
+                title: 'Tổng doanh thu (đơn hoàn thành)',
                 value: formatCurrency(analytics.totalRevenue),
                 icon: '💰',
                 color: 'green',
               },
               {
-                title: 'Số đơn hoàn thành (done)',
+                title: 'Số đơn hoàn thành (hoàn thành)',
                 value: analytics.totalOrders,
                 icon: '📦',
                 color: 'blue',
@@ -1301,7 +1301,7 @@ const AnalyticsDashboard = () => {
                 color: 'purple',
               },
               {
-                title: 'Giá trị trung bình/đơn (done)',
+                title: 'Giá trị trung bình/đơn (hoàn thành)',
                 value: formatCurrency(analytics.avgOrderValue),
                 icon: '📊',
                 color: 'orange',
@@ -1321,81 +1321,6 @@ const AnalyticsDashboard = () => {
             ))}
           </div>
 
-          <div className="charts-grid">
-            <div className="revenue-chart">
-              <h3>💰 Doanh thu theo ngày</h3>
-              {Object.keys(analytics.dailyRevenue).length === 0 ? (
-                <div className="no-data">
-                  <p>📊 Chưa có dữ liệu doanh thu</p>
-                </div>
-              ) : (
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Ngày</th>
-                        <th>Doanh thu</th>
-                        <th>Số đơn</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(analytics.dailyRevenue)
-                        .sort(([a], [b]) => new Date(b) - new Date(a))
-                        .slice(0, 10)
-                        .map(([date, revenue]) => (
-                          <tr key={date}>
-                            <td>{new Date(date).toLocaleDateString('vi-VN')}</td>
-                            <td className="revenue">{formatCurrency(revenue)}</td>
-                            <td className="orders">{analytics.dailyOrders[date] || 0} đơn</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="status-chart">
-              <h3>📊 Tình trạng đơn hàng</h3>
-              <div className="status-stats">
-                <div className="stat-group">
-                  <h4>✅ Hoàn thành</h4>
-                  <p>{analytics.completedOrders} đơn ({((analytics.completedOrders / (analytics.detailedStats?.totalBillsInRange || 1)) * 100).toFixed(1)}%)</p>
-                </div>
-                <div className="stat-group">
-                  <h4>⏳ Đang xử lý</h4>
-                  <p>{analytics.pendingOrders} đơn</p>
-                </div>
-                <div className="stat-group">
-                  <h4>❌ Đã hủy</h4>
-                  <p>{analytics.cancelledOrders} đơn ({analytics.cancellationRate.toFixed(1)}%)</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="quick-stats">
-            <div className="stat-group">
-              <h4>🕒 Thời gian</h4>
-              <p>Giờ bán chạy: {analytics.bestSellingHour}:00</p>
-            </div>
-            <div className="stat-group">
-              <h4>👥 Khách hàng</h4>
-              <p>Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%</p>
-            </div>
-            <div className="stat-group">
-              <h4>🧁 Sản phẩm</h4>
-              <p>Đã bán: {analytics.totalProductsSold} sản phẩm</p>
-              <p>Loại khác nhau: {analytics.topProducts.length} SKU</p>
-            </div>
-            <div className="stat-group">
-              <h4>💰 Chi phí & Lợi nhuận</h4>
-              <p>Giá nhập hàng: {formatCurrency(analytics.totalCostPrice || 0)}</p>
-              <p>Chi phí shipper: {formatCurrency(analytics.totalShipperCost || 0)}</p>
-              <p>Lợi nhuận thực tế: {formatCurrency(analytics.actualProfit || 0)}</p>
-            </div>
-          </div>
-
           {/* Thêm section thống kê shipper */}
           {analytics.shipperStats && analytics.shipperStats.length > 0 && (
             <div className="shipper-stats-section">
@@ -1411,11 +1336,6 @@ const AnalyticsDashboard = () => {
                     <h4>🚛 Số shipper hoạt động</h4>
                     <p className="big-number">{analytics.shipperStats.length}</p>
                     <small>Có đơn hoàn thành</small>
-                  </div>
-                  <div className="summary-card">
-                    <h4>💎 Lợi nhuận thực tế</h4>
-                    <p className="big-number">{formatCurrency(analytics.actualProfit || 0)}</p>
-                    <small>Doanh thu - giá nhập - chi phí shipper</small>
                   </div>
                 </div>
               </div>
@@ -1502,6 +1422,10 @@ const AnalyticsDashboard = () => {
                   <span className="value orange">{formatCurrency(analytics.totalCostPrice || 0)}</span>
                 </div>
                 <div className="stat-item">
+                  <label>Chi phí shipper:</label>
+                  <span className="value red">{formatCurrency(analytics.totalShipperCost || 0)}</span>
+                </div>
+                <div className="stat-item">
                   <label>Lợi nhuận thực tế:</label>
                   <span className="value success">{formatCurrency(analytics.actualProfit || 0)}</span>
                 </div>
@@ -1556,7 +1480,7 @@ const AnalyticsDashboard = () => {
       {activeTab === 'customers' && (
         <div className="customers-section">
           <div className="section-header">
-            <h3>🏆 Khách hàng VIP (thông tin đầy đủ + chỉ tính đơn done)</h3>
+            <h3>🏆 Khách hàng VIP (thông tin đầy đủ + chỉ tính đơn hoàn thành)</h3>
             <div className="stats-summary">
               Tổng: {analytics.topCustomers.length} khách hàng • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}% • Chỉ tính doanh thu từ đơn hoàn thành
             </div>
@@ -1768,17 +1692,7 @@ const AnalyticsDashboard = () => {
                 { 
                   label: 'Khách trung thành', 
                   value: analytics.topCustomers.filter(c => c.orderCount > 1).length,
-                  description: `Có >1 đơn done trong khoảng thời gian`
-                },
-                { 
-                  label: 'Sản phẩm khác nhau', 
-                  value: analytics.topProducts.length,
-                  description: `SKU đã bán trong period`
-                },
-                { 
-                  label: 'Users có data', 
-                  value: rawData.users.length,
-                  description: `Khách hàng trong hệ thống`
+                  description: `Có >1 đơn hoàn thành trong khoảng thời gian`
                 },
               ].map((item, i) => (
                 <div key={i} className="summary-item">
