@@ -148,6 +148,14 @@ const AnalyticsDashboard = () => {
     });
 
     console.log('🔍 Filtered bills count:', filteredBills.length);
+    console.log('🔍 Sample filtered bills:', filteredBills.slice(0, 3).map(b => ({
+      id: b._id,
+      status: b.status,
+      user_id: b.user_id,
+      Account_id: b.Account_id,
+      total: b.total,
+      created_at: b.created_at
+    })));
 
     // Group by status
     const byStatus = {
@@ -168,12 +176,29 @@ const AnalyticsDashboard = () => {
       else if (['pending','confirmed','ready','shipping'].includes(st)) byStatus[st].push(b);
     }
 
+    console.log('🔍 Bills by status:', {
+      done: byStatus.done.length,
+      cancelled: byStatus.cancelled.length,
+      failed: byStatus.failed.length,
+      pending: byStatus.pending.length,
+      confirmed: byStatus.confirmed.length,
+      ready: byStatus.ready.length,
+      shipping: byStatus.shipping.length
+    });
+
     const completedBills = byStatus.done;
     const cancelledCount = byStatus.cancelled.length + byStatus.failed.length;
     const pendingCount = byStatus.pending.length + byStatus.confirmed.length + byStatus.ready.length + byStatus.shipping.length;
     const totalInRange = filteredBills.length;
 
     console.log('🔍 Completed bills count:', completedBills.length);
+    console.log('🔍 Sample completed bills:', completedBills.slice(0, 2).map(b => ({
+      id: b._id,
+      user_id: b.user_id,
+      Account_id: b.Account_id,
+      total: b.total,
+      status: b.status
+    })));
 
     // Revenue calculation (only from completed orders)
     const completedRevenue = completedBills.reduce((sum, b) => {
@@ -183,30 +208,91 @@ const AnalyticsDashboard = () => {
 
     const totalOrders = completedBills.length;
 
-    // 🔥 TOP CUSTOMERS - SỬ DỤNG LOGIC TỪ CUSTOMERMANAGEMENT.JSX
-    console.log('🔍 Processing top customers from users data:', users.length);
+    // 🔥 TOP CUSTOMERS - VỪa GIỮ THÔNG TIN KHÁCH HÀNG VỪA CHỈ TÍNH ĐƠN DONE
+    console.log('🔍 Processing customers: showing all but only counting done orders...');
     
-    const topCustomers = users
-      .filter(user => {
-        // Chỉ lấy khách hàng có đơn hàng và chi tiêu > 0
-        const orderCount = getCustomerOrderCount(user);
-        const totalSpent = getCustomerTotalSpent(user);
-        return orderCount > 0 && totalSpent > 0;
+    // Bước 1: Nhóm đơn done theo user_id
+    const customerStatsFromDoneBills = {};
+    
+    for (const bill of completedBills) {
+      const userId = String(bill.user_id || bill.Account_id || '').trim();
+      if (!userId || userId === '' || userId === 'undefined' || userId === 'null') continue;
+      
+      const billTotal = parseFloat(bill?.total) || 0;
+      if (billTotal <= 0) continue;
+      
+      if (!customerStatsFromDoneBills[userId]) {
+        customerStatsFromDoneBills[userId] = {
+          orderCount: 0,
+          totalSpent: 0,
+          orders: []
+        };
+      }
+      
+      customerStatsFromDoneBills[userId].orderCount += 1;
+      customerStatsFromDoneBills[userId].totalSpent += billTotal;
+      customerStatsFromDoneBills[userId].orders.push(bill);
+    }
+    
+    console.log('🔍 Customer stats from done bills:', Object.keys(customerStatsFromDoneBills).length);
+    console.log('🔍 Sample customer stats:', Object.entries(customerStatsFromDoneBills).slice(0, 2));
+    console.log('🔍 Sample users from API:', users.slice(0, 2).map(u => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      total_orders: u.total_orders,
+      total_spent: u.total_spent
+    })));
+    
+    // Bước 2: Lấy TẤT CẢ khách hàng từ users array, nhưng chỉ tính đơn done
+    let topCustomers = users
+      .map(user => {
+        // 🔥 TÌM KIẾM THEO CẢ _id VÀ ACCOUNT_ID
+        const userId = String(user._id);
+        const accountId = String(user.account_id || ''); // Nếu có field account_id
+        
+        // Tìm stats theo cả 2 cách
+        const doneStats = customerStatsFromDoneBills[userId] || 
+                         customerStatsFromDoneBills[accountId] || 
+                         {
+                           orderCount: 0,
+                           totalSpent: 0,
+                           orders: []
+                         };
+        
+        return {
+          _id: user._id,
+          name: user.name || 'Khách hàng không rõ',
+          email: user.email || 'Email chưa cập nhật', 
+          phone: user.phone || 'SĐT chưa cập nhật',
+          orderCount: doneStats.orderCount, // CHỈ đơn done
+          totalSpent: doneStats.totalSpent, // CHỈ từ đơn done  
+          avgOrderValue: doneStats.orderCount > 0 ? doneStats.totalSpent / doneStats.orderCount : 0,
+          address: getCustomerAddress(user),
+          lastOrderDate: doneStats.orders.length > 0 ? 
+            new Date(Math.max(...doneStats.orders.map(o => new Date(o.created_at).getTime()))) : null,
+          // Thêm thông tin tổng từ API gốc để tham khảo
+          totalOrdersAllTime: getCustomerOrderCount(user), // Tất cả đơn
+          totalSpentAllTime: getCustomerTotalSpent(user)    // Tất cả đơn
+        };
+      });
+    
+    // 🔥 CHỈ LẤY KHÁCH HÀNG THẬT CÓ TRONG DATABASE
+    
+    // Filter và sort - CHỈ hiển thị khách hàng có đơn done
+    topCustomers = topCustomers
+      .filter(customer => customer.orderCount > 0) // CHỈ khách có đơn done
+      .sort((a, b) => {
+        // Ưu tiên theo số đơn done, sau đó theo chi tiêu done
+        if (a.orderCount !== b.orderCount) {
+          return b.orderCount - a.orderCount;
+        }
+        return b.totalSpent - a.totalSpent;
       })
-      .map(user => ({
-        _id: user._id,
-        name: user.name || 'Khách hàng không rõ',
-        email: user.email || 'Email chưa cập nhật',
-        phone: user.phone || 'SĐT chưa cập nhật',
-        orderCount: getCustomerOrderCount(user),
-        totalSpent: getCustomerTotalSpent(user),
-        avgOrderValue: getCustomerOrderCount(user) > 0 ? getCustomerTotalSpent(user) / getCustomerOrderCount(user) : 0,
-        address: getCustomerAddress(user)
-      }))
-      .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 20);
 
-    console.log('🔍 Top customers processed:', topCustomers.length);
+    console.log('🔍 Top customers with done orders only:', topCustomers.length);
 
     // 🔥 TOP PRODUCTS - SỬ DỤNG LOGIC TỪ BILLMANAGEMENT.JSX
     console.log('🔍 Processing top products from bills items...');
@@ -378,9 +464,9 @@ const AnalyticsDashboard = () => {
       kpiSheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(2)}%`]);
       kpiSheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold]);
       
-      // 👥 Sheet 2: Top Customers
+      // 👥 Sheet 2: Top Customers với thông tin đầy đủ
       const customersSheet = workbook.addWorksheet('Top khách hàng');
-      customersSheet.addRow(['#', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Số đơn', 'Tổng chi tiêu', 'TB/đơn']);
+      customersSheet.addRow(['#', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn done', 'Chi tiêu done', 'TB/đơn done', 'Tổng đơn', 'Tổng chi tiêu']);
       analytics.topCustomers.forEach((customer, index) => {
         customersSheet.addRow([
           index + 1,
@@ -389,7 +475,9 @@ const AnalyticsDashboard = () => {
           customer.phone,
           customer.orderCount,
           customer.totalSpent,
-          customer.avgOrderValue
+          customer.avgOrderValue,
+          customer.totalOrdersAllTime || 0,
+          customer.totalSpentAllTime || 0
         ]);
       });
       
@@ -763,9 +851,9 @@ const AnalyticsDashboard = () => {
       {activeTab === 'customers' && (
         <div className="customers-section">
           <div className="section-header">
-            <h3>🏆 Khách hàng VIP</h3>
+            <h3>🏆 Khách hàng VIP (thông tin đầy đủ + chỉ tính đơn done)</h3>
             <div className="stats-summary">
-              Tổng: {analytics.topCustomers.length} khách VIP • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%
+              Tổng: {analytics.topCustomers.length} khách hàng • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}% • Chỉ tính doanh thu từ đơn hoàn thành
             </div>
           </div>
           
@@ -773,11 +861,11 @@ const AnalyticsDashboard = () => {
             <div className="no-data">
               <p>👥 Chưa có dữ liệu khách hàng</p>
               <div className="help-text">
-                <p>🔧 Đã sử dụng API /users/with-accounts như CustomerManagement.jsx</p>
+                <p>🔧 Hiển thị tất cả khách hàng + chỉ tính doanh thu từ đơn done</p>
                 <p>🔍 Debug: Kiểm tra dữ liệu trong console</p>
                 <ul>
+                  <li>Completed bills: {analytics.completedOrders}</li>
                   <li>Users fetched: {rawData.users.length}</li>
-                  <li>Bills fetched: {rawData.bills.length}</li>
                   <li>Date range: {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}</li>
                 </ul>
               </div>
@@ -789,9 +877,10 @@ const AnalyticsDashboard = () => {
                   <tr>
                     <th>Khách hàng</th>
                     <th>Liên hệ</th>
-                    <th>Số đơn</th>
-                    <th>Tổng chi tiêu</th>
-                    <th>TB/đơn</th>
+                    <th>Đơn done 🎯</th>
+                    <th>Chi tiêu done 💰</th>
+                    <th>TB/đơn done</th>
+                    <th>Tổng đơn 📊</th>
                     <th>Loại khách</th>
                   </tr>
                 </thead>
@@ -806,12 +895,22 @@ const AnalyticsDashboard = () => {
                         <div className="email">{customer.email}</div>
                         <div className="phone">{customer.phone}</div>
                       </td>
-                      <td className="orders">{customer.orderCount} đơn</td>
-                      <td className="spent">{formatCurrency(customer.totalSpent)}</td>
-                      <td>{formatCurrency(customer.avgOrderValue)}</td>
+                      <td className="orders" title="Chỉ đơn hoàn thành trong khoảng thời gian">
+                        {customer.orderCount} đơn
+                      </td>
+                      <td className="spent" title="Chỉ doanh thu từ đơn hoàn thành">
+                        {formatCurrency(customer.totalSpent)}
+                      </td>
+                      <td title="Giá trị trung bình đơn hoàn thành">
+                        {formatCurrency(customer.avgOrderValue)}
+                      </td>
+                      <td className="total-info" title="Tổng tất cả đơn hàng (tham khảo)">
+                        <div>{customer.totalOrdersAllTime || 0} đơn</div>
+                        <small>{formatCurrency(customer.totalSpentAllTime || 0)}</small>
+                      </td>
                       <td>
                         <span className={`badge ${customer.orderCount >= 5 ? 'vip' : customer.orderCount >= 2 ? 'regular' : 'new'}`}>
-                          {customer.orderCount >= 5 ? '👑 VIP' : customer.orderCount >= 3 ? '⭐ Thân thiết' : customer.orderCount >= 2 ? '💎 Trung thành' : '🆕 Mới'}
+                          {customer.orderCount >= 5 ? '👑 VIP' : customer.orderCount >= 3 ? '⭐ Thân thiết' : customer.orderCount >= 2 ? '💎 Trung thành' : customer.orderCount === 0 ? '😴 Chưa mua' : '🆕 Mới'}
                         </span>
                       </td>
                     </tr>
