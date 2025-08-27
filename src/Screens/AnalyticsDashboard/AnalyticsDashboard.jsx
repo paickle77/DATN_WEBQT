@@ -14,6 +14,48 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+// 🔥 LOGIC TÍNH GIÁ SẢN PHẨM GIỐNG BILLMANAGEMENT.JSX
+const getItemPrice = (item) => {
+  const priceFields = ['unitPrice', 'unit_price', 'price', 'itemPrice', 'productPrice'];
+  
+  for (const field of priceFields) {
+    if (item[field] && Number(item[field]) > 0) {
+      return Number(item[field]);
+    }
+  }
+  
+  if (item.total && item.quantity && Number(item.quantity) > 0) {
+    return Number(item.total) / Number(item.quantity);
+  }
+  
+  return 0;
+};
+
+// 🔥 LOGIC LẤY THÔNG TIN KHÁCH HÀNG GIỐNG CUSTOMERMANAGEMENT.JSX  
+const getCustomerAddress = (customer) => {
+  if (customer.address_detail && customer.address_detail.full_address) {
+    return customer.address_detail.full_address;
+  }
+  
+  if (customer.address_detail) {
+    const { street, ward, district, city } = customer.address_detail;
+    const parts = [street, ward, district, city].filter(part => part && part.trim() !== '');
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+  }
+  
+  return 'Chưa cập nhật địa chỉ';
+};
+
+const getCustomerOrderCount = (customer) => {
+  return customer.total_orders || 0;
+};
+
+const getCustomerTotalSpent = (customer) => {
+  return customer.total_spent || 0;
+};
+
 // ───────────────────────────── Component ─────────────────────────────
 const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -24,8 +66,7 @@ const AnalyticsDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rawData, setRawData] = useState({
     bills: [],
-    billDetails: [],
-    users: [],
+    users: [], // 🔥 SỬ DỤNG ENDPOINT /users/with-accounts
     products: [],
   });
   const [timeFilter, setTimeFilter] = useState('month');
@@ -55,28 +96,29 @@ const AnalyticsDashboard = () => {
     },
   });
 
-  // ── Fetch Data
+  // ── Fetch Data 🔥 SỬ DỤNG ĐÚNG API ENDPOINTS
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [billsRes, billDetailsRes, usersRes, productsRes] = await Promise.all([
-        api.get('/bills'),
-        api.get('/billdetails'), 
-        api.get('/users'),
+      const [billsRes, usersRes, productsRes] = await Promise.all([
+        api.get('/bills/enhanced?enrich=true'), // 🔥 SỬ DỤNG ENHANCED API GIỐNG BILLMANAGEMENT
+        api.get('/users/with-accounts', { params: { limit: 1000 } }), // 🔥 SỬ DỤNG API GIỐNG CUSTOMERMANAGEMENT
         api.get('/products')
       ]);
-      
+
+      console.log('🔍 Bills response:', billsRes?.data?.data?.length || 0);
+      console.log('🔍 Users response:', usersRes?.data?.data?.customers?.length || 0);
+      console.log('🔍 Products response:', productsRes?.data?.data?.length || 0);
+
       setRawData({
         bills: billsRes?.data?.data ?? [],
-        billDetails: billDetailsRes?.data?.data ?? [],
-        users: usersRes?.data?.data ?? [],
+        users: usersRes?.data?.data?.customers ?? [], // 🔥 LẤY ĐÚNG MẢNG CUSTOMERS
         products: productsRes?.data?.data ?? [],
       });
     } catch (err) {
       console.error('Error fetching data:', err);
       setRawData({ 
         bills: [], 
-        billDetails: [], 
         users: [], 
         products: [],
       });
@@ -91,7 +133,7 @@ const AnalyticsDashboard = () => {
 
   // ───────────────────────────── Analytics Calculation ─────────────────────────────
   const analytics = useMemo(() => {
-    const { bills, users, billDetails, products } = rawData;
+    const { bills, users, products } = rawData;
 
     if (!Array.isArray(bills) || bills.length === 0) return getEmptyAnalytics();
 
@@ -104,6 +146,8 @@ const AnalyticsDashboard = () => {
       const d = new Date(b.created_at);
       return !isNaN(d) && d >= from && d <= to;
     });
+
+    console.log('🔍 Filtered bills count:', filteredBills.length);
 
     // Group by status
     const byStatus = {
@@ -129,6 +173,8 @@ const AnalyticsDashboard = () => {
     const pendingCount = byStatus.pending.length + byStatus.confirmed.length + byStatus.ready.length + byStatus.shipping.length;
     const totalInRange = filteredBills.length;
 
+    console.log('🔍 Completed bills count:', completedBills.length);
+
     // Revenue calculation (only from completed orders)
     const completedRevenue = completedBills.reduce((sum, b) => {
       const val = parseFloat(b?.total) || 0;
@@ -137,60 +183,95 @@ const AnalyticsDashboard = () => {
 
     const totalOrders = completedBills.length;
 
-    // Unique customers with completed orders
+    // 🔥 TOP CUSTOMERS - SỬ DỤNG LOGIC TỪ CUSTOMERMANAGEMENT.JSX
+    console.log('🔍 Processing top customers from users data:', users.length);
+    
+    const topCustomers = users
+      .filter(user => {
+        // Chỉ lấy khách hàng có đơn hàng và chi tiêu > 0
+        const orderCount = getCustomerOrderCount(user);
+        const totalSpent = getCustomerTotalSpent(user);
+        return orderCount > 0 && totalSpent > 0;
+      })
+      .map(user => ({
+        _id: user._id,
+        name: user.name || 'Khách hàng không rõ',
+        email: user.email || 'Email chưa cập nhật',
+        phone: user.phone || 'SĐT chưa cập nhật',
+        orderCount: getCustomerOrderCount(user),
+        totalSpent: getCustomerTotalSpent(user),
+        avgOrderValue: getCustomerOrderCount(user) > 0 ? getCustomerTotalSpent(user) / getCustomerOrderCount(user) : 0,
+        address: getCustomerAddress(user)
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 20);
+
+    console.log('🔍 Top customers processed:', topCustomers.length);
+
+    // 🔥 TOP PRODUCTS - SỬ DỤNG LOGIC TỪ BILLMANAGEMENT.JSX
+    console.log('🔍 Processing top products from bills items...');
+    
+    const productStats = {};
+    
+    for (const bill of completedBills) {
+      if (!bill.items || !Array.isArray(bill.items)) continue;
+      
+      for (const item of bill.items) {
+        const productId = item.product_id;
+        if (!productId) continue;
+        
+        const itemPrice = getItemPrice(item);
+        const quantity = Number(item.quantity) || 0;
+        const itemTotal = itemPrice * quantity;
+        
+        if (!productStats[productId]) {
+          productStats[productId] = {
+            totalQuantity: 0,
+            totalRevenue: 0,
+            orderCount: 0,
+            avgPrice: 0
+          };
+        }
+        
+        productStats[productId].totalQuantity += quantity;
+        productStats[productId].totalRevenue += itemTotal;
+        productStats[productId].orderCount += 1;
+      }
+    }
+    
+    // Calculate average price for each product
+    Object.keys(productStats).forEach(productId => {
+      const stats = productStats[productId];
+      stats.avgPrice = stats.totalQuantity > 0 ? stats.totalRevenue / stats.totalQuantity : 0;
+    });
+    
+    console.log('🔍 Product stats calculated:', Object.keys(productStats).length);
+    
+    const topProducts = Object.entries(productStats)
+      .map(([productId, stats]) => {
+        const product = products.find(p => String(p._id) === String(productId));
+        return {
+          _id: productId,
+          name: product?.name || `Sản phẩm #${productId.slice(-6)}`,
+          image: product?.image || '',
+          category: product?.category_id || product?.category || 'Chưa phân loại',
+          ...stats
+        };
+      })
+      .sort((a, b) => b.totalQuantity - a.totalQuantity)
+      .slice(0, 10);
+
+    console.log('🔍 Top products processed:', topProducts.length);
+
+    // Unique customers with completed orders (từ bills thực tế)
     const uniqueCustomerIds = Array.from(new Set(
       completedBills
-        .map(b => String(b.Account_id || '').trim())
+        .map(b => String(b.user_id || b.Account_id || '').trim())
         .filter(id => id && id !== '' && id !== 'undefined' && id !== 'null')
     ));
     const totalCustomers = uniqueCustomerIds.length;
 
     const avgOrderValue = totalOrders > 0 ? (completedRevenue / totalOrders) : 0;
-
-    // Customer statistics
-    const userIndex = new Map((users || []).map(u => [String(u._id), u]));
-    
-    const customerStats = {};
-    for (const b of completedBills) {
-      const uid = String(b.Account_id || '');
-      if (!uid) continue;
-      const amount = parseFloat(b.total) || 0;
-
-      if (!customerStats[uid]) {
-        customerStats[uid] = {
-          orders: 0,
-          spent: 0,
-          firstOrder: b.created_at,
-          lastOrder: b.created_at,
-        };
-      }
-      customerStats[uid].orders += 1;
-      customerStats[uid].spent += amount;
-
-      if (new Date(b.created_at) < new Date(customerStats[uid].firstOrder)) {
-        customerStats[uid].firstOrder = b.created_at;
-      }
-      if (new Date(b.created_at) > new Date(customerStats[uid].lastOrder)) {
-        customerStats[uid].lastOrder = b.created_at;
-      }
-    }
-
-    // Top customers
-    const topCustomers = Object.entries(customerStats)
-      .map(([userId, stats]) => {
-        const user = userIndex.get(userId);
-        return {
-          user: {
-            _id: userId,
-            name: user?.name || user?.username || `Khách #${userId.slice(-6)}`,
-            email: user?.email || 'Email chưa cập nhật',
-            phone: user?.phone || user?.phoneNumber || 'SĐT chưa cập nhật',
-          },
-          ...stats
-        };
-      })
-      .sort((a, b) => b.spent - a.spent)
-      .slice(0, 20);
 
     // Daily revenue and orders
     const dailyRevenue = completedBills.reduce((acc, b) => {
@@ -214,37 +295,19 @@ const AnalyticsDashboard = () => {
     const bestSellingHour = Object.entries(hourlyOrders).sort((a,b)=>b[1]-a[1])[0]?.[0] || '12';
 
     // Customer retention
-    const repeatCustomers = Object.values(customerStats).filter(c => c.orders > 1).length;
+    const customerStats = {};
+    for (const b of completedBills) {
+      const uid = String(b.user_id || b.Account_id || '');
+      if (!uid) continue;
+      customerStats[uid] = (customerStats[uid] || 0) + 1;
+    }
+    
+    const repeatCustomers = Object.values(customerStats).filter(count => count > 1).length;
     const customerRetention = totalCustomers ? (repeatCustomers / totalCustomers) * 100 : 0;
 
     const cancellationRate = totalInRange ? (cancelledCount / totalInRange) * 100 : 0;
 
-    // Product statistics
-    const validDetails = (billDetails || []).filter(d => d && d.quantity > 0 && d.price >= 0);
-    const productStats = validDetails.reduce((acc, d) => {
-      const pid = String(d.product_id || '');
-      if (!pid) return acc;
-      if (!acc[pid]) acc[pid] = { sold: 0, revenue: 0 };
-      acc[pid].sold += Number(d.quantity) || 0;
-      acc[pid].revenue += (Number(d.quantity) || 0) * (Number(d.price) || 0);
-      return acc;
-    }, {});
-    
-    const topProducts = Object.entries(productStats)
-      .map(([productId, stats]) => {
-        const p = (products || []).find(pp => String(pp._id) === productId);
-        return {
-          product: {
-            _id: productId,
-            name: p?.name || `Sản phẩm #${productId.slice(-6)}`,
-            category: p?.category || 'Chưa phân loại',
-            price: p?.price || 0
-          },
-          ...stats
-        };
-      })
-      .sort((a,b)=>b.sold-a.sold)
-      .slice(0,10);
+    const totalProductsSold = Object.values(productStats).reduce((sum, p) => sum + p.totalQuantity, 0);
 
     return {
       totalRevenue: completedRevenue,
@@ -268,7 +331,7 @@ const AnalyticsDashboard = () => {
         shipping: byStatus.shipping.length,
         total: totalInRange
       },
-      totalProductsSold: Object.values(productStats).reduce((s,p)=>s + p.sold,0),
+      totalProductsSold,
       avgCustomerValue: totalCustomers ? completedRevenue / totalCustomers : 0,
       completedOrders: completedBills.length,
       cancelledOrders: cancelledCount,
@@ -286,7 +349,7 @@ const AnalyticsDashboard = () => {
         completedRevenue: completedRevenue,
         averageCompletedOrderValue: avgOrderValue,
         totalCustomersWithCompletedOrders: totalCustomers,
-        totalProductsSoldCompleted: Object.values(productStats).reduce((s,p)=>s + p.sold,0),
+        totalProductsSoldCompleted: totalProductsSold,
         cancellationRate,
         completionRate: totalInRange ? (completedBills.length / totalInRange) * 100 : 0
       }
@@ -296,10 +359,90 @@ const AnalyticsDashboard = () => {
   // ── Export Excel Functions
   const exportToExcel = async () => {
     try {
-      alert('Tính năng xuất Excel sẽ được thêm sau khi cài đặt các package cần thiết');
+      // 🔥 SỬ DỤNG EXCELJS GIỐNG CUSTOMERMANAGEMENT.JSX
+      const ExcelJS = (await import('exceljs')).default;
+      const { saveAs } = await import('file-saver');
+      
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Analytics Dashboard';
+      workbook.created = new Date();
+      
+      // 📊 Sheet 1: KPI Overview
+      const kpiSheet = workbook.addWorksheet('Tổng quan KPI');
+      kpiSheet.addRow(['Chỉ số', 'Giá trị']);
+      kpiSheet.addRow(['Tổng doanh thu', formatCurrency(analytics.totalRevenue)]);
+      kpiSheet.addRow(['Số đơn hoàn thành', analytics.totalOrders]);
+      kpiSheet.addRow(['Khách hàng', analytics.totalCustomers]);
+      kpiSheet.addRow(['Giá trị TB/đơn', formatCurrency(analytics.avgOrderValue)]);
+      kpiSheet.addRow(['Tỷ lệ hủy đơn', `${analytics.cancellationRate.toFixed(2)}%`]);
+      kpiSheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(2)}%`]);
+      kpiSheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold]);
+      
+      // 👥 Sheet 2: Top Customers
+      const customersSheet = workbook.addWorksheet('Top khách hàng');
+      customersSheet.addRow(['#', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Số đơn', 'Tổng chi tiêu', 'TB/đơn']);
+      analytics.topCustomers.forEach((customer, index) => {
+        customersSheet.addRow([
+          index + 1,
+          customer.name,
+          customer.email,
+          customer.phone,
+          customer.orderCount,
+          customer.totalSpent,
+          customer.avgOrderValue
+        ]);
+      });
+      
+      // 🧁 Sheet 3: Top Products
+      const productsSheet = workbook.addWorksheet('Sản phẩm bán chạy');
+      productsSheet.addRow(['#', 'Tên sản phẩm', 'Danh mục', 'Số lượng bán', 'Doanh thu', 'Giá TB']);
+      analytics.topProducts.forEach((product, index) => {
+        productsSheet.addRow([
+          index + 1,
+          product.name,
+          product.category,
+          product.totalQuantity,
+          product.totalRevenue,
+          product.avgPrice
+        ]);
+      });
+      
+      // 📅 Sheet 4: Daily Revenue
+      const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
+      dailySheet.addRow(['Ngày', 'Doanh thu', 'Số đơn']);
+      Object.entries(analytics.dailyRevenue)
+        .sort(([a], [b]) => new Date(b) - new Date(a))
+        .forEach(([date, revenue]) => {
+          dailySheet.addRow([
+            new Date(date).toLocaleDateString('vi-VN'),
+            revenue,
+            analytics.dailyOrders[date] || 0
+          ]);
+        });
+      
+      // Style headers
+      [kpiSheet, customersSheet, productsSheet, dailySheet].forEach(sheet => {
+        sheet.getRow(1).font = { bold: true };
+        sheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+      });
+      
+      // Export file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const filename = `Analytics_${dateRange.from.toISOString().slice(0,10)}_to_${dateRange.to.toISOString().slice(0,10)}.xlsx`;
+      saveAs(blob, filename);
+      
+      alert('✅ Xuất Excel thành công!');
     } catch (error) {
-      console.error('Lỗi khi xuất Excel:', error);
-      alert('Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.');
+      console.error('Lỗi xuất Excel:', error);
+      alert('⚠️ Lỗi khi xuất Excel. Vui lòng kiểm tra và thử lại.');
     }
   };
 
@@ -364,7 +507,7 @@ const AnalyticsDashboard = () => {
       <div className="dashboard-header">
         <div className="header-content">
           <h1>🧁 Thống kê toàn diện</h1>
-          <p>Thống kê kinh doanh toàn diện</p>
+          <p>Thống kê kinh doanh toàn diện - Dữ liệu khách hàng và sản phẩm đã được sửa</p>
         </div>
       </div>
 
@@ -622,7 +765,7 @@ const AnalyticsDashboard = () => {
           <div className="section-header">
             <h3>🏆 Khách hàng VIP</h3>
             <div className="stats-summary">
-              Tổng: {analytics.totalCustomers} khách • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%
+              Tổng: {analytics.topCustomers.length} khách VIP • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%
             </div>
           </div>
           
@@ -630,11 +773,12 @@ const AnalyticsDashboard = () => {
             <div className="no-data">
               <p>👥 Chưa có dữ liệu khách hàng</p>
               <div className="help-text">
-                <p>Để có dữ liệu khách hàng, cần:</p>
+                <p>🔧 Đã sử dụng API /users/with-accounts như CustomerManagement.jsx</p>
+                <p>🔍 Debug: Kiểm tra dữ liệu trong console</p>
                 <ul>
-                  <li>Có đơn hàng với trạng thái "done"</li>
-                  <li>Đơn hàng có thông tin Account_id hợp lệ</li>
-                  <li>Chọn khoảng thời gian phù hợp</li>
+                  <li>Users fetched: {rawData.users.length}</li>
+                  <li>Bills fetched: {rawData.bills.length}</li>
+                  <li>Date range: {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}</li>
                 </ul>
               </div>
             </div>
@@ -652,22 +796,22 @@ const AnalyticsDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics.topCustomers.map((c, i) => (
-                    <tr key={c.user?._id || i}>
+                  {analytics.topCustomers.map((customer, i) => (
+                    <tr key={customer._id || i}>
                       <td className="customer-name">
                         <span className="rank">#{i + 1}</span>
-                        {c.user?.name || 'Khách hàng'}
+                        {customer.name}
                       </td>
                       <td>
-                        <div className="email">{c.user?.email || 'N/A'}</div>
-                        <div className="phone">{c.user?.phone || 'N/A'}</div>
+                        <div className="email">{customer.email}</div>
+                        <div className="phone">{customer.phone}</div>
                       </td>
-                      <td className="orders">{c.orders} đơn</td>
-                      <td className="spent">{formatCurrency(c.spent)}</td>
-                      <td>{formatCurrency((c.spent || 0) / Math.max(1, c.orders || 0))}</td>
+                      <td className="orders">{customer.orderCount} đơn</td>
+                      <td className="spent">{formatCurrency(customer.totalSpent)}</td>
+                      <td>{formatCurrency(customer.avgOrderValue)}</td>
                       <td>
-                        <span className={`badge ${c.orders >= 5 ? 'vip' : c.orders >= 2 ? 'regular' : 'new'}`}>
-                          {c.orders >= 5 ? '👑 VIP' : c.orders >= 3 ? '⭐ Thân thiết' : c.orders >= 2 ? '💎 Trung thành' : '🆕 Mới'}
+                        <span className={`badge ${customer.orderCount >= 5 ? 'vip' : customer.orderCount >= 2 ? 'regular' : 'new'}`}>
+                          {customer.orderCount >= 5 ? '👑 VIP' : customer.orderCount >= 3 ? '⭐ Thân thiết' : customer.orderCount >= 2 ? '💎 Trung thành' : '🆕 Mới'}
                         </span>
                       </td>
                     </tr>
@@ -692,11 +836,12 @@ const AnalyticsDashboard = () => {
             <div className="no-data">
               <p>🧁 Chưa có dữ liệu sản phẩm</p>
               <div className="help-text">
-                <p>Để có dữ liệu sản phẩm, cần:</p>
+                <p>🔧 Đã sử dụng logic từ BillManagement.jsx và BillDetailModal.jsx</p>
+                <p>🔍 Debug: Kiểm tra dữ liệu trong console</p>
                 <ul>
-                  <li>Có dữ liệu trong bảng billDetails</li>
-                  <li>Có đơn hàng đã hoàn thành</li>
-                  <li>Sản phẩm có thông tin hợp lệ</li>
+                  <li>Completed bills: {analytics.completedOrders}</li>
+                  <li>Products fetched: {rawData.products.length}</li>
+                  <li>Date range: {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}</li>
                 </ul>
               </div>
             </div>
@@ -706,26 +851,28 @@ const AnalyticsDashboard = () => {
                 <thead>
                   <tr>
                     <th>Sản phẩm</th>
+                    <th>Danh mục</th>
                     <th>Đã bán</th>
-                    <th>Doanh thu (ước tính)</th>
-                    <th>Tỷ trọng</th>
+                    <th>Doanh thu</th>
+                    <th>Giá TB</th>
+                    <th>Số đơn</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics.topProducts.map((item, index) => (
-                    <tr key={item.product?._id || index}>
+                  {analytics.topProducts.map((product, index) => (
+                    <tr key={product._id || index}>
                       <td className="product-name">
                         <span className="rank">#{index + 1}</span>
                         <div>
-                          <div>{item.product?.name || 'Sản phẩm'}</div>
-                          <small>{item.product?.category || 'N/A'}</small>
+                          <div>{product.name}</div>
+                          <small>ID: {product._id.slice(-6)}</small>
                         </div>
                       </td>
-                      <td className="sold">{item.sold} chiếc</td>
-                      <td className="revenue">{formatCurrency(item.revenue)}</td>
-                      <td>
-                        {analytics.totalRevenue > 0 ? ((item.revenue / analytics.totalRevenue) * 100).toFixed(1) : 0}%
-                      </td>
+                      <td>{product.category}</td>
+                      <td className="sold">{product.totalQuantity} chiếc</td>
+                      <td className="revenue">{formatCurrency(product.totalRevenue)}</td>
+                      <td>{formatCurrency(product.avgPrice)}</td>
+                      <td className="orders">{product.orderCount}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -747,7 +894,9 @@ const AnalyticsDashboard = () => {
                 { label: 'Tổng đơn trong khoảng', value: analytics.detailedStats?.totalBillsInRange || 0 },
                 { label: 'Tỷ lệ hoàn thành', value: `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%` },
                 { label: 'Tỷ lệ hủy đơn', value: `${analytics.cancellationRate.toFixed(1)}%` },
-                { label: 'Khách trung thành', value: analytics.topCustomers.filter(c => c.orders > 1).length },
+                { label: 'Khách trung thành', value: analytics.topCustomers.filter(c => c.orderCount > 1).length },
+                { label: 'Sản phẩm khác nhau', value: analytics.topProducts.length },
+                { label: 'Users có data', value: rawData.users.length },
               ].map((item, i) => (
                 <div key={i} className="summary-item">
                   <h4>{item.label}</h4>
@@ -759,8 +908,8 @@ const AnalyticsDashboard = () => {
 
           <div className="export-options">
             <div className="export-card">
-              <h4>Báo cáo tổng quan chi tiết</h4>
-              <p>Xuất toàn bộ dữ liệu thống kê ra Excel</p>
+              <h4>📊 Báo cáo tổng quan chi tiết</h4>
+              <p>Xuất toàn bộ dữ liệu thống kê ra Excel với đầy đủ thông tin khách hàng và sản phẩm</p>
               <button
                 onClick={exportToExcel}
                 disabled={analytics.detailedStats?.totalBillsInRange === 0}
