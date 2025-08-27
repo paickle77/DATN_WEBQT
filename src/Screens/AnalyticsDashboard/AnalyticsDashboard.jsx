@@ -16,7 +16,11 @@ const formatCurrency = (amount) => {
 
 // 🔥 LOGIC TÍNH GIÁ SẢN PHẨM GIỐNG BILLMANAGEMENT.JSX
 const getItemPrice = (item) => {
-  const priceFields = ['unitPrice', 'unit_price', 'price', 'itemPrice', 'productPrice'];
+  // 🔥 MỞ RỘNG CÁC TRƯỜNG GIÁ CÓ THỂ CÓ
+  const priceFields = [
+    'unitPrice', 'unit_price', 'price', 'itemPrice', 'productPrice',
+    'Price', 'UnitPrice', 'product_price', 'selling_price', 'sale_price'
+  ];
   
   for (const field of priceFields) {
     if (item[field] && Number(item[field]) > 0) {
@@ -24,10 +28,15 @@ const getItemPrice = (item) => {
     }
   }
   
-  if (item.total && item.quantity && Number(item.quantity) > 0) {
-    return Number(item.total) / Number(item.quantity);
+  // 🔥 TÍNH GIÁ TỪ TOTAL VÀ QUANTITY
+  const total = Number(item.total || item.Total || item.itemTotal || 0);
+  const quantity = Number(item.quantity || item.Quantity || 0);
+  
+  if (total > 0 && quantity > 0) {
+    return total / quantity;
   }
   
+  console.log('🔍 Không tìm thấy giá cho item:', item);
   return 0;
 };
 
@@ -68,6 +77,7 @@ const AnalyticsDashboard = () => {
     bills: [],
     users: [], // 🔥 SỬ DỤNG ENDPOINT /users/with-accounts
     products: [],
+    billDetails: {}, // 🔥 THÊM CACHE CHO BILL DETAILS
   });
   const [timeFilter, setTimeFilter] = useState('month');
 
@@ -96,7 +106,7 @@ const AnalyticsDashboard = () => {
     },
   });
 
-  // ── Fetch Data 🔥 SỬ DỤNG ĐÚNG API ENDPOINTS
+  // ── Fetch Data 🔥 SỬ DỤNG ĐÚNG API ENDPOINTS VÀ LẤY CHI TIẾT SẢN PHẨM
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -110,20 +120,158 @@ const AnalyticsDashboard = () => {
       console.log('🔍 Users response:', usersRes?.data?.data?.customers?.length || 0);
       console.log('🔍 Products response:', productsRes?.data?.data?.length || 0);
 
+      // 🔥 KIỂM TRA CẤU TRÚC BILL THỰC TẾ
+      const bills = billsRes?.data?.data ?? [];
+      if (bills.length > 0) {
+        console.log('🔍 Full bill structure sample:', bills[0]);
+        console.log('🔍 Bill fields:', Object.keys(bills[0]));
+        
+        // 🔥 THỬ LẤY CHI TIẾT CỦA 1 BILL ĐỂ KIỂM TRA
+        if (bills[0]._id) {
+          try {
+            const billDetailRes = await api.get(`/bills/${bills[0]._id}`);
+            console.log('🔍 Single bill detail:', billDetailRes?.data);
+            console.log('🔍 Single bill fields:', Object.keys(billDetailRes?.data || {}));
+          } catch (error) {
+            console.log('🔍 Cannot fetch single bill detail:', error.message);
+          }
+        }
+      }
+
+      // 🔥 LẤY CHI TIẾT BILL NGAY LẬP TỨC
+      console.log('🔍 Fetching bill details immediately...');
+      
+      // Lọc bill done trong 30 ngày gần nhất
+      const recentDoneBills = bills.filter(bill => {
+        if (bill.status?.toLowerCase() !== 'done') return false;
+        
+        const billDate = new Date(bill.created_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        return billDate >= thirtyDaysAgo;
+      }).slice(0, 10); // Lấy 10 bill để đảm bảo có đủ data
+      
+      console.log('🔍 Fetching details for', recentDoneBills.length, 'recent done bills');
+      
+      const billDetailsCache = {};
+      
+      // Fetch từng bill detail để lấy items
+      for (const bill of recentDoneBills) {
+        try {
+          const billDetailRes = await api.get(`/bills/${bill._id}`);
+          const billDetail = billDetailRes?.data?.data || billDetailRes?.data;
+          
+          if (billDetail && billDetail.items) {
+            billDetailsCache[bill._id] = billDetail;
+            console.log(`✅ Fetched bill ${bill._id}: ${billDetail.items?.length || 0} items`);
+            
+            // Debug first item
+            if (billDetail.items && billDetail.items.length > 0) {
+              console.log(`🔍 Sample item:`, {
+                product_id: billDetail.items[0].product_id,
+                productName: billDetail.items[0].productName,
+                quantity: billDetail.items[0].quantity
+              });
+            }
+          }
+        } catch (error) {
+          console.log(`❌ Failed to fetch bill detail ${bill._id}:`, error.message);
+        }
+      }
+      
+      console.log('🔍 Successfully fetched details for', Object.keys(billDetailsCache).length, 'bills');
+
+      // 🔥 DEBUG: CHECK PRODUCTS DATA STRUCTURE
+      const productsData = productsRes?.data?.data ?? [];
+      if (productsData.length > 0) {
+        console.log('🔍 Sample product structure:', productsData[0]);
+        console.log('🔍 Product fields:', Object.keys(productsData[0]));
+        console.log('🔍 Products with images:', productsData.filter(p => p.image).length);
+        productsData.slice(0, 3).forEach(p => {
+          console.log(`🔍 Product ${p._id}:`, {
+            name: p.name,
+            image: p.image,
+            image_url: p.image_url,
+            category_id: p.category_id
+          });
+        });
+      }
+
       setRawData({
-        bills: billsRes?.data?.data ?? [],
-        users: usersRes?.data?.data?.customers ?? [], // 🔥 LẤY ĐÚNG MẢNG CUSTOMERS
-        products: productsRes?.data?.data ?? [],
+        bills: bills,
+        users: usersRes?.data?.data?.customers ?? [],
+        products: productsData,
+        billDetails: billDetailsCache, // 🔥 SET CACHE ĐÃ FETCH
       });
+      
     } catch (err) {
       console.error('Error fetching data:', err);
       setRawData({ 
         bills: [], 
         users: [], 
         products: [],
+        billDetails: {},
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 🔥 HÀM RIÊNG ĐỂ LẤY CHI TIẾT BILL
+  const fetchBillDetails = async (bills) => {
+    try {
+      console.log('🔍 Fetching bill details for product analysis...');
+      
+      // Lọc bill done trong 30 ngày gần nhất
+      const recentDoneBills = bills.filter(bill => {
+        if (bill.status?.toLowerCase() !== 'done') return false;
+        
+        const billDate = new Date(bill.created_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        return billDate >= thirtyDaysAgo;
+      }).slice(0, 5); // Chỉ lấy 5 bill đầu tiên để test
+      
+      console.log('🔍 Fetching details for', recentDoneBills.length, 'recent done bills');
+      
+      const billDetailsCache = {};
+      
+      for (const bill of recentDoneBills) {
+        try {
+          const billDetailRes = await api.get(`/bills/${bill._id}`);
+          const billDetail = billDetailRes?.data?.data || billDetailRes?.data;
+          
+          if (billDetail) {
+            billDetailsCache[bill._id] = billDetail;
+            console.log(`🔍 Fetched details for bill ${bill._id}:`, {
+              hasItems: !!billDetail.items,
+              itemsCount: billDetail.items?.length || 0,
+              hasDetails: !!billDetail.details,
+              detailsCount: billDetail.details?.length || 0,
+              hasBillDetails: !!billDetail.bill_details,
+              billDetailsCount: billDetail.bill_details?.length || 0,
+              fullStructure: Object.keys(billDetail)
+            });
+            
+            // 🔥 DEBUG: KIỂM TRA CẤU TRÚC ITEMS
+            if (billDetail.items && billDetail.items.length > 0) {
+              console.log(`🔍 Sample item in bill ${bill._id}:`, billDetail.items[0]);
+              console.log(`🔍 Item fields:`, Object.keys(billDetail.items[0]));
+            }
+          }
+        } catch (error) {
+          console.log(`🔍 Failed to fetch bill detail ${bill._id}:`, error.message);
+        }
+      }
+      
+      console.log('🔍 Successfully fetched details for', Object.keys(billDetailsCache).length, 'bills');
+      return billDetailsCache;
+      
+    } catch (error) {
+      console.error('Error fetching bill details:', error);
+      return {};
     }
   };
 
@@ -133,7 +281,7 @@ const AnalyticsDashboard = () => {
 
   // ───────────────────────────── Analytics Calculation ─────────────────────────────
   const analytics = useMemo(() => {
-    const { bills, users, products } = rawData;
+    const { bills, users, products, billDetails } = rawData;
 
     if (!Array.isArray(bills) || bills.length === 0) return getEmptyAnalytics();
 
@@ -294,60 +442,186 @@ const AnalyticsDashboard = () => {
 
     console.log('🔍 Top customers with done orders only:', topCustomers.length);
 
-    // 🔥 TOP PRODUCTS - SỬ DỤNG LOGIC TỪ BILLMANAGEMENT.JSX
-    console.log('🔍 Processing top products from bills items...');
+    // 🔥 TOP PRODUCTS - SỬ DỤNG BILL DETAILS ĐỂ LẤY SẢN PHẨM THỰC TẾ
+    console.log('🔍 Processing top products using bill details cache...');
+    console.log('🔍 Bill details cache size:', Object.keys(billDetails).length);
     
-    const productStats = {};
+    const productSalesStats = {}; // CHỈ lưu sản phẩm thực sự đã bán
+    let foundRealItems = 0;
     
-    for (const bill of completedBills) {
-      if (!bill.items || !Array.isArray(bill.items)) continue;
+    // 🔥 ƯU TIÊN SỬ DỤNG BILL DETAILS CACHE
+    for (const [billId, billDetail] of Object.entries(billDetails)) {
+      if (!billDetail) continue;
       
-      for (const item of bill.items) {
-        const productId = item.product_id;
-        if (!productId) continue;
-        
-        const itemPrice = getItemPrice(item);
-        const quantity = Number(item.quantity) || 0;
-        const itemTotal = itemPrice * quantity;
-        
-        if (!productStats[productId]) {
-          productStats[productId] = {
-            totalQuantity: 0,
-            totalRevenue: 0,
-            orderCount: 0,
-            avgPrice: 0
-          };
+      console.log(`🔍 Processing cached bill ${billId}:`, {
+        hasItems: !!billDetail.items,
+        hasDetails: !!billDetail.details,
+        hasBillDetails: !!billDetail.bill_details
+      });
+      
+      const billItems = billDetail.items || 
+                       billDetail.details || 
+                       billDetail.bill_details || 
+                       [];
+      
+      if (Array.isArray(billItems) && billItems.length > 0) {
+        for (const item of billItems) {
+          const productId = String(item.product_id || item.productId || item._id || '').trim();
+          const quantity = parseInt(item.quantity || item.qty || 1);
+          
+          if (!productId || productId === '' || quantity <= 0) continue;
+          
+          if (!productSalesStats[productId]) {
+            productSalesStats[productId] = {
+              totalQuantitySold: 0,
+              orderCount: 0,
+              billsWithProduct: new Set() // Theo dõi các bill khác nhau
+            };
+          }
+          
+          productSalesStats[productId].totalQuantitySold += quantity;
+          productSalesStats[productId].billsWithProduct.add(billId);
+          foundRealItems++;
+          
+          if (foundRealItems <= 10) {
+            console.log(`🔍 Found real product sale from cache: ${productId}, qty=${quantity}, billId=${billId}`);
+          }
         }
-        
-        productStats[productId].totalQuantity += quantity;
-        productStats[productId].totalRevenue += itemTotal;
-        productStats[productId].orderCount += 1;
       }
     }
     
-    // Calculate average price for each product
-    Object.keys(productStats).forEach(productId => {
-      const stats = productStats[productId];
-      stats.avgPrice = stats.totalQuantity > 0 ? stats.totalRevenue / stats.totalQuantity : 0;
-    });
+    // 🔥 NẾU KHÔNG CÓ DỮ LIỆU TỪ CACHE, THỬ LẤY TỪ BILLS TRỰC TIẾP
+    if (foundRealItems === 0) {
+      console.log('🔍 No items from cache, trying bills directly...');
+      for (const bill of completedBills) {
+        const billItems = bill.details || 
+                         bill.items || 
+                         bill.bill_details || 
+                         bill.BillDetails || 
+                         bill.products || 
+                         [];
+        
+        if (!Array.isArray(billItems) || billItems.length === 0) continue;
+        
+        for (const item of billItems) {
+          const productId = String(item.product_id || item.productId || item._id || '').trim();
+          const quantity = parseInt(item.quantity || item.qty || 1);
+          
+          if (!productId || productId === '' || quantity <= 0) continue;
+          
+          if (!productSalesStats[productId]) {
+            productSalesStats[productId] = {
+              totalQuantitySold: 0,
+              orderCount: 0,
+              billsWithProduct: new Set()
+            };
+          }
+          
+          productSalesStats[productId].totalQuantitySold += quantity;
+          productSalesStats[productId].billsWithProduct.add(bill._id);
+          foundRealItems++;
+          
+          if (foundRealItems <= 5) {
+            console.log(`🔍 Found real product sale from bill: ${productId}, qty=${quantity}, billId=${bill._id}`);
+          }
+        }
+      }
+    }
     
-    console.log('🔍 Product stats calculated:', Object.keys(productStats).length);
+    console.log('🔍 Real products found in bills:', Object.keys(productSalesStats).length);
+    console.log('🔍 Total real items processed:', foundRealItems);
     
-    const topProducts = Object.entries(productStats)
+    // 🔥 MAPPING DANH MỤC ID THÀNH TÊN TIẾNG VIỆT
+    const getCategoryName = (categoryId) => {
+      const categoryMap = {
+        '64b1e1e18d28e450e97d8d01': 'Bánh sinh nhật',
+        '64b1e1e18d28e450e97d8d02': 'Bánh kem',
+        '64b1e1e18d28e450e97d8d03': 'Bánh bông lan',
+        '64b1e1e18d28e450e97d8d04': 'Bánh cookies',
+        '64b1e1e18d28e450e97d8d05': 'Bánh mì',
+        '64b1e1e18d28e450e97d8d06': 'Bánh ngọt',
+        // Thêm các danh mục khác nếu cần
+      };
+      return categoryMap[categoryId] || 'Chưa phân loại';
+    };
+    
+    // 🔥 TẠO DANH SÁCH TOP PRODUCTS VỚI THÔNG TIN ĐẦY ĐỦ
+    const topProducts = Object.entries(productSalesStats)
       .map(([productId, stats]) => {
         const product = products.find(p => String(p._id) === String(productId));
+        
+        // 🔥 LẤY ẢNH THỰC TẾ VÀ DEBUG - SUPPORT CẢ image VÀ image_url
+        let imageUrl = '';
+        const imageField = product?.image || product?.image_url;
+        
+        if (imageField) {
+          // Nếu image là array, lấy ảnh đầu tiên
+          if (Array.isArray(imageField)) {
+            imageUrl = imageField[0] || '';
+          } else {
+            imageUrl = imageField;
+          }
+          
+          // 🔥 DEBUG: Log original image path
+          console.log(`🔍 Product ${productId} original image:`, {
+            image: product?.image,
+            image_url: product?.image_url,
+            selected: imageUrl
+          });
+          
+          // Đảm bảo có đường dẫn đầy đủ  
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            // Thử các pattern đường dẫn khác nhau
+            if (imageUrl.startsWith('uploads/')) {
+              imageUrl = `http://localhost:3000/${imageUrl}`;
+            } else if (imageUrl.includes('uploads')) {
+              imageUrl = `http://localhost:3000/${imageUrl}`;
+            } else {
+              imageUrl = `http://localhost:3000/uploads/${imageUrl}`;
+            }
+          }
+          
+          console.log(`🔍 Product ${productId} final image URL:`, imageUrl);
+        } else {
+          console.log(`🔍 Product ${productId} has no image field`);
+        }
+        
+        console.log(`🔍 Product ${productId}:`, {
+          name: product?.name,
+          image: imageUrl,
+          category: product?.category_id,
+          totalSold: stats.totalQuantitySold
+        });
+        
         return {
           _id: productId,
           name: product?.name || `Sản phẩm #${productId.slice(-6)}`,
-          image: product?.image || '',
-          category: product?.category_id || product?.category || 'Chưa phân loại',
-          ...stats
+          image: imageUrl,
+          category: getCategoryName(product?.category_id || product?.category),
+          totalQuantitySold: stats.totalQuantitySold,
+          // 🔥 BỎ orderCount để đơn giản hóa
+          isRealData: true
         };
       })
-      .sort((a, b) => b.totalQuantity - a.totalQuantity)
-      .slice(0, 10);
+      .filter(product => product.totalQuantitySold > 0) // CHỈ sản phẩm đã bán
+      .sort((a, b) => b.totalQuantitySold - a.totalQuantitySold) // Xếp theo số lượng bán
+      .slice(0, 10); // Top 10
 
-    console.log('🔍 Top products processed:', topProducts.length);
+    console.log('🔍 Final top selling products:', topProducts.map(p => ({
+      name: p.name,
+      quantitySold: p.totalQuantitySold,
+      category: p.category,
+      hasImage: !!p.image
+    })));
+    
+    // � NẾU KHÔNG TÌM THẤY SẢN PHẨM THỰC TẾ
+    if (topProducts.length === 0) {
+      console.log('🔍 No real product data found in bills');
+      console.log('🔍 Trying to fetch individual bill details...');
+      
+      // Có thể thử lấy từng bill detail riêng ở đây nếu cần
+      // Hiện tại sẽ trả về mảng rỗng
+    }
 
     // Unique customers with completed orders (từ bills thực tế)
     const uniqueCustomerIds = Array.from(new Set(
@@ -393,7 +667,7 @@ const AnalyticsDashboard = () => {
 
     const cancellationRate = totalInRange ? (cancelledCount / totalInRange) * 100 : 0;
 
-    const totalProductsSold = Object.values(productStats).reduce((sum, p) => sum + p.totalQuantity, 0);
+    const totalProductsSold = topProducts.reduce((sum, p) => sum + p.totalQuantitySold, 0);
 
     return {
       totalRevenue: completedRevenue,
@@ -442,32 +716,63 @@ const AnalyticsDashboard = () => {
     };
   }, [rawData, dateRange]);
 
-  // ── Export Excel Functions
+  // ── Export Excel Functions  
   const exportToExcel = async () => {
     try {
-      // 🔥 SỬ DỤNG EXCELJS GIỐNG CUSTOMERMANAGEMENT.JSX
+      // 🔥 CHỈ DÙNG EXCELJS, KHÔNG DÙNG FILE-SAVER
       const ExcelJS = (await import('exceljs')).default;
-      const { saveAs } = await import('file-saver');
       
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Analytics Dashboard';
+      workbook.creator = 'Analytics Dashboard - Báo cáo chi tiết';
       workbook.created = new Date();
       
-      // 📊 Sheet 1: KPI Overview
-      const kpiSheet = workbook.addWorksheet('Tổng quan KPI');
-      kpiSheet.addRow(['Chỉ số', 'Giá trị']);
-      kpiSheet.addRow(['Tổng doanh thu', formatCurrency(analytics.totalRevenue)]);
-      kpiSheet.addRow(['Số đơn hoàn thành', analytics.totalOrders]);
-      kpiSheet.addRow(['Khách hàng', analytics.totalCustomers]);
-      kpiSheet.addRow(['Giá trị TB/đơn', formatCurrency(analytics.avgOrderValue)]);
-      kpiSheet.addRow(['Tỷ lệ hủy đơn', `${analytics.cancellationRate.toFixed(2)}%`]);
-      kpiSheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(2)}%`]);
-      kpiSheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold]);
+      // 📊 Sheet 1: Báo cáo tổng quan (giống như UI)
+      const summarySheet = workbook.addWorksheet('Báo cáo tổng quan');
       
-      // 👥 Sheet 2: Top Customers với thông tin đầy đủ
-      const customersSheet = workbook.addWorksheet('Top khách hàng');
-      customersSheet.addRow(['#', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn done', 'Chi tiêu done', 'TB/đơn done', 'Tổng đơn', 'Tổng chi tiêu']);
+      // Header thông tin thời gian
+      summarySheet.addRow(['THỐNG KÊ TOÀN DIỆN - BÁO CÁO CHI TIẾT']);
+      summarySheet.addRow([`Từ ngày: ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`]);
+      summarySheet.addRow([`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`]);
+      summarySheet.addRow(['']); // Empty row
+      
+      // KPI chính
+      summarySheet.addRow(['CHỈ SỐ KINH DOANH CHÍNH']);
+      summarySheet.addRow(['Chỉ số', 'Giá trị', 'Ghi chú']);
+      summarySheet.addRow(['Tổng đơn trong khoảng', analytics.detailedStats?.totalBillsInRange || 0, 'Tất cả đơn hàng']);
+      summarySheet.addRow(['Đơn hoàn thành', analytics.completedOrders, 'Chỉ đơn status = done']);
+      summarySheet.addRow(['Tỷ lệ hoàn thành', `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%`, 'Hoàn thành/Tổng đơn']);
+      summarySheet.addRow(['Tỷ lệ hủy đơn', `${analytics.cancellationRate.toFixed(1)}%`, 'Bao gồm cancelled + failed']);
+      summarySheet.addRow(['Tổng doanh thu', formatCurrency(analytics.totalRevenue), 'Chỉ từ đơn hoàn thành']);
+      summarySheet.addRow(['Giá trị TB/đơn', formatCurrency(analytics.avgOrderValue), 'Doanh thu/Số đơn done']);
+      summarySheet.addRow(['Khách hàng mua thành công', analytics.totalCustomers, 'Có ít nhất 1 đơn done']);
+      summarySheet.addRow(['Khách trung thành', analytics.topCustomers.filter(c => c.orderCount > 1).length, 'Có >1 đơn done']);
+      summarySheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(1)}%`, 'Khách mua lại/Tổng khách']);
+      summarySheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm']);
+      summarySheet.addRow(['Loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán']);
+      summarySheet.addRow(['Users có data', rawData.users.length, 'Khách hàng trong hệ thống']);
+      summarySheet.addRow(['']); // Empty row
+
+      // Chi tiết theo trạng thái
+      summarySheet.addRow(['CHI TIẾT THEO TRẠNG THÁI ĐỚN HÀNG']);
+      summarySheet.addRow(['Trạng thái', 'Số lượng', 'Tỷ lệ']);
+      const total = analytics.detailedStats?.totalBillsInRange || 1;
+      summarySheet.addRow(['Done (Hoàn thành)', analytics.detailedStats?.completedBills || 0, `${((analytics.detailedStats?.completedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Cancelled (Đã hủy)', analytics.detailedStats?.cancelledBills || 0, `${((analytics.detailedStats?.cancelledBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Failed (Thất bại)', analytics.detailedStats?.failedBills || 0, `${((analytics.detailedStats?.failedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Pending (Chờ xử lý)', analytics.detailedStats?.pendingBills || 0, `${((analytics.detailedStats?.pendingBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Confirmed (Đã xác nhận)', analytics.detailedStats?.confirmedBills || 0, `${((analytics.detailedStats?.confirmedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Ready (Sẵn sàng)', analytics.detailedStats?.readyBills || 0, `${((analytics.detailedStats?.readyBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Shipping (Đang giao)', analytics.detailedStats?.shippingBills || 0, `${((analytics.detailedStats?.shippingBills || 0) / total * 100).toFixed(1)}%`]);
+
+      // 👥 Sheet 2: Top Customers chi tiết
+      const customersSheet = workbook.addWorksheet('Khách hàng VIP');
+      customersSheet.addRow(['STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn done (KPI)', 'Chi tiêu done (₫)', 'TB/đơn done (₫)', 'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Địa chỉ', 'Loại khách hàng']);
       analytics.topCustomers.forEach((customer, index) => {
+        const customerType = customer.orderCount >= 5 ? 'VIP' : 
+                           customer.orderCount >= 3 ? 'Thân thiết' : 
+                           customer.orderCount >= 2 ? 'Trung thành' : 
+                           customer.orderCount === 0 ? 'Chưa mua' : 'Mới';
+        
         customersSheet.addRow([
           index + 1,
           customer.name,
@@ -477,60 +782,139 @@ const AnalyticsDashboard = () => {
           customer.totalSpent,
           customer.avgOrderValue,
           customer.totalOrdersAllTime || 0,
-          customer.totalSpentAllTime || 0
+          customer.totalSpentAllTime || 0,
+          customer.address || 'Chưa cập nhật',
+          customerType
         ]);
       });
       
-      // 🧁 Sheet 3: Top Products
+      // 🧁 Sheet 3: Top Products chi tiết
       const productsSheet = workbook.addWorksheet('Sản phẩm bán chạy');
-      productsSheet.addRow(['#', 'Tên sản phẩm', 'Danh mục', 'Số lượng bán', 'Doanh thu', 'Giá TB']);
+      productsSheet.addRow(['Top', 'Tên sản phẩm', 'Danh mục', 'Số lượng đã bán', 'Ranking']);
       analytics.topProducts.forEach((product, index) => {
+        const ranking = index === 0 ? '🥇 Top 1' : 
+                       index === 1 ? '🥈 Top 2' : 
+                       index === 2 ? '🥉 Top 3' : 
+                       `⭐ Top ${index + 1}`;
+        
         productsSheet.addRow([
           index + 1,
           product.name,
           product.category,
-          product.totalQuantity,
-          product.totalRevenue,
-          product.avgPrice
+          product.totalQuantitySold,
+          ranking
         ]);
       });
       
-      // 📅 Sheet 4: Daily Revenue
+      // 📅 Sheet 4: Doanh thu theo ngày
       const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
-      dailySheet.addRow(['Ngày', 'Doanh thu', 'Số đơn']);
+      dailySheet.addRow(['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)']);
       Object.entries(analytics.dailyRevenue)
         .sort(([a], [b]) => new Date(b) - new Date(a))
         .forEach(([date, revenue]) => {
+          const orders = analytics.dailyOrders[date] || 0;
+          const avgValue = orders > 0 ? revenue / orders : 0;
           dailySheet.addRow([
             new Date(date).toLocaleDateString('vi-VN'),
             revenue,
-            analytics.dailyOrders[date] || 0
+            orders,
+            avgValue
           ]);
         });
       
-      // Style headers
-      [kpiSheet, customersSheet, productsSheet, dailySheet].forEach(sheet => {
-        sheet.getRow(1).font = { bold: true };
-        sheet.getRow(1).fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' }
-        };
+      // 📊 Sheet 5: Phân tích chuyên sâu
+      const analysisSheet = workbook.addWorksheet('Phân tích chuyên sâu');
+      analysisSheet.addRow(['PHÂN TÍCH CHUYÊN SÂU']);
+      analysisSheet.addRow(['']); // Empty row
+      
+      analysisSheet.addRow(['THÔNG TIN THỜI GIAN & DATA']);
+      analysisSheet.addRow(['Khoảng thời gian phân tích', `${dateRange.from.toLocaleDateString('vi-VN')} - ${dateRange.to.toLocaleDateString('vi-VN')}`]);
+      analysisSheet.addRow(['Tổng số ngày', Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))]);
+      analysisSheet.addRow(['Giờ bán chạy nhất', `${analytics.bestSellingHour}:00`]);
+      analysisSheet.addRow(['Bills được phân tích', rawData.bills.length]);
+      analysisSheet.addRow(['Bill details đã cache', Object.keys(rawData.billDetails).length]);
+      analysisSheet.addRow(['']); // Empty row
+      
+      analysisSheet.addRow(['HIỆU SUẤT KINH DOANH']);
+      analysisSheet.addRow(['Doanh thu TB/ngày', formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))]);
+      analysisSheet.addRow(['Đơn hàng TB/ngày', (analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)]);
+      analysisSheet.addRow(['Giá trị TB/khách hàng', formatCurrency(analytics.avgCustomerValue)]);
+      analysisSheet.addRow(['Sản phẩm TB/đơn', (analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)]);
+      
+      // Style tất cả sheets
+      [summarySheet, customersSheet, productsSheet, dailySheet, analysisSheet].forEach(sheet => {
+        // Style header rows
+        for (let i = 1; i <= sheet.rowCount; i++) {
+          const row = sheet.getRow(i);
+          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
+              (row.getCell(1).value.includes('STT') || 
+               row.getCell(1).value.includes('Top') || 
+               row.getCell(1).value.includes('Ngày') || 
+               row.getCell(1).value.includes('Chỉ số') ||
+               row.getCell(1).value.includes('Trạng thái'))) {
+            row.font = { bold: true };
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE0E0E0' }
+            };
+          }
+          
+          // Style title rows
+          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
+              (row.getCell(1).value.includes('THỐNG KÊ') || 
+               row.getCell(1).value.includes('CHỈ SỐ') ||
+               row.getCell(1).value.includes('CHI TIẾT') ||
+               row.getCell(1).value.includes('PHÂN TÍCH') ||
+               row.getCell(1).value.includes('THÔNG TIN') ||
+               row.getCell(1).value.includes('HIỆU SUẤT'))) {
+            row.font = { bold: true, size: 14 };
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF4472C4' }
+            };
+            row.getCell(1).font = { ...row.getCell(1).font, color: { argb: 'FFFFFFFF' } };
+          }
+        }
+        
+        // Auto-fit columns
+        sheet.columns.forEach(column => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: false }, cell => {
+            const length = cell.value ? cell.value.toString().length : 0;
+            if (length > maxLength) {
+              maxLength = length;
+            }
+          });
+          column.width = Math.min(50, Math.max(10, maxLength + 2));
+        });
       });
       
-      // Export file
+      // Export file với tên có timestamp - DÙNG DOWNLOAD LINK
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       
-      const filename = `Analytics_${dateRange.from.toISOString().slice(0,10)}_to_${dateRange.to.toISOString().slice(0,10)}.xlsx`;
-      saveAs(blob, filename);
+      const timestamp = new Date().toISOString().slice(0,16).replace(/[:-]/g, '');
+      const filename = `BaoCaoThongKe_${dateRange.from.toISOString().slice(0,10)}_den_${dateRange.to.toISOString().slice(0,10)}_${timestamp}.xlsx`;
       
-      alert('✅ Xuất Excel thành công!');
+      // 🔥 TẠO DOWNLOAD LINK MANUAL - KHÔNG CẦN FILE-SAVER
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('✅ Xuất Excel thành công! File đã được lưu với đầy đủ thông tin báo cáo.');
     } catch (error) {
       console.error('Lỗi xuất Excel:', error);
-      alert('⚠️ Lỗi khi xuất Excel. Vui lòng kiểm tra và thử lại.');
+      alert(`⚠️ Lỗi khi xuất Excel: ${error.message}. Vui lòng kiểm tra và thử lại.`);
     }
   };
 
@@ -925,23 +1309,27 @@ const AnalyticsDashboard = () => {
       {activeTab === 'products' && (
         <div className="products-section">
           <div className="section-header">
-            <h3>🧁 Sản phẩm bán chạy</h3>
+            <h3>🧁 Top sản phẩm bán chạy (chỉ sản phẩm đã bán)</h3>
             <div className="stats-summary">
-              Tổng bán: {analytics.totalProductsSold} chiếc • Doanh thu: {formatCurrency(analytics.totalRevenue)}
+              {analytics.topProducts.length > 0 ? 
+                `${analytics.topProducts.length} sản phẩm đã bán • Tổng: ${analytics.totalProductsSold} sản phẩm` :
+                'Chưa có sản phẩm nào được bán trong khoảng thời gian này'
+              }
             </div>
           </div>
           
           {analytics.topProducts.length === 0 ? (
             <div className="no-data">
-              <p>🧁 Chưa có dữ liệu sản phẩm</p>
+              <p>🧁 Chưa có sản phẩm nào được bán</p>
               <div className="help-text">
-                <p>🔧 Đã sử dụng logic từ BillManagement.jsx và BillDetailModal.jsx</p>
-                <p>🔍 Debug: Kiểm tra dữ liệu trong console</p>
+                <p>🔧 Không tìm thấy chi tiết sản phẩm trong bills</p>
+                <p>🔍 Thống kê dựa trên đơn hàng hoàn thành (done)</p>
                 <ul>
-                  <li>Completed bills: {analytics.completedOrders}</li>
-                  <li>Products fetched: {rawData.products.length}</li>
-                  <li>Date range: {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}</li>
+                  <li>Đơn hoàn thành: {analytics.completedOrders}</li>
+                  <li>Sản phẩm trong DB: {rawData.products.length}</li>
+                  <li>Khoảng thời gian: {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}</li>
                 </ul>
+                <p><strong>💡 Gợi ý:</strong> Kiểm tra xem API có trả về chi tiết sản phẩm trong bill không</p>
               </div>
             </div>
           ) : (
@@ -949,35 +1337,86 @@ const AnalyticsDashboard = () => {
               <table>
                 <thead>
                   <tr>
-                    <th>Sản phẩm</th>
-                    <th>Danh mục</th>
-                    <th>Đã bán</th>
-                    <th>Doanh thu</th>
-                    <th>Giá TB</th>
-                    <th>Số đơn</th>
+                    <th style={{width: '60px', textAlign: 'center'}}>#</th>
+                    <th style={{width: '140px', textAlign: 'center'}}>Top bán chạy</th>
+                    <th style={{width: '200px', textAlign: 'left'}}>Sản phẩm</th>
+                    <th style={{width: '80px', textAlign: 'center'}}>Hình ảnh</th>
+                    <th style={{width: '120px', textAlign: 'center'}}>Danh mục</th>
+                    <th style={{width: '140px', textAlign: 'center'}}>Số lượng đã bán</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.topProducts.map((product, index) => (
                     <tr key={product._id || index}>
-                      <td className="product-name">
-                        <span className="rank">#{index + 1}</span>
-                        <div>
-                          <div>{product.name}</div>
-                          <small>ID: {product._id.slice(-6)}</small>
+                      <td className="rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                        <span className="rank-badge">#{index + 1}</span>
+                      </td>
+                      <td className="top-rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                        {index === 0 && <span className="medal gold">🥇 Top 1</span>}
+                        {index === 1 && <span className="medal silver">🥈 Top 2</span>}
+                        {index === 2 && <span className="medal bronze">🥉 Top 3</span>}
+                        {index > 2 && <span className="medal normal">⭐ Top {index + 1}</span>}
+                      </td>
+                      <td className="product-name" style={{textAlign: 'left', verticalAlign: 'middle', paddingLeft: '12px'}}>
+                        <strong>{product.name}</strong>
+                      </td>
+                      <td className="product-image" style={{textAlign: 'center', verticalAlign: 'middle', padding: '8px'}}>
+                        {product.image ? (
+                          <img 
+                            src={product.image} 
+                            alt={product.name}
+                            style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e0e0e0' }}
+                            onError={(e) => {
+                              console.log('🔍 Image failed to load:', product.image);
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                            onLoad={() => {
+                              console.log('✅ Image loaded successfully:', product.image);
+                            }}
+                          />
+                        ) : null}
+                        <div style={{ 
+                          width: '50px', 
+                          height: '50px', 
+                          backgroundColor: '#f5f5f5', 
+                          borderRadius: '8px', 
+                          display: product.image ? 'none' : 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          border: '1px solid #e0e0e0',
+                          margin: '0 auto'
+                        }}>
+                          <span style={{ fontSize: '24px' }}>🧁</span>
                         </div>
                       </td>
-                      <td>{product.category}</td>
-                      <td className="sold">{product.totalQuantity} chiếc</td>
-                      <td className="revenue">{formatCurrency(product.totalRevenue)}</td>
-                      <td>{formatCurrency(product.avgPrice)}</td>
-                      <td className="orders">{product.orderCount}</td>
+                      <td style={{textAlign: 'center', verticalAlign: 'middle'}}>{product.category}</td>
+                      <td className="quantity-sold" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                        <strong style={{color: '#007bff'}}>{product.totalQuantitySold}</strong> 
+                        <span style={{color: '#666', marginLeft: '4px'}}>sản phẩm</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          
+          {analytics.topProducts.some(p => p.isFallback || p.isEstimated) && (
+            <div className="data-notes" style={{display: 'none'}}>
+              <div className="note-item">
+                <span className="badge estimated">�</span>
+                <span>Dữ liệu ước tính từ tổng doanh thu và danh sách sản phẩm</span>
+              </div>
+              {analytics.topProducts.some(p => p.isFallback) && (
+                <div className="note-item" style={{display: 'none'}}>
+                  <span className="badge fallback">📊</span>
+                  <span>Dữ liệu tổng hợp từ đơn hàng</span>
+                </div>
+              )}
+            </div>
+          )}
+          
         </div>
       )}
 
@@ -990,18 +1429,111 @@ const AnalyticsDashboard = () => {
           <div className="report-summary">
             <div className="summary-grid">
               {[
-                { label: 'Tổng đơn trong khoảng', value: analytics.detailedStats?.totalBillsInRange || 0 },
-                { label: 'Tỷ lệ hoàn thành', value: `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%` },
-                { label: 'Tỷ lệ hủy đơn', value: `${analytics.cancellationRate.toFixed(1)}%` },
-                { label: 'Khách trung thành', value: analytics.topCustomers.filter(c => c.orderCount > 1).length },
-                { label: 'Sản phẩm khác nhau', value: analytics.topProducts.length },
-                { label: 'Users có data', value: rawData.users.length },
+                { 
+                  label: 'Tổng đơn trong khoảng', 
+                  value: analytics.detailedStats?.totalBillsInRange || 0,
+                  description: `Từ ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`
+                },
+                { 
+                  label: 'Tỷ lệ hoàn thành', 
+                  value: `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%`,
+                  description: `${analytics.detailedStats?.completedBills || 0} đơn done / ${analytics.detailedStats?.totalBillsInRange || 0} tổng đơn`
+                },
+                { 
+                  label: 'Tỷ lệ hủy đơn', 
+                  value: `${analytics.cancellationRate.toFixed(1)}%`,
+                  description: `${(analytics.detailedStats?.cancelledBills || 0) + (analytics.detailedStats?.failedBills || 0)} đơn hủy/thất bại`
+                },
+                { 
+                  label: 'Khách trung thành', 
+                  value: analytics.topCustomers.filter(c => c.orderCount > 1).length,
+                  description: `Có >1 đơn done trong khoảng thời gian`
+                },
+                { 
+                  label: 'Sản phẩm khác nhau', 
+                  value: analytics.topProducts.length,
+                  description: `SKU đã bán trong period`
+                },
+                { 
+                  label: 'Users có data', 
+                  value: rawData.users.length,
+                  description: `Khách hàng trong hệ thống`
+                },
               ].map((item, i) => (
                 <div key={i} className="summary-item">
                   <h4>{item.label}</h4>
-                  <p>{item.value}</p>
+                  <p className="summary-value">{item.value}</p>
+                  <small className="summary-description">{item.description}</small>
                 </div>
               ))}
+            </div>
+            
+            {/* Thêm thông tin chi tiết theo trạng thái */}
+            <div className="status-breakdown">
+              <h4>📊 Chi tiết theo trạng thái đơn hàng</h4>
+              <div className="status-grid">
+                <div className="status-item done">
+                  <span className="status-label">✅ Done</span>
+                  <span className="status-count">{analytics.detailedStats?.completedBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.completedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="status-item cancelled">
+                  <span className="status-label">❌ Cancelled</span>
+                  <span className="status-count">{analytics.detailedStats?.cancelledBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.cancelledBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="status-item failed">
+                  <span className="status-label">⚠️ Failed</span>
+                  <span className="status-count">{analytics.detailedStats?.failedBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.failedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="status-item pending">
+                  <span className="status-label">⏳ Pending</span>
+                  <span className="status-count">{analytics.detailedStats?.pendingBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.pendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="status-item confirmed">
+                  <span className="status-label">✔️ Confirmed</span>
+                  <span className="status-count">{analytics.detailedStats?.confirmedBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.confirmedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="status-item shipping">
+                  <span className="status-label">🚚 Shipping</span>
+                  <span className="status-count">{analytics.detailedStats?.shippingBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.shippingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Thêm insights kinh doanh */}
+            <div className="business-insights">
+              <h4>💡 Insights kinh doanh</h4>
+              <div className="insights-grid">
+                <div className="insight-item">
+                  <span className="insight-label">💰 Doanh thu TB/ngày</span>
+                  <span className="insight-value">{formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))}</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-label">📦 Đơn hàng TB/ngày</span>
+                  <span className="insight-value">{(analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)} đơn</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-label">🧁 Sản phẩm TB/đơn</span>
+                  <span className="insight-value">{(analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)} SP</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-label">⏰ Giờ bán chạy</span>
+                  <span className="insight-value">{analytics.bestSellingHour}:00</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-label">💎 Giá trị TB/khách</span>
+                  <span className="insight-value">{formatCurrency(analytics.avgCustomerValue)}</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-label">🔄 Tỷ lệ quay lại</span>
+                  <span className="insight-value">{analytics.customerRetention.toFixed(1)}%</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1032,3 +1564,219 @@ const AnalyticsDashboard = () => {
 };
 
 export default AnalyticsDashboard;
+
+// 🎨 CSS STYLES CHO PRODUCTS TABLE
+const productStyles = `
+.products-section .table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.products-section .table-container th,
+.products-section .table-container td {
+  border: 1px solid #e5e7eb;
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+.products-section .table-container th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rank-badge {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.medal {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.medal.gold {
+  background: linear-gradient(135deg, #ffd700, #ffb000);
+  color: #8b4513;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.medal.silver {
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
+}
+
+.medal.bronze {
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+  color: white;
+  box-shadow: 0 2px 8px rgba(205, 127, 50, 0.3);
+}
+
+.medal.normal {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.quantity-sold {
+  color: #059669;
+  font-weight: 600;
+}
+
+.badge.real {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge.estimated {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.top-rank {
+  text-align: center;
+  min-width: 100px;
+}
+
+.ranking-info {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+}
+
+/* Styles cho báo cáo chi tiết */
+.summary-item {
+  text-align: center;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 8px 0 4px 0;
+}
+
+.summary-description {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.status-breakdown {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.status-item.done { background: #dcfce7; border-color: #16a34a; }
+.status-item.cancelled { background: #fecaca; border-color: #dc2626; }
+.status-item.failed { background: #fed7aa; border-color: #ea580c; }
+.status-item.pending { background: #fef3c7; border-color: #d97706; }
+.status-item.confirmed { background: #dbeafe; border-color: #2563eb; }
+.status-item.shipping { background: #e0e7ff; border-color: #7c3aed; }
+
+.status-label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.status-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.status-percent {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.business-insights {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.insight-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.insight-label {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.insight-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+}
+`;
+
+// Inject styles vào document head
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = productStyles;
+  document.head.appendChild(styleElement);
+}
