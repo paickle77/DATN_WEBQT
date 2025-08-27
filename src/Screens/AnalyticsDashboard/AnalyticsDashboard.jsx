@@ -14,31 +14,7 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// 🔥 LOGIC TÍNH GIÁ SẢN PHẨM GIỐNG BILLMANAGEMENT.JSX
-const getItemPrice = (item) => {
-  // 🔥 MỞ RỘNG CÁC TRƯỜNG GIÁ CÓ THỂ CÓ
-  const priceFields = [
-    'unitPrice', 'unit_price', 'price', 'itemPrice', 'productPrice',
-    'Price', 'UnitPrice', 'product_price', 'selling_price', 'sale_price'
-  ];
-  
-  for (const field of priceFields) {
-    if (item[field] && Number(item[field]) > 0) {
-      return Number(item[field]);
-    }
-  }
-  
-  // 🔥 TÍNH GIÁ TỪ TOTAL VÀ QUANTITY
-  const total = Number(item.total || item.Total || item.itemTotal || 0);
-  const quantity = Number(item.quantity || item.Quantity || 0);
-  
-  if (total > 0 && quantity > 0) {
-    return total / quantity;
-  }
-  
-  console.log('🔍 Không tìm thấy giá cho item:', item);
-  return 0;
-};
+
 
 // 🔥 LOGIC LẤY THÔNG TIN KHÁCH HÀNG GIỐNG CUSTOMERMANAGEMENT.JSX  
 const getCustomerAddress = (customer) => {
@@ -77,6 +53,7 @@ const AnalyticsDashboard = () => {
     bills: [],
     users: [], // 🔥 SỬ DỤNG ENDPOINT /users/with-accounts
     products: [],
+    shippers: [], // 🔥 THÊM SHIPPERS DATA
     billDetails: {}, // 🔥 THÊM CACHE CHO BILL DETAILS
   });
   const [timeFilter, setTimeFilter] = useState('month');
@@ -110,15 +87,17 @@ const AnalyticsDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [billsRes, usersRes, productsRes] = await Promise.all([
+      const [billsRes, usersRes, productsRes, shippersRes] = await Promise.all([
         api.get('/bills/enhanced?enrich=true'), // 🔥 SỬ DỤNG ENHANCED API GIỐNG BILLMANAGEMENT
         api.get('/users/with-accounts', { params: { limit: 1000 } }), // 🔥 SỬ DỤNG API GIỐNG CUSTOMERMANAGEMENT
-        api.get('/products')
+        api.get('/products'),
+        api.get('/shippers').catch(() => ({ data: { data: [] } })) // 🔥 THÊM API SHIPPERS VỚI FALLBACK
       ]);
 
       console.log('🔍 Bills response:', billsRes?.data?.data?.length || 0);
       console.log('🔍 Users response:', usersRes?.data?.data?.customers?.length || 0);
       console.log('🔍 Products response:', productsRes?.data?.data?.length || 0);
+      console.log('🔍 Shippers response:', shippersRes?.data?.data?.length || 0);
 
       // 🔥 KIỂM TRA CẤU TRÚC BILL THỰC TẾ
       const bills = billsRes?.data?.data ?? [];
@@ -202,6 +181,7 @@ const AnalyticsDashboard = () => {
         bills: bills,
         users: usersRes?.data?.data?.customers ?? [],
         products: productsData,
+        shippers: shippersRes?.data?.data ?? [], // 🔥 THÊM SHIPPERS DATA
         billDetails: billDetailsCache, // 🔥 SET CACHE ĐÃ FETCH
       });
       
@@ -211,67 +191,11 @@ const AnalyticsDashboard = () => {
         bills: [], 
         users: [], 
         products: [],
+        shippers: [], // 🔥 THÊM SHIPPERS EMPTY
         billDetails: {},
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 🔥 HÀM RIÊNG ĐỂ LẤY CHI TIẾT BILL
-  const fetchBillDetails = async (bills) => {
-    try {
-      console.log('🔍 Fetching bill details for product analysis...');
-      
-      // Lọc bill done trong 30 ngày gần nhất
-      const recentDoneBills = bills.filter(bill => {
-        if (bill.status?.toLowerCase() !== 'done') return false;
-        
-        const billDate = new Date(bill.created_at);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        return billDate >= thirtyDaysAgo;
-      }).slice(0, 5); // Chỉ lấy 5 bill đầu tiên để test
-      
-      console.log('🔍 Fetching details for', recentDoneBills.length, 'recent done bills');
-      
-      const billDetailsCache = {};
-      
-      for (const bill of recentDoneBills) {
-        try {
-          const billDetailRes = await api.get(`/bills/${bill._id}`);
-          const billDetail = billDetailRes?.data?.data || billDetailRes?.data;
-          
-          if (billDetail) {
-            billDetailsCache[bill._id] = billDetail;
-            console.log(`🔍 Fetched details for bill ${bill._id}:`, {
-              hasItems: !!billDetail.items,
-              itemsCount: billDetail.items?.length || 0,
-              hasDetails: !!billDetail.details,
-              detailsCount: billDetail.details?.length || 0,
-              hasBillDetails: !!billDetail.bill_details,
-              billDetailsCount: billDetail.bill_details?.length || 0,
-              fullStructure: Object.keys(billDetail)
-            });
-            
-            // 🔥 DEBUG: KIỂM TRA CẤU TRÚC ITEMS
-            if (billDetail.items && billDetail.items.length > 0) {
-              console.log(`🔍 Sample item in bill ${bill._id}:`, billDetail.items[0]);
-              console.log(`🔍 Item fields:`, Object.keys(billDetail.items[0]));
-            }
-          }
-        } catch (error) {
-          console.log(`🔍 Failed to fetch bill detail ${bill._id}:`, error.message);
-        }
-      }
-      
-      console.log('🔍 Successfully fetched details for', Object.keys(billDetailsCache).length, 'bills');
-      return billDetailsCache;
-      
-    } catch (error) {
-      console.error('Error fetching bill details:', error);
-      return {};
     }
   };
 
@@ -281,7 +205,7 @@ const AnalyticsDashboard = () => {
 
   // ───────────────────────────── Analytics Calculation ─────────────────────────────
   const analytics = useMemo(() => {
-    const { bills, users, products, billDetails } = rawData;
+    const { bills, users, products, shippers, billDetails } = rawData;
 
     if (!Array.isArray(bills) || bills.length === 0) return getEmptyAnalytics();
 
@@ -388,7 +312,7 @@ const AnalyticsDashboard = () => {
       _id: u._id,
       name: u.name,
       email: u.email,
-      phone: u.phone,
+      phone: typeof u.phone === 'string' ? u.phone : '[OBJECT]',
       total_orders: u.total_orders,
       total_spent: u.total_spent
     })));
@@ -413,7 +337,9 @@ const AnalyticsDashboard = () => {
           _id: user._id,
           name: user.name || 'Khách hàng không rõ',
           email: user.email || 'Email chưa cập nhật', 
-          phone: user.phone || 'SĐT chưa cập nhật',
+          phone: typeof user.phone === 'string' ? user.phone : 
+                 (user.phone && typeof user.phone === 'object' && user.phone.phone) ? user.phone.phone :
+                 'SĐT chưa cập nhật',
           orderCount: doneStats.orderCount, // CHỈ đơn done
           totalSpent: doneStats.totalSpent, // CHỈ từ đơn done  
           avgOrderValue: doneStats.orderCount > 0 ? doneStats.totalSpent / doneStats.orderCount : 0,
@@ -669,6 +595,221 @@ const AnalyticsDashboard = () => {
 
     const totalProductsSold = topProducts.reduce((sum, p) => sum + p.totalQuantitySold, 0);
 
+    // 🔥 TÍNH TOÁN CHI PHÍ SHIPPER VÀ LỢI NHUẬN
+    console.log('🔍 Calculating shipper costs and profit...');
+    console.log('🔍 Shippers count:', Array.isArray(shippers) ? shippers.length : 0);
+    
+    // Helper function để lấy tên shipper
+    const getShipperName = (shipperId) => {
+      if (!shipperId || shipperId === 'unknown') return 'Chưa xác định';
+      if (!Array.isArray(shippers)) return `Shipper #${shipperId}`;
+      const shipper = shippers.find(s => String(s._id) === String(shipperId));
+      return shipper ? (shipper.name || shipper.full_name || shipper.fullName || `Shipper #${shipperId}`) : `Shipper #${shipperId}`;
+    };
+    
+    // 1. Tính tổng chi phí shipper từ đơn hoàn thành
+    let totalShipperCost = 0;
+    const shipperStats = {}; // Thống kê theo từng shipper
+    
+    for (const bill of completedBills) {
+      const shippingFee = parseFloat(bill.shipping_fee || bill.shippingFee || 0);
+      
+      // 🔥 SAFE EXTRACTION OF SHIPPER ID 
+      let shipperId = 'unknown';
+      if (bill.shipper_id) {
+        if (typeof bill.shipper_id === 'string') {
+          shipperId = bill.shipper_id;
+        } else if (typeof bill.shipper_id === 'object' && bill.shipper_id._id) {
+          shipperId = bill.shipper_id._id;
+        }
+      } else if (bill.shipperId) {
+        shipperId = typeof bill.shipperId === 'string' ? bill.shipperId : 
+                   (bill.shipperId._id || 'unknown');
+      }
+      
+      if (shippingFee > 0) {
+        // Shipper nhận 50% phí ship
+        const shipperEarning = shippingFee * 0.5;
+        totalShipperCost += shipperEarning;
+        
+        // Thống kê theo shipper
+        if (!shipperStats[shipperId]) {
+          shipperStats[shipperId] = {
+            shipperId: shipperId,
+            shipperName: getShipperName(shipperId),
+            completedOrders: 0,
+            totalEarnings: 0,
+            bonus: 0
+          };
+        }
+        
+        shipperStats[shipperId].completedOrders += 1;
+        shipperStats[shipperId].totalEarnings += shipperEarning;
+        
+        console.log(`🔍 Bill ${bill._id}: shipping_fee=${shippingFee}, shipper_earning=${shipperEarning}, shipper=${shipperId}`);
+      }
+    }
+    
+    // 2. Tính thưởng shipper (2 triệu cho shipper đạt 50 đơn/tháng)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    for (const [shipperId, stats] of Object.entries(shipperStats)) {
+      // Đếm đơn hoàn thành trong tháng hiện tại của shipper này
+      const ordersThisMonth = completedBills.filter(bill => {
+        const billDate = new Date(bill.created_at);
+        const billShipperId = String(bill.shipper_id || bill.shipperId || 'unknown');
+        return billDate.getMonth() === currentMonth && 
+               billDate.getFullYear() === currentYear &&
+               billShipperId === String(shipperId);
+      }).length;
+      
+      console.log(`🔍 Shipper ${shipperId} (${stats.shipperName}): ${ordersThisMonth} orders this month, total completed: ${stats.completedOrders}`);
+      
+      if (ordersThisMonth >= 50) {
+        stats.bonus = 2000000; // 2 triệu bonus
+        totalShipperCost += stats.bonus;
+        console.log(`🎉 Shipper ${shipperId} gets bonus: ${stats.bonus}`);
+      } else {
+        console.log(`� Shipper ${shipperId} needs ${50 - ordersThisMonth} more orders for bonus`);
+      }
+    }
+    
+    // 3. Tính giá nhập hàng (cost of goods sold)
+    let totalCostPrice = 0;
+    let itemsWithCostFound = 0;
+    let totalItemsProcessed = 0;
+    
+    console.log('🔍 Starting cost price calculation...');
+    
+    // Duyệt qua từng bill để tính giá nhập
+    for (const bill of completedBills) {
+      const billId = bill._id;
+      const billDetail = billDetails[billId];
+      
+      if (billDetail) {
+        const billItems = billDetail.items || billDetail.details || billDetail.bill_details || [];
+        
+        console.log(`🔍 Processing bill ${billId}: ${billItems.length} items`);
+        
+        for (const item of billItems) {
+          totalItemsProcessed++;
+          const quantity = Number(item.quantity || item.Quantity || 0);
+          
+          // 🔥 TÌM KIẾM NHIỀU TRƯỜNG GIÁ NHẬP KHÁC NHAU
+          const costFields = [
+            'cost_price', 'costPrice', 'import_price', 'importPrice', 
+            'wholesale_price', 'wholesalePrice', 'purchase_price', 'purchasePrice',
+            'buy_price', 'buyPrice', 'supplier_price', 'supplierPrice'
+          ];
+          
+          let costPrice = 0;
+          let foundField = null;
+          
+          for (const field of costFields) {
+            if (item[field] && Number(item[field]) > 0) {
+              costPrice = Number(item[field]);
+              foundField = field;
+              break;
+            }
+          }
+          
+          if (quantity > 0 && costPrice > 0) {
+            const itemCost = quantity * costPrice;
+            totalCostPrice += itemCost;
+            itemsWithCostFound++;
+            
+            console.log(`✅ Found cost: ${item.name || 'Unknown'} - Qty: ${quantity}, Cost: ${costPrice} (${foundField}), Total: ${itemCost}`);
+          } else {
+            console.log(`⏩ No cost in bill details for: ${item.name || 'Unknown'} - Will check products table`);
+          }
+        }
+      } else {
+        console.log(`⚠️ No bill details found for bill ${billId}`);
+      }
+    }
+    
+    // 🔥 FALLBACK: TÌM GIÁ NHẬP TRONG PRODUCTS TABLE CHO TẤT CẢ ITEMS CHƯA CÓ GIÁ
+    console.log('🔍 Checking products table for missing cost data...');
+      
+      for (const bill of completedBills) {
+        const billId = bill._id;
+        const billDetail = billDetails[billId];
+        
+        if (billDetail) {
+          const billItems = billDetail.items || billDetail.details || billDetail.bill_details || [];
+          
+          for (const item of billItems) {
+            const quantity = Number(item.quantity || item.Quantity || 0);
+            const productId = item.product_id || item.productId || item._id;
+            
+            if (quantity > 0 && productId) {
+              // Tìm sản phẩm trong products array
+              const product = products.find(p => String(p._id) === String(productId));
+              
+              if (product) {
+                const costFields = [
+                  'cost_price', 'costPrice', 'import_price', 'importPrice', 
+                  'wholesale_price', 'wholesalePrice', 'purchase_price', 'purchasePrice',
+                  'buy_price', 'buyPrice', 'supplier_price', 'supplierPrice'
+                ];
+                
+                let productCostPrice = 0;
+                let foundField = null;
+                
+                for (const field of costFields) {
+                  if (product[field] && Number(product[field]) > 0) {
+                    productCostPrice = Number(product[field]);
+                    foundField = field;
+                    break;
+                  }
+                }
+                
+                if (productCostPrice > 0) {
+                  const itemCost = quantity * productCostPrice;
+                  totalCostPrice += itemCost;
+                  itemsWithCostFound++;
+                  
+                  console.log(`✅ Found cost in products: ${product.name} - Qty: ${quantity}, Cost: ${productCostPrice} (${foundField}), Total: ${itemCost}`);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      console.log('🔍 After checking products table:', {
+        totalCostPrice: totalCostPrice,
+        itemsWithCostFound: itemsWithCostFound
+      });
+    
+    console.log('🔍 Final cost calculation summary:', {
+      totalCostPrice: totalCostPrice,
+      itemsWithCostFound: itemsWithCostFound,
+      totalItemsProcessed: totalItemsProcessed,
+      completedBillsWithDetails: Object.keys(billDetails).length,
+      completedBillsTotal: completedBills.length,
+      productsCount: products.length
+    });
+    
+    console.log('💰 COST CALCULATION SUCCESS: Found ₫' + totalCostPrice.toLocaleString() + ' total cost from ' + itemsWithCostFound + ' items using products table fallback');
+    
+    // 4. Tính lợi nhuận thực tế = Doanh thu - Chi phí shipper - Giá nhập hàng
+    const actualProfit = completedRevenue - totalShipperCost - totalCostPrice;
+    
+    console.log('🔍 Financial Summary:', {
+      totalRevenue: completedRevenue,
+      totalShipperCost: totalShipperCost,
+      totalCostPrice: totalCostPrice,
+      actualProfit: actualProfit,
+      profitMargin: completedRevenue > 0 ? ((actualProfit / completedRevenue) * 100).toFixed(2) + '%' : '0%',
+      numberOfShippers: Object.keys(shipperStats).length,
+      currentMonth: currentMonth,
+      currentYear: currentYear,
+      completedBillsCount: completedBills.length,
+      shipperStatsDetails: Object.values(shipperStats)
+    });
+
     return {
       totalRevenue: completedRevenue,
       totalOrders,
@@ -697,6 +838,10 @@ const AnalyticsDashboard = () => {
       cancelledOrders: cancelledCount,
       pendingOrders: pendingCount,
       completedRevenue: completedRevenue,
+      actualProfit: actualProfit,
+      totalShipperCost: totalShipperCost,
+      totalCostPrice: totalCostPrice,
+      shipperStats: Object.values(shipperStats),
       detailedStats: {
         totalBillsInRange: totalInRange,
         completedBills: completedBills.length,
@@ -750,6 +895,8 @@ const AnalyticsDashboard = () => {
       summarySheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm']);
       summarySheet.addRow(['Loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán']);
       summarySheet.addRow(['Users có data', rawData.users.length, 'Khách hàng trong hệ thống']);
+      summarySheet.addRow(['Chi phí shipper', formatCurrency(analytics.totalShipperCost || 0), '50% phí ship + thưởng']);
+      summarySheet.addRow(['Lợi nhuận ước tính', formatCurrency(analytics.estimatedProfit || 0), 'Sau trừ chi phí shipper']);
       summarySheet.addRow(['']); // Empty row
 
       // Chi tiết theo trạng thái
@@ -806,7 +953,40 @@ const AnalyticsDashboard = () => {
         ]);
       });
       
-      // 📅 Sheet 4: Doanh thu theo ngày
+      // � Sheet 4: Thống kê Shipper
+      const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
+      shipperSheet.addRow(['THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG']);
+      shipperSheet.addRow(['']); // Empty row
+      shipperSheet.addRow(['Tổng chi phí shipper', formatCurrency(analytics.totalShipperCost || 0)]);
+      shipperSheet.addRow(['Tổng giá nhập hàng', formatCurrency(analytics.totalCostPrice || 0)]);
+      shipperSheet.addRow(['Số shipper hoạt động', analytics.shipperStats?.length || 0]);
+      shipperSheet.addRow(['Lợi nhuận thực tế', formatCurrency(analytics.actualProfit || 0)]);
+      shipperSheet.addRow(['']); // Empty row
+      
+      shipperSheet.addRow(['CHI TIẾT THU NHẬP SHIPPER']);
+      shipperSheet.addRow(['Tên Shipper', 'Shipper ID', 'Đơn hoàn thành', 'Thu nhập cơ bản (₫)', 'Thưởng (₫)', 'Tổng thu nhập (₫)']);
+      if (analytics.shipperStats && analytics.shipperStats.length > 0) {
+        analytics.shipperStats
+          .sort((a, b) => (b.totalEarnings + b.bonus) - (a.totalEarnings + a.bonus))
+          .forEach((shipper) => {
+            shipperSheet.addRow([
+              shipper.shipperName || 'Chưa xác định',
+              shipper.shipperId === 'unknown' ? 'Chưa xác định' : shipper.shipperId,
+              shipper.completedOrders,
+              shipper.totalEarnings,
+              shipper.bonus,
+              shipper.totalEarnings + shipper.bonus
+            ]);
+          });
+      }
+      
+      shipperSheet.addRow(['']); // Empty row
+      shipperSheet.addRow(['GHI CHÚ:']);
+      shipperSheet.addRow(['- Shipper nhận 50% phí giao hàng cho mỗi đơn hoàn thành']);
+      shipperSheet.addRow(['- Thưởng 2,000,000₫ cho shipper đạt ≥50 đơn hoàn thành/tháng']);
+      shipperSheet.addRow(['- Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)']);
+      
+      // �📅 Sheet 5: Doanh thu theo ngày
       const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
       dailySheet.addRow(['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)']);
       Object.entries(analytics.dailyRevenue)
@@ -822,7 +1002,7 @@ const AnalyticsDashboard = () => {
           ]);
         });
       
-      // 📊 Sheet 5: Phân tích chuyên sâu
+      // 📊 Sheet 6: Phân tích chuyên sâu
       const analysisSheet = workbook.addWorksheet('Phân tích chuyên sâu');
       analysisSheet.addRow(['PHÂN TÍCH CHUYÊN SÂU']);
       analysisSheet.addRow(['']); // Empty row
@@ -842,7 +1022,7 @@ const AnalyticsDashboard = () => {
       analysisSheet.addRow(['Sản phẩm TB/đơn', (analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)]);
       
       // Style tất cả sheets
-      [summarySheet, customersSheet, productsSheet, dailySheet, analysisSheet].forEach(sheet => {
+      [summarySheet, customersSheet, productsSheet, shipperSheet, dailySheet, analysisSheet].forEach(sheet => {
         // Style header rows
         for (let i = 1; i <= sheet.rowCount; i++) {
           const row = sheet.getRow(i);
@@ -1082,7 +1262,7 @@ const AnalyticsDashboard = () => {
                   {kpi.title.includes('doanh thu') && analytics.totalOrders > 0 ? 
                     `${analytics.totalOrders} đơn hoàn thành` : 
                     kpi.title.includes('khách hàng') ? 
-                    `${analytics.customerRetention.toFixed(1)}% quay lại` : 
+                    `${analytics.customerRetention.toFixed(1)}% quay lại` :
                     'Dữ liệu cập nhật'}
                 </div>
               </div>
@@ -1142,20 +1322,78 @@ const AnalyticsDashboard = () => {
             </div>
           </div>
 
-          <div className="quick-stats">
-            <div className="stat-group">
-              <h4>🕒 Thời gian</h4>
-              <p>Giờ bán chạy: {analytics.bestSellingHour}:00</p>
+          {/* Thêm section thống kê shipper */}
+          {analytics.shipperStats && analytics.shipperStats.length > 0 && (
+            <div className="shipper-stats-section">
+              <h3>🚚 Thống kê Shipper & Chi phí giao hàng</h3>
+              <div className="shipper-summary">
+                <div className="summary-cards">
+                  <div className="summary-card">
+                    <h4>💰 Tổng chi phí shipper</h4>
+                    <p className="big-number">{formatCurrency(analytics.totalShipperCost || 0)}</p>
+                    <small>50% phí ship + thưởng</small>
+                  </div>
+                  <div className="summary-card">
+                    <h4>🚛 Số shipper hoạt động</h4>
+                    <p className="big-number">{analytics.shipperStats.length}</p>
+                    <small>Có đơn hoàn thành</small>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="shipper-details">
+                <h4>📋 Chi tiết thu nhập shipper</h4>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tên Shipper</th>
+                        <th>Đơn hoàn thành</th>
+                        <th>Thu nhập cơ bản</th>
+                        <th>Thưởng (≥50 đơn/tháng)</th>
+                        <th>Tổng thu nhập</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.shipperStats
+                        .sort((a, b) => (b.totalEarnings + b.bonus) - (a.totalEarnings + a.bonus))
+                        .map((shipper, index) => (
+                        <tr key={shipper.shipperId || index}>
+                          <td>
+                            <strong>{shipper.shipperName || 'Chưa xác định'}</strong>
+                            <small style={{display: 'block', color: '#666'}}>ID: {shipper.shipperId}</small>
+                          </td>
+                          <td className="orders">{shipper.completedOrders} đơn</td>
+                          <td className="earnings">{formatCurrency(shipper.totalEarnings)}</td>
+                          <td className="bonus">
+                            {shipper.bonus > 0 ? (
+                              <span className="bonus-badge">🎉 {formatCurrency(shipper.bonus)}</span>
+                            ) : (
+                              <span className="no-bonus">-</span>
+                            )}
+                          </td>
+                          <td className="total">
+                            <strong>{formatCurrency(shipper.totalEarnings + shipper.bonus)}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div className="shipper-notes">
+                  <div className="note-item">
+                    <span className="note-icon">ℹ️</span>
+                    <span>Shipper nhận 50% phí giao hàng cho mỗi đơn hoàn thành</span>
+                  </div>
+                  <div className="note-item">
+                    <span className="note-icon">🎁</span>
+                    <span>Thưởng 2 triệu đồng cho shipper đạt ≥50 đơn hoàn thành/tháng</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="stat-group">
-              <h4>👥 Khách hàng</h4>
-              <p>Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%</p>
-            </div>
-            <div className="stat-group">
-              <h4>🧁 Sản phẩm</h4>
-              <p>Đã bán: {analytics.totalProductsSold} chiếc</p>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -1177,12 +1415,12 @@ const AnalyticsDashboard = () => {
                   <span className="value green">{formatCurrency(analytics.completedRevenue)}</span>
                 </div>
                 <div className="stat-item">
-                  <label>Giá trị trung bình/đơn:</label>
-                  <span className="value blue">{formatCurrency(analytics.avgOrderValue)}</span>
+                  <label>Giá nhập hàng:</label>
+                  <span className="value orange">{formatCurrency(analytics.totalCostPrice || 0)}</span>
                 </div>
                 <div className="stat-item">
-                  <label>Giá trị TB/khách hàng:</label>
-                  <span className="value purple">{formatCurrency(analytics.avgCustomerValue)}</span>
+                  <label>Lợi nhuận thực tế:</label>
+                  <span className="value success">{formatCurrency(analytics.actualProfit || 0)}</span>
                 </div>
                 <div className="stat-item">
                   <label>Giờ bán chạy nhất:</label>
@@ -1277,7 +1515,7 @@ const AnalyticsDashboard = () => {
                       </td>
                       <td>
                         <div className="email">{customer.email}</div>
-                        <div className="phone">{customer.phone}</div>
+                        <div className="phone">{typeof customer.phone === 'string' ? customer.phone : 'SĐT chưa cập nhật'}</div>
                       </td>
                       <td className="orders" title="Chỉ đơn hoàn thành trong khoảng thời gian">
                         {customer.orderCount} đơn
@@ -1771,6 +2009,161 @@ const productStyles = `
   font-size: 14px;
   font-weight: 600;
   color: #1e40af;
+}
+
+/* Styles cho shipper stats */
+.shipper-stats-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shipper-summary .summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px 0;
+}
+
+.summary-card {
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+}
+
+.summary-card h4 {
+  margin: 0 0 8px 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.big-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 8px 0;
+}
+
+.summary-card small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.shipper-details {
+  margin-top: 24px;
+}
+
+.shipper-details .table-container {
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.shipper-details table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shipper-details th,
+.shipper-details td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shipper-details th {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.orders {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.earnings {
+  color: #059669;
+  font-weight: 500;
+}
+
+.bonus-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.no-bonus {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.total {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.shipper-notes {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.note-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.note-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Thêm CSS cho revenue section values */
+.value.red {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.value.success {
+  color: #16a34a !important;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.value.green {
+  color: #059669 !important;
+  font-weight: 600;
+}
+
+.value.blue {
+  color: #2563eb !important;
+  font-weight: 500;
+}
+
+.value.purple {
+  color: #7c3aed !important;
+  font-weight: 500;
+}
+
+.value.orange {
+  color: #ea580c !important;
+  font-weight: 500;
 }
 `;
 
