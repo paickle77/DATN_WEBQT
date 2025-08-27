@@ -229,7 +229,7 @@ const AnalyticsDashboard = () => {
       created_at: b.created_at
     })));
 
-    // Group by status
+    // Group by status - CẬP NHẬT TẤT CẢ TRẠNG THÁI THEO BILLMANAGEMENT
     const byStatus = {
       done: [],
       cancelled: [],
@@ -238,6 +238,10 @@ const AnalyticsDashboard = () => {
       confirmed: [],
       ready: [],
       shipping: [],
+      returned: [],        // 🆕 THÊM
+      refund_pending: [],  // 🆕 THÊM
+      refunded: [],        // 🆕 THÊM
+      other: [] // Các trạng thái không xác định
     };
 
     for (const b of filteredBills) {
@@ -246,7 +250,41 @@ const AnalyticsDashboard = () => {
       else if (st === 'cancelled') byStatus.cancelled.push(b);
       else if (st === 'failed') byStatus.failed.push(b);
       else if (['pending','confirmed','ready','shipping'].includes(st)) byStatus[st].push(b);
+      else if (['returned','refund_pending','refunded'].includes(st)) byStatus[st].push(b); // 🆕 THÊM
+      else {
+        byStatus.other.push(b);
+        console.log('⚠️ Unknown status found:', st, 'Bill ID:', b._id);
+      }
     }
+
+    // Debug tổng số đơn - CẬP NHẬT TÍNH TOÁN
+    const totalByStatus = byStatus.done.length + byStatus.cancelled.length + byStatus.failed.length + 
+                         byStatus.pending.length + byStatus.confirmed.length + byStatus.ready.length + 
+                         byStatus.shipping.length + byStatus.returned.length + byStatus.refund_pending.length + 
+                         byStatus.refunded.length + byStatus.other.length;
+    
+    console.log('🔍 Status breakdown debug:');
+    console.log('- Total filtered bills:', filteredBills.length);
+    console.log('- Done:', byStatus.done.length);
+    console.log('- Cancelled:', byStatus.cancelled.length);
+    console.log('- Failed:', byStatus.failed.length);
+    console.log('- Pending:', byStatus.pending.length);
+    console.log('- Confirmed:', byStatus.confirmed.length);
+    console.log('- Ready:', byStatus.ready.length);
+    console.log('- Shipping:', byStatus.shipping.length);
+    console.log('- Returned:', byStatus.returned.length);
+    console.log('- Refund Pending:', byStatus.refund_pending.length);
+    console.log('- Refunded:', byStatus.refunded.length);
+    console.log('- Other/Unknown:', byStatus.other.length);
+    console.log('- Sum of all status:', totalByStatus);
+    console.log('- Difference:', filteredBills.length - totalByStatus);
+    
+    // Thêm thông báo xác nhận phép tính
+    const displayTotal = byStatus.done.length + byStatus.cancelled.length + byStatus.failed.length + 
+                        byStatus.pending.length + byStatus.confirmed.length + byStatus.ready.length + 
+                        byStatus.shipping.length + byStatus.returned.length + byStatus.refund_pending.length + 
+                        byStatus.refunded.length + byStatus.other.length;
+    console.log('📊 FINAL STATUS CHECK: Total=' + filteredBills.length + ', Display Sum=' + displayTotal + ', Match=' + (filteredBills.length === displayTotal));
 
     console.log('🔍 Bills by status:', {
       done: byStatus.done.length,
@@ -255,7 +293,11 @@ const AnalyticsDashboard = () => {
       pending: byStatus.pending.length,
       confirmed: byStatus.confirmed.length,
       ready: byStatus.ready.length,
-      shipping: byStatus.shipping.length
+      shipping: byStatus.shipping.length,
+      returned: byStatus.returned.length,
+      refund_pending: byStatus.refund_pending.length,
+      refunded: byStatus.refunded.length,
+      other: byStatus.other.length
     });
 
     const completedBills = byStatus.done;
@@ -368,18 +410,20 @@ const AnalyticsDashboard = () => {
 
     console.log('🔍 Top customers with done orders only:', topCustomers.length);
 
-    // 🔥 TOP PRODUCTS - SỬ DỤNG BILL DETAILS ĐỂ LẤY SẢN PHẨM THỰC TẾ
-    console.log('🔍 Processing top products using bill details cache...');
+    // 🔥 TOP PRODUCTS - CHỈ TÍNH TỪ COMPLETED BILLS (DONE STATUS)
+    console.log('🔍 Processing top products using COMPLETED BILLS ONLY...');
     console.log('🔍 Bill details cache size:', Object.keys(billDetails).length);
+    console.log('🔍 Completed bills count:', completedBills.length);
     
-    const productSalesStats = {}; // CHỈ lưu sản phẩm thực sự đã bán
+    const productSalesStats = {}; // CHỈ lưu sản phẩm từ đơn hoàn thành
     let foundRealItems = 0;
     
-    // 🔥 ƯU TIÊN SỬ DỤNG BILL DETAILS CACHE
+    // 🔥 CHỈ SỬ DỤNG COMPLETED BILLS (DONE STATUS)
+    const completedBillIds = new Set(completedBills.map(b => b._id));
     for (const [billId, billDetail] of Object.entries(billDetails)) {
-      if (!billDetail) continue;
+      if (!billDetail || !completedBillIds.has(billId)) continue; // CHỈ bills hoàn thành
       
-      console.log(`🔍 Processing cached bill ${billId}:`, {
+      console.log(`🔍 Processing completed bill ${billId}:`, {
         hasItems: !!billDetail.items,
         hasDetails: !!billDetail.details,
         hasBillDetails: !!billDetail.bill_details
@@ -830,6 +874,10 @@ const AnalyticsDashboard = () => {
         confirmed: byStatus.confirmed.length,
         ready: byStatus.ready.length,
         shipping: byStatus.shipping.length,
+        returned: byStatus.returned.length,
+        refund_pending: byStatus.refund_pending.length,
+        refunded: byStatus.refunded.length,
+        other: byStatus.other.length,
         total: totalInRange
       },
       totalProductsSold,
@@ -851,6 +899,10 @@ const AnalyticsDashboard = () => {
         confirmedBills: byStatus.confirmed.length,
         readyBills: byStatus.ready.length,
         shippingBills: byStatus.shipping.length,
+        returnedBills: byStatus.returned.length,
+        refundPendingBills: byStatus.refund_pending.length,
+        refundedBills: byStatus.refunded.length,
+        otherBills: byStatus.other.length,
         completedRevenue: completedRevenue,
         averageCompletedOrderValue: avgOrderValue,
         totalCustomersWithCompletedOrders: totalCustomers,
@@ -1322,6 +1374,28 @@ const AnalyticsDashboard = () => {
             </div>
           </div>
 
+          <div className="quick-stats">
+            <div className="stat-group">
+              <h4>🕒 Thời gian</h4>
+              <p>Giờ bán chạy: {analytics.bestSellingHour}:00</p>
+            </div>
+            <div className="stat-group">
+              <h4>👥 Khách hàng</h4>
+              <p>Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}%</p>
+            </div>
+            <div className="stat-group">
+              <h4>🧁 Sản phẩm</h4>
+              <p>Đã bán: {analytics.totalProductsSold} sản phẩm</p>
+              <p>Loại khác nhau: {analytics.topProducts.length} SKU</p>
+            </div>
+            <div className="stat-group">
+              <h4>💰 Chi phí & Lợi nhuận</h4>
+              <p>Giá nhập hàng: {formatCurrency(analytics.totalCostPrice || 0)}</p>
+              <p>Chi phí shipper: {formatCurrency(analytics.totalShipperCost || 0)}</p>
+              <p>Lợi nhuận thực tế: {formatCurrency(analytics.actualProfit || 0)}</p>
+            </div>
+          </div>
+
           {/* Thêm section thống kê shipper */}
           {analytics.shipperStats && analytics.shipperStats.length > 0 && (
             <div className="shipper-stats-section">
@@ -1337,6 +1411,11 @@ const AnalyticsDashboard = () => {
                     <h4>🚛 Số shipper hoạt động</h4>
                     <p className="big-number">{analytics.shipperStats.length}</p>
                     <small>Có đơn hoàn thành</small>
+                  </div>
+                  <div className="summary-card">
+                    <h4>💎 Lợi nhuận thực tế</h4>
+                    <p className="big-number">{formatCurrency(analytics.actualProfit || 0)}</p>
+                    <small>Doanh thu - giá nhập - chi phí shipper</small>
                   </div>
                 </div>
               </div>
@@ -1389,6 +1468,10 @@ const AnalyticsDashboard = () => {
                   <div className="note-item">
                     <span className="note-icon">🎁</span>
                     <span>Thưởng 2 triệu đồng cho shipper đạt ≥50 đơn hoàn thành/tháng</span>
+                  </div>
+                  <div className="note-item">
+                    <span className="note-icon">📊</span>
+                    <span>Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)</span>
                   </div>
                 </div>
               </div>
@@ -1711,35 +1794,68 @@ const AnalyticsDashboard = () => {
               <h4>📊 Chi tiết theo trạng thái đơn hàng</h4>
               <div className="status-grid">
                 <div className="status-item done">
-                  <span className="status-label">✅ Done</span>
+                  <span className="status-label">✅ Hoàn thành</span>
                   <span className="status-count">{analytics.detailedStats?.completedBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.completedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="status-item cancelled">
-                  <span className="status-label">❌ Cancelled</span>
+                  <span className="status-label">❌ Đã hủy</span>
                   <span className="status-count">{analytics.detailedStats?.cancelledBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.cancelledBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="status-item failed">
-                  <span className="status-label">⚠️ Failed</span>
+                  <span className="status-label">⚠️ Giao thất bại</span>
                   <span className="status-count">{analytics.detailedStats?.failedBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.failedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="status-item pending">
-                  <span className="status-label">⏳ Pending</span>
+                  <span className="status-label">⏳ Chờ xác nhận</span>
                   <span className="status-count">{analytics.detailedStats?.pendingBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.pendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="status-item confirmed">
-                  <span className="status-label">✔️ Confirmed</span>
+                  <span className="status-label">✔️ Đã xác nhận</span>
                   <span className="status-count">{analytics.detailedStats?.confirmedBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.confirmedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
+                <div className="status-item ready">
+                  <span className="status-label">📦 Sẵn sàng giao</span>
+                  <span className="status-count">{analytics.detailedStats?.readyBills || 0}</span>
+                  <span className="status-percent">{((analytics.detailedStats?.readyBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                </div>
                 <div className="status-item shipping">
-                  <span className="status-label">🚚 Shipping</span>
+                  <span className="status-label">🚚 Đang giao hàng</span>
                   <span className="status-count">{analytics.detailedStats?.shippingBills || 0}</span>
                   <span className="status-percent">{((analytics.detailedStats?.shippingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
+                {analytics.detailedStats?.returnedBills > 0 && (
+                  <div className="status-item returned">
+                    <span className="status-label">📦 Đã hoàn trả</span>
+                    <span className="status-count">{analytics.detailedStats?.returnedBills || 0}</span>
+                    <span className="status-percent">{((analytics.detailedStats?.returnedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {analytics.detailedStats?.refundPendingBills > 0 && (
+                  <div className="status-item refund-pending">
+                    <span className="status-label">⏳ Chờ hoàn tiền</span>
+                    <span className="status-count">{analytics.detailedStats?.refundPendingBills || 0}</span>
+                    <span className="status-percent">{((analytics.detailedStats?.refundPendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {analytics.detailedStats?.refundedBills > 0 && (
+                  <div className="status-item refunded">
+                    <span className="status-label">💰 Đã hoàn tiền</span>
+                    <span className="status-count">{analytics.detailedStats?.refundedBills || 0}</span>
+                    <span className="status-percent">{((analytics.detailedStats?.refundedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {analytics.detailedStats?.otherBills > 0 && (
+                  <div className="status-item other">
+                    <span className="status-label">❓ Khác</span>
+                    <span className="status-count">{analytics.detailedStats?.otherBills || 0}</span>
+                    <span className="status-percent">{((analytics.detailedStats?.otherBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -1954,7 +2070,12 @@ const productStyles = `
 .status-item.failed { background: #fed7aa; border-color: #ea580c; }
 .status-item.pending { background: #fef3c7; border-color: #d97706; }
 .status-item.confirmed { background: #dbeafe; border-color: #2563eb; }
-.status-item.shipping { background: #e0e7ff; border-color: #7c3aed; }
+.status-item.ready { background: #e0e7ff; border-color: #7c3aed; }
+.status-item.shipping { background: #cffafe; border-color: #06b6d4; }
+.status-item.returned { background: #fed7aa; border-color: #f97316; }
+.status-item.refund-pending { background: #fef3c7; border-color: #eab308; }
+.status-item.refunded { background: #ecfccb; border-color: #84cc16; }
+.status-item.other { background: #f1f5f9; border-color: #64748b; }
 
 .status-label {
   font-size: 12px;
