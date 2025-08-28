@@ -521,7 +521,7 @@ const printBillSlip = async billId => {
     
     // Bill title on the right
     doc.setFontSize(16); // Giảm từ 18 xuống 16
-    const titleText = 'HOA DON BAN HANG';
+    const titleText = 'HÓA ĐƠN BÁN HÀNG';
     const titleWidth = doc.getTextWidth(titleText);
     doc.text(titleText, pageWidth - margin - titleWidth, 20);
     
@@ -537,7 +537,7 @@ const printBillSlip = async billId => {
     // Left column
     doc.setTextColor(75, 85, 99);
     doc.setFontSize(8); // Giảm từ 9 xuống 8
-    doc.text('Ma hoa don:', margin + 3, yPos + 6);
+    doc.text('Mã hóa đơn:', margin + 3, yPos + 6);
     doc.setTextColor(17, 24, 39);
     doc.setFontSize(9); // Giảm từ 10 xuống 9
     doc.text(`#${bill._id.slice(-8)}`, margin + 3, yPos + 12);
@@ -545,7 +545,7 @@ const printBillSlip = async billId => {
     // Middle column
     doc.setTextColor(75, 85, 99);
     doc.setFontSize(8);
-    doc.text('Ngay tao:', margin + 70, yPos + 6);
+    doc.text('Ngày tạo:', margin + 70, yPos + 6);
     doc.setTextColor(17, 24, 39);
     doc.setFontSize(9);
     const createDate = bill.created_date || (bill.created_at ? new Date(bill.created_at).toLocaleDateString('vi-VN') : 'N/A');
@@ -554,7 +554,7 @@ const printBillSlip = async billId => {
     // Right column - Status with color
     doc.setTextColor(75, 85, 99);
     doc.setFontSize(8);
-    doc.text('Trang thai:', margin + 130, yPos + 6);
+    doc.text('Trạng thái:', margin + 130, yPos + 6);
     const statusColor = STATUS_COLORS[bill.status] || '#6b7280';
     const rgb = hexToRgb(statusColor);
     doc.setTextColor(rgb.r, rgb.g, rgb.b);
@@ -569,8 +569,8 @@ const printBillSlip = async billId => {
     
     doc.setTextColor(59, 130, 246);
     doc.setFontSize(8);
-    doc.text('Thanh toan:', margin + 3, yPos + 4);
-    doc.text('Van chuyen:', margin + 70, yPos + 4);
+    doc.text('Thanh toán:', margin + 3, yPos + 4);
+    doc.text('Vận chuyển:', margin + 70, yPos + 4);
     doc.text('Voucher:', margin + 130, yPos + 4);
     
     doc.setTextColor(17, 24, 39);
@@ -587,16 +587,16 @@ const printBillSlip = async billId => {
     doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text('👤 THONG TIN KHACH HANG', margin + 3, yPos + 7);
+    doc.text('👤 THÔNG TIN KHÁCH HÀNG', margin + 3, yPos + 7);
     
     yPos += 14; // Giảm từ 18 xuống 14
     
     // Customer details in 2 columns
     doc.setTextColor(17, 24, 39);
     doc.setFontSize(9);
-    doc.text(`Ten: ${customerInfo.name}`, margin + 3, yPos);
+    doc.text(`Tên: ${customerInfo.name}`, margin + 3, yPos);
     if (customerInfo.phone) {
-      doc.text(`SDT: ${customerInfo.phone}`, margin + 100, yPos);
+      doc.text(`SĐT: ${customerInfo.phone}`, margin + 100, yPos);
     }
     
     yPos += 12; // Giảm từ 15 xuống 12
@@ -606,16 +606,16 @@ const printBillSlip = async billId => {
     doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text('📍 THONG TIN GIAO HANG', margin + 3, yPos + 7);
+    doc.text('📍 THÔNG TIN GIAO HÀNG', margin + 3, yPos + 7);
     
     yPos += 14; // Giảm từ 18 xuống 14
     
     // Delivery details
     doc.setTextColor(17, 24, 39);
     doc.setFontSize(9);
-    doc.text(`Nguoi nhan: ${deliveryInfo.name}`, margin + 3, yPos);
+    doc.text(`Người nhận: ${deliveryInfo.name}`, margin + 3, yPos);
     if (deliveryInfo.phone !== 'Chưa có SĐT') {
-      doc.text(`SDT: ${deliveryInfo.phone}`, margin + 100, yPos);
+      doc.text(`SĐT: ${deliveryInfo.phone}`, margin + 100, yPos);
     }
     
     yPos += 6; // Giảm từ 8 xuống 6
@@ -623,7 +623,7 @@ const printBillSlip = async billId => {
     // Address with proper wrapping - Compact
     doc.setTextColor(75, 85, 99);
     doc.setFontSize(8);
-    doc.text('Dia chi:', margin + 3, yPos);
+    doc.text('Địa chỉ:', margin + 3, yPos);
     
     const address = deliveryInfo.address;
     const maxAddressWidth = pageWidth - margin - 25;
@@ -642,8 +642,8 @@ const printBillSlip = async billId => {
     doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F'); // Giảm từ 12 xuống 10
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text('🛒 CHI TIET SAN PHAM', margin + 3, yPos + 7);
-    
+    doc.text('🛒 CHI TIẾT SẢN PHẨM', margin + 3, yPos + 7);
+
     yPos += 14; // Giảm từ 18 xuống 14
     
     // Enhanced table with precise spacing
@@ -654,7 +654,7 @@ const printBillSlip = async billId => {
       
       return [
         (i + 1).toString(),
-        item?.productName || item?.name || 'San pham khong ro',
+        item?.productName || item?.name || 'Sản phẩm không rõ',
         itemQty.toString(),
         itemPrice.toLocaleString('vi-VN') + ' d',
         itemTotal.toLocaleString('vi-VN') + ' d'
@@ -662,7 +662,7 @@ const printBillSlip = async billId => {
     });
     
     autoTable(doc, {
-      head: [['#', 'Ten san pham', 'SL', 'Don gia', 'Thanh tien']],
+      head: [['#', 'Tên sản phẩm', 'SL', 'Đơn giá', 'Thành tiền']],
       body: tableData,
       startY: yPos,
       theme: 'striped',
@@ -716,14 +716,14 @@ const printBillSlip = async billId => {
     // 🔥 SỬ DỤNG DỮ LIỆU TỪ calculateFinancialInfo
     doc.setFontSize(8);
     doc.setTextColor(75, 85, 99);
-    doc.text('Tien hang:', summaryX + 2, summaryY);
+    doc.text('Tiền hàng:', summaryX + 2, summaryY);
     doc.setTextColor(17, 24, 39);
     const subtotalWidth = doc.getTextWidth(financialInfo.itemsSubtotal_formatted);
     doc.text(financialInfo.itemsSubtotal_formatted, summaryX + summaryWidth - 2 - subtotalWidth, summaryY);
     
     summaryY += 4;
     doc.setTextColor(75, 85, 99);
-    doc.text('Phi van chuyen:', summaryX + 2, summaryY);
+    doc.text('Phí vận chuyển:', summaryX + 2, summaryY);
     doc.setTextColor(17, 24, 39);
     const shippingWidth = doc.getTextWidth(financialInfo.shippingFee_formatted);
     doc.text(financialInfo.shippingFee_formatted, summaryX + summaryWidth - 2 - shippingWidth, summaryY);
@@ -731,7 +731,7 @@ const printBillSlip = async billId => {
     if (hasDiscount) {
       summaryY += 4;
       doc.setTextColor(220, 38, 38);
-      doc.text('Giam gia:', summaryX + 2, summaryY);
+      doc.text('Giảm giá:', summaryX + 2, summaryY);
       const discountText = '-' + financialInfo.discountAmount_formatted;
       const discountWidth = doc.getTextWidth(discountText);
       doc.text(discountText, summaryX + summaryWidth - 2 - discountWidth, summaryY);
@@ -745,7 +745,7 @@ const printBillSlip = async billId => {
     
     doc.setFontSize(9);
     doc.setTextColor(16, 185, 129);
-    doc.text('TONG CONG:', summaryX + 2, summaryY + 4);
+    doc.text('TỔNG CỘNG:', summaryX + 2, summaryY + 4);
     const totalWidth = doc.getTextWidth(financialInfo.finalTotal_formatted);
     doc.text(financialInfo.finalTotal_formatted, summaryX + summaryWidth - 2 - totalWidth, summaryY + 4);
 
@@ -754,8 +754,8 @@ const printBillSlip = async billId => {
       summaryY += 8;
       doc.setFontSize(7);
       doc.setTextColor(220, 38, 38);
-      doc.text('⚠️ Cong thuc:', summaryX + 2, summaryY);
-      doc.text(`${financialInfo.calculatedTotal.toLocaleString('vi-VN')}d`, summaryX + 25, summaryY);
+      doc.text('⚠️ Công thức:', summaryX + 2, summaryY);
+      doc.text(`${financialInfo.calculatedTotal.toLocaleString('vi-VN')}đ`, summaryX + 25, summaryY);
     }
     
     // 📝 FOOTER - Positioned properly with enough space
@@ -771,14 +771,14 @@ const printBillSlip = async billId => {
       // Thank you message - centered and compact
       doc.setFontSize(10);
       doc.setTextColor(59, 130, 246);
-      const thankYouText = 'Cam on quy khach da tin tuong CakeShop!';
+      const thankYouText = 'Cảm ơn quý khách đã tin tưởng CakeShop!';
       const thankYouWidth = doc.getTextWidth(thankYouText);
       doc.text(thankYouText, (pageWidth - thankYouWidth) / 2, footerY + 6);
       
       // Contact info - single line, smaller font
       doc.setFontSize(8);
       doc.setTextColor(107, 114, 128);
-      const contactInfo = '1900-CAKE | support@cakeshop.vn | cakeshop.vn';
+      const contactInfo = '1900-CAKE | support@cakeshop.vn | nhom6agile@gmail.com';
       const contactWidth = doc.getTextWidth(contactInfo);
       doc.text(contactInfo, (pageWidth - contactWidth) / 2, footerY + 12);
       
@@ -791,7 +791,7 @@ const printBillSlip = async billId => {
       const simpleFooterY = yAfterTable + summaryHeight + 3;
       doc.setFontSize(8);
       doc.setTextColor(59, 130, 246);
-      const thankYouText = 'Cam on quy khach!';
+      const thankYouText = 'ảm ơn quý khách!';
       const thankYouWidth = doc.getTextWidth(thankYouText);
       doc.text(thankYouText, (pageWidth - thankYouWidth) / 2, simpleFooterY);
     }

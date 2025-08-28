@@ -914,348 +914,206 @@ const AnalyticsDashboard = () => {
   }, [rawData, dateRange]);
 
   // ── Export Excel Functions  
-const exportToExcel = async () => {
+  const exportToExcel = async () => {
     try {
-      // Import ExcelJS động
+      // 🔥 CHỈ DÙNG EXCELJS, KHÔNG DÙNG FILE-SAVER
       const ExcelJS = (await import('exceljs')).default;
       
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'Analytics Dashboard - Báo cáo chi tiết';
       workbook.created = new Date();
       
-      // === SHEET 1: TỔNG QUAN ===
-      const summarySheet = workbook.addWorksheet('Tổng quan kinh doanh');
+      // 📊 Sheet 1: Báo cáo tổng quan (giống như UI)
+      const summarySheet = workbook.addWorksheet('Báo cáo tổng quan');
       
-      // Header
-      summarySheet.mergeCells('A1:F1');
-      summarySheet.getCell('A1').value = 'BÁO CÁO THỐNG KÊ TOÀN DIỆN';
-      summarySheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      summarySheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-      summarySheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
-      summarySheet.getRow(1).height = 25;
-
-      // Thông tin thời gian
-      summarySheet.getCell('A3').value = 'Thời gian phân tích:';
-      summarySheet.getCell('B3').value = `${dateRange.from.toLocaleDateString('vi-VN')} - ${dateRange.to.toLocaleDateString('vi-VN')}`;
-      summarySheet.getCell('A4').value = 'Ngày xuất báo cáo:';
-      summarySheet.getCell('B4').value = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
-
+      // Header thông tin thời gian
+      summarySheet.addRow(['THỐNG KÊ TOÀN DIỆN - BÁO CÁO CHI TIẾT']);
+      summarySheet.addRow([`Từ ngày: ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`]);
+      summarySheet.addRow([`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`]);
+      summarySheet.addRow(['']); // Empty row
+      
       // KPI chính
-      let currentRow = 6;
-      summarySheet.mergeCells(`A${currentRow}:F${currentRow}`);
-      summarySheet.getCell(`A${currentRow}`).value = 'CHỈ SỐ KINH DOANH CHÍNH';
-      summarySheet.getCell(`A${currentRow}`).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-      summarySheet.getCell(`A${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
-      summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
-      
-      currentRow++;
-      const kpiHeaders = ['Chỉ số', 'Giá trị', 'Ghi chú'];
-      kpiHeaders.forEach((header, index) => {
-        const cell = summarySheet.getCell(currentRow, index + 1);
-        cell.value = header;
-        cell.font = { bold: true };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
-      });
+      summarySheet.addRow(['CHỈ SỐ KINH DOANH CHÍNH']);
+      summarySheet.addRow(['Chỉ số', 'Giá trị', 'Ghi chú']);
+      summarySheet.addRow(['Tổng đơn trong khoảng', analytics.detailedStats?.totalBillsInRange || 0, 'Tất cả đơn hàng']);
+      summarySheet.addRow(['Đơn hoàn thành', analytics.completedOrders, 'Chỉ đơn status = done']);
+      summarySheet.addRow(['Tỷ lệ hoàn thành', `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%`, 'Hoàn thành/Tổng đơn']);
+      summarySheet.addRow(['Tỷ lệ hủy đơn', `${analytics.cancellationRate.toFixed(1)}%`, 'Bao gồm cancelled + failed']);
+      summarySheet.addRow(['Tổng doanh thu', formatCurrency(analytics.totalRevenue), 'Chỉ từ đơn hoàn thành']);
+      summarySheet.addRow(['Giá trị TB/đơn', formatCurrency(analytics.avgOrderValue), 'Doanh thu/Số đơn done']);
+      summarySheet.addRow(['Khách hàng mua thành công', analytics.totalCustomers, 'Có ít nhất 1 đơn done']);
+      summarySheet.addRow(['Khách trung thành', analytics.topCustomers.filter(c => c.orderCount > 1).length, 'Có >1 đơn done']);
+      summarySheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(1)}%`, 'Khách mua lại/Tổng khách']);
+      summarySheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm']);
+      summarySheet.addRow(['Loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán']);
+      summarySheet.addRow(['Users có data', rawData.users.length, 'Khách hàng trong hệ thống']);
+      summarySheet.addRow(['Chi phí shipper', formatCurrency(analytics.totalShipperCost || 0), '50% phí ship + thưởng']);
+      summarySheet.addRow(['Lợi nhuận ước tính', formatCurrency(analytics.estimatedProfit || 0), 'Sau trừ chi phí shipper']);
+      summarySheet.addRow(['']); // Empty row
 
-      // Data KPI
-      const kpiData = [
-        ['Tổng đơn trong khoảng thời gian', analytics.detailedStats?.totalBillsInRange || 0, 'Tất cả đơn hàng trong khoảng thời gian'],
-        ['Đơn hoàn thành (Done)', analytics.completedOrders, 'Chỉ đơn có status = done'],
-        ['Tỷ lệ hoàn thành (%)', (analytics.detailedStats?.completionRate || 0).toFixed(1) + '%', 'Đơn hoàn thành / Tổng đơn × 100'],
-        ['Tỷ lệ hủy đơn (%)', analytics.cancellationRate.toFixed(1) + '%', 'Bao gồm cancelled + failed'],
-        ['Tổng doanh thu (VND)', analytics.totalRevenue, 'Chỉ từ đơn hoàn thành'],
-        ['Giá trị trung bình/đơn (VND)', analytics.avgOrderValue, 'Doanh thu / Số đơn hoàn thành'],
-        ['Số khách hàng mua thành công', analytics.totalCustomers, 'Có ít nhất 1 đơn hoàn thành'],
-        ['Khách hàng trung thành', analytics.topCustomers.filter(c => c.orderCount > 1).length, 'Có >1 đơn hoàn thành'],
-        ['Tỷ lệ khách hàng quay lại (%)', analytics.customerRetention.toFixed(1) + '%', 'Khách mua lại / Tổng khách × 100'],
-        ['Tổng sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm trong đơn hoàn thành'],
-        ['Số loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán'],
-        ['Chi phí shipper (VND)', analytics.totalShipperCost || 0, '50% phí ship + thưởng ≥50 đơn/tháng'],
-        ['Giá nhập hàng (VND)', analytics.totalCostPrice || 0, 'Chi phí mua hàng từ nhà cung cấp'],
-        ['Lợi nhuận thực tế (VND)', analytics.actualProfit || 0, 'Doanh thu - Chi phí shipper - Giá nhập'],
-      ];
-
-      kpiData.forEach((row, index) => {
-        currentRow++;
-        summarySheet.getCell(currentRow, 1).value = row[0];
-        const valueCell = summarySheet.getCell(currentRow, 2);
-        
-        // Format số tiền
-        if (typeof row[1] === 'number' && (row[0].includes('VND') || row[0].includes('doanh thu') || row[0].includes('chi phí') || row[0].includes('giá trị') || row[0].includes('lợi nhuận'))) {
-          valueCell.value = row[1];
-          valueCell.numFmt = '#,##0 "₫"';
-        } else {
-          valueCell.value = row[1];
-        }
-        
-        summarySheet.getCell(currentRow, 3).value = row[2];
-        
-        // Màu sắc cho các hàng quan trọng
-        if (row[0].includes('Lợi nhuận')) {
-          [1,2,3].forEach(col => {
-            summarySheet.getCell(currentRow, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-          });
-        }
-      });
-
-      // Chi tiết trạng thái
-      currentRow += 2;
-      summarySheet.mergeCells(`A${currentRow}:F${currentRow}`);
-      summarySheet.getCell(`A${currentRow}`).value = 'CHI TIẾT THEO TRẠNG THÁI ĐƠN HÀNG';
-      summarySheet.getCell(`A${currentRow}`).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-      summarySheet.getCell(`A${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67C73' } };
-      summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
-
-      currentRow++;
-      ['Trạng thái', 'Số lượng', 'Tỷ lệ (%)'].forEach((header, index) => {
-        const cell = summarySheet.getCell(currentRow, index + 1);
-        cell.value = header;
-        cell.font = { bold: true };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE5CD' } };
-      });
-
+      // Chi tiết theo trạng thái
+      summarySheet.addRow(['CHI TIẾT THEO TRẠNG THÁI ĐỚN HÀNG']);
+      summarySheet.addRow(['Trạng thái', 'Số lượng', 'Tỷ lệ']);
       const total = analytics.detailedStats?.totalBillsInRange || 1;
-      const statusData = [
-        ['✅ Done (Hoàn thành)', analytics.detailedStats?.completedBills || 0],
-        ['❌ Cancelled (Đã hủy)', analytics.detailedStats?.cancelledBills || 0],
-        ['⚠️ Failed (Thất bại)', analytics.detailedStats?.failedBills || 0],
-        ['⏳ Pending (Chờ xử lý)', analytics.detailedStats?.pendingBills || 0],
-        ['✔️ Confirmed (Đã xác nhận)', analytics.detailedStats?.confirmedBills || 0],
-        ['📦 Ready (Sẵn sàng)', analytics.detailedStats?.readyBills || 0],
-        ['🚚 Shipping (Đang giao)', analytics.detailedStats?.shippingBills || 0],
-      ];
+      summarySheet.addRow(['Done (Hoàn thành)', analytics.detailedStats?.completedBills || 0, `${((analytics.detailedStats?.completedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Cancelled (Đã hủy)', analytics.detailedStats?.cancelledBills || 0, `${((analytics.detailedStats?.cancelledBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Failed (Thất bại)', analytics.detailedStats?.failedBills || 0, `${((analytics.detailedStats?.failedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Pending (Chờ xử lý)', analytics.detailedStats?.pendingBills || 0, `${((analytics.detailedStats?.pendingBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Confirmed (Đã xác nhận)', analytics.detailedStats?.confirmedBills || 0, `${((analytics.detailedStats?.confirmedBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Ready (Sẵn sàng)', analytics.detailedStats?.readyBills || 0, `${((analytics.detailedStats?.readyBills || 0) / total * 100).toFixed(1)}%`]);
+      summarySheet.addRow(['Shipping (Đang giao)', analytics.detailedStats?.shippingBills || 0, `${((analytics.detailedStats?.shippingBills || 0) / total * 100).toFixed(1)}%`]);
 
-      if (analytics.detailedStats?.returnedBills > 0) {
-        statusData.push(['📦 Returned (Đã hoàn trả)', analytics.detailedStats?.returnedBills || 0]);
-      }
-      if (analytics.detailedStats?.refundPendingBills > 0) {
-        statusData.push(['⏳ Refund Pending (Chờ hoàn tiền)', analytics.detailedStats?.refundPendingBills || 0]);
-      }
-      if (analytics.detailedStats?.refundedBills > 0) {
-        statusData.push(['💰 Refunded (Đã hoàn tiền)', analytics.detailedStats?.refundedBills || 0]);
-      }
-
-      statusData.forEach((row) => {
-        currentRow++;
-        summarySheet.getCell(currentRow, 1).value = row[0];
-        summarySheet.getCell(currentRow, 2).value = row[1];
-        summarySheet.getCell(currentRow, 3).value = ((row[1] / total) * 100).toFixed(1) + '%';
-      });
-
-      // === SHEET 2: TOP CUSTOMERS ===
+      // 👥 Sheet 2: Top Customers chi tiết
       const customersSheet = workbook.addWorksheet('Khách hàng VIP');
-      
-      // Header
-      customersSheet.mergeCells('A1:K1');
-      customersSheet.getCell('A1').value = 'DANH SÁCH KHÁCH HÀNG VIP';
-      customersSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      customersSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9A6FB0' } };
-      customersSheet.getCell('A1').alignment = { horizontal: 'center' };
-      customersSheet.getRow(1).height = 25;
-
-      customersSheet.getCell('A2').value = `Lọc: Chỉ khách hàng có đơn hoàn thành từ ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`;
-      customersSheet.getCell('A2').font = { italic: true };
-
-      const customerHeaders = [
-        'STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ',
-        'Đơn hoàn thành (KPI)', 'Chi tiêu hoàn thành (₫)', 'TB/đơn hoàn thành (₫)',
-        'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Loại khách hàng'
-      ];
-
-      customerHeaders.forEach((header, index) => {
-        const cell = customersSheet.getCell(4, index + 1);
-        cell.value = header;
-        cell.font = { bold: true };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
-      });
-
+      customersSheet.addRow(['STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn done (KPI)', 'Chi tiêu done (₫)', 'TB/đơn done (₫)', 'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Địa chỉ', 'Loại khách hàng']);
       analytics.topCustomers.forEach((customer, index) => {
-        const customerType = customer.orderCount >= 5 ? '👑 VIP' : 
-                           customer.orderCount >= 3 ? '⭐ Thân thiết' : 
-                           customer.orderCount >= 2 ? '💎 Trung thành' : 
-                           customer.orderCount === 0 ? '😴 Chưa mua' : '🆕 Mới';
+        const customerType = customer.orderCount >= 5 ? 'VIP' : 
+                           customer.orderCount >= 3 ? 'Thân thiết' : 
+                           customer.orderCount >= 2 ? 'Trung thành' : 
+                           customer.orderCount === 0 ? 'Chưa mua' : 'Mới';
         
-        const row = 5 + index;
-        const rowData = [
+        customersSheet.addRow([
           index + 1,
           customer.name,
           customer.email,
-          typeof customer.phone === 'string' ? customer.phone : 'SĐT chưa cập nhật',
-          customer.address || 'Chưa cập nhật địa chỉ',
+          customer.phone,
           customer.orderCount,
           customer.totalSpent,
           customer.avgOrderValue,
           customer.totalOrdersAllTime || 0,
           customer.totalSpentAllTime || 0,
+          customer.address || 'Chưa cập nhật',
           customerType
-        ];
-
-        rowData.forEach((value, colIndex) => {
-          const cell = customersSheet.getCell(row, colIndex + 1);
-          cell.value = value;
-          
-          // Format tiền
-          if ([7, 8, 10].includes(colIndex + 1) && typeof value === 'number') {
-            cell.numFmt = '#,##0 "₫"';
-          }
-        });
-
-        // Màu nền theo loại khách hàng
-        if (customerType.includes('VIP')) {
-          for (let col = 1; col <= 11; col++) {
-            customersSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
-          }
-        } else if (customerType.includes('Thân thiết')) {
-          for (let col = 1; col <= 11; col++) {
-            customersSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-          }
-        }
+        ]);
       });
-
-      // === SHEET 3: TOP PRODUCTS ===
-      const productsSheet = workbook.addWorksheet('Sản phẩm bán chạy');
       
-      productsSheet.mergeCells('A1:F1');
-      productsSheet.getCell('A1').value = 'TOP SẢN PHẨM BÁN CHẠY';
-      productsSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      productsSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1975A' } };
-      productsSheet.getCell('A1').alignment = { horizontal: 'center' };
-      productsSheet.getRow(1).height = 25;
-
-      productsSheet.getCell('A2').value = `Dựa trên ${analytics.totalProductsSold} sản phẩm đã bán từ ${analytics.completedOrders} đơn hoàn thành`;
-      productsSheet.getCell('A2').font = { italic: true };
-
-      const productHeaders = ['Hạng', 'Tên sản phẩm', 'Danh mục', 'Số lượng bán', 'Thành tích', 'Ghi chú'];
-      productHeaders.forEach((header, index) => {
-        const cell = productsSheet.getCell(4, index + 1);
-        cell.value = header;
-        cell.font = { bold: true };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE5CD' } };
-      });
-
+      // 🧁 Sheet 3: Top Products chi tiết
+      const productsSheet = workbook.addWorksheet('Sản phẩm bán chạy');
+      productsSheet.addRow(['Top', 'Tên sản phẩm', 'Danh mục', 'Số lượng đã bán', 'Ranking']);
       analytics.topProducts.forEach((product, index) => {
         const ranking = index === 0 ? '🥇 Top 1' : 
                        index === 1 ? '🥈 Top 2' : 
                        index === 2 ? '🥉 Top 3' : 
                        `⭐ Top ${index + 1}`;
         
-        const row = 5 + index;
-        productsSheet.getCell(row, 1).value = index + 1;
-        productsSheet.getCell(row, 2).value = product.name;
-        productsSheet.getCell(row, 3).value = product.category;
-        productsSheet.getCell(row, 4).value = product.totalQuantitySold;
-        productsSheet.getCell(row, 5).value = ranking;
-        productsSheet.getCell(row, 6).value = product.isRealData ? 'Dữ liệu thực tế' : 'Ước tính';
-
-        // Màu nền cho top 3
-        if (index < 3) {
-          for (let col = 1; col <= 6; col++) {
-            const bgColor = index === 0 ? 'FFFFF2CC' : index === 1 ? 'FFF2F2F2' : 'FFFFE599';
-            productsSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-          }
-        }
+        productsSheet.addRow([
+          index + 1,
+          product.name,
+          product.category,
+          product.totalQuantitySold,
+          ranking
+        ]);
       });
-
-      // === SHEET 4: SHIPPER STATS ===
+      
+      //   Sheet 4: Thống kê Shipper
+      const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
+      shipperSheet.addRow(['THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG']);
+      shipperSheet.addRow(['']); // Empty row
+      shipperSheet.addRow(['Tổng chi phí shipper', formatCurrency(analytics.totalShipperCost || 0)]);
+      shipperSheet.addRow(['Tổng giá nhập hàng', formatCurrency(analytics.totalCostPrice || 0)]);
+      shipperSheet.addRow(['Số shipper hoạt động', analytics.shipperStats?.length || 0]);
+      shipperSheet.addRow(['Lợi nhuận thực tế', formatCurrency(analytics.actualProfit || 0)]);
+      shipperSheet.addRow(['']); // Empty row
+      
+      shipperSheet.addRow(['CHI TIẾT THU NHẬP SHIPPER']);
+      shipperSheet.addRow(['Tên Shipper', 'Shipper ID', 'Đơn hoàn thành', 'Thu nhập cơ bản (₫)', 'Thưởng (₫)', 'Tổng thu nhập (₫)']);
       if (analytics.shipperStats && analytics.shipperStats.length > 0) {
-        const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
-        
-        shipperSheet.mergeCells('A1:F1');
-        shipperSheet.getCell('A1').value = 'THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG';
-        shipperSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-        shipperSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6FA8DC' } };
-        shipperSheet.getCell('A1').alignment = { horizontal: 'center' };
-        shipperSheet.getRow(1).height = 25;
-
-        // Tổng quan
-        shipperSheet.getCell('A3').value = 'Tổng chi phí shipper:';
-        shipperSheet.getCell('B3').value = analytics.totalShipperCost || 0;
-        shipperSheet.getCell('B3').numFmt = '#,##0 "₫"';
-
-        shipperSheet.getCell('A4').value = 'Số shipper hoạt động:';
-        shipperSheet.getCell('B4').value = analytics.shipperStats.length;
-
-        // Chi tiết shipper
-        const shipperHeaders = ['Tên Shipper', 'Shipper ID', 'Đơn hoàn thành', 'Thu nhập cơ bản (₫)', 'Thưởng (₫)', 'Tổng thu nhập (₫)'];
-        shipperHeaders.forEach((header, index) => {
-          const cell = shipperSheet.getCell(6, index + 1);
-          cell.value = header;
-          cell.font = { bold: true };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
-        });
-
         analytics.shipperStats
           .sort((a, b) => (b.totalEarnings + b.bonus) - (a.totalEarnings + a.bonus))
-          .forEach((shipper, index) => {
-            const row = 7 + index;
-            shipperSheet.getCell(row, 1).value = shipper.shipperName || 'Chưa xác định';
-            shipperSheet.getCell(row, 2).value = shipper.shipperId === 'unknown' ? 'Chưa xác định' : shipper.shipperId;
-            shipperSheet.getCell(row, 3).value = shipper.completedOrders;
-            
-            const earningsCell = shipperSheet.getCell(row, 4);
-            earningsCell.value = shipper.totalEarnings;
-            earningsCell.numFmt = '#,##0 "₫"';
-            
-            const bonusCell = shipperSheet.getCell(row, 5);
-            bonusCell.value = shipper.bonus;
-            bonusCell.numFmt = '#,##0 "₫"';
-            
-            const totalCell = shipperSheet.getCell(row, 6);
-            totalCell.value = shipper.totalEarnings + shipper.bonus;
-            totalCell.numFmt = '#,##0 "₫"';
-            totalCell.font = { bold: true };
-
-            if (shipper.bonus > 0) {
-              for (let col = 1; col <= 6; col++) {
-                shipperSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-              }
-            }
+          .forEach((shipper) => {
+            shipperSheet.addRow([
+              shipper.shipperName || 'Chưa xác định',
+              shipper.shipperId === 'unknown' ? 'Chưa xác định' : shipper.shipperId,
+              shipper.completedOrders,
+              shipper.totalEarnings,
+              shipper.bonus,
+              shipper.totalEarnings + shipper.bonus
+            ]);
           });
       }
-
-      // === SHEET 5: DOANH THU THEO NGÀY ===
-      const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
       
-      dailySheet.mergeCells('A1:D1');
-      dailySheet.getCell('A1').value = 'DOANH THU THEO NGÀY';
-      dailySheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      dailySheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
-      dailySheet.getCell('A1').alignment = { horizontal: 'center' };
-      dailySheet.getRow(1).height = 25;
-
-      const dailyHeaders = ['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)'];
-      dailyHeaders.forEach((header, index) => {
-        const cell = dailySheet.getCell(3, index + 1);
-        cell.value = header;
-        cell.font = { bold: true };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
-      });
-
+      shipperSheet.addRow(['']); // Empty row
+      shipperSheet.addRow(['GHI CHÚ:']);
+      shipperSheet.addRow(['- Shipper nhận 50% phí giao hàng cho mỗi đơn hoàn thành']);
+      shipperSheet.addRow(['- Thưởng 2,000,000₫ cho shipper đạt ≥50 đơn hoàn thành/tháng']);
+      shipperSheet.addRow(['- Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)']);
+      
+      //  📅 Sheet 5: Doanh thu theo ngày
+      const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
+      dailySheet.addRow(['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)']);
       Object.entries(analytics.dailyRevenue)
         .sort(([a], [b]) => new Date(b) - new Date(a))
-        .forEach(([date, revenue], index) => {
+        .forEach(([date, revenue]) => {
           const orders = analytics.dailyOrders[date] || 0;
           const avgValue = orders > 0 ? revenue / orders : 0;
-          const row = 4 + index;
-          
-          dailySheet.getCell(row, 1).value = new Date(date).toLocaleDateString('vi-VN');
-          
-          const revenueCell = dailySheet.getCell(row, 2);
-          revenueCell.value = revenue;
-          revenueCell.numFmt = '#,##0 "₫"';
-          
-          dailySheet.getCell(row, 3).value = orders;
-          
-          const avgCell = dailySheet.getCell(row, 4);
-          avgCell.value = avgValue;
-          avgCell.numFmt = '#,##0 "₫"';
+          dailySheet.addRow([
+            new Date(date).toLocaleDateString('vi-VN'),
+            revenue,
+            orders,
+            avgValue
+          ]);
         });
-
-      // Auto-fit columns cho tất cả sheets
-      [summarySheet, customersSheet, productsSheet, dailySheet].forEach(sheet => {
+      
+      // 📊 Sheet 6: Phân tích chuyên sâu
+      const analysisSheet = workbook.addWorksheet('Phân tích chuyên sâu');
+      analysisSheet.addRow(['PHÂN TÍCH CHUYÊN SÂU']);
+      analysisSheet.addRow(['']); // Empty row
+      
+      analysisSheet.addRow(['THÔNG TIN THỜI GIAN & DATA']);
+      analysisSheet.addRow(['Khoảng thời gian phân tích', `${dateRange.from.toLocaleDateString('vi-VN')} - ${dateRange.to.toLocaleDateString('vi-VN')}`]);
+      analysisSheet.addRow(['Tổng số ngày', Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))]);
+      analysisSheet.addRow(['Giờ bán chạy nhất', `${analytics.bestSellingHour}:00`]);
+      analysisSheet.addRow(['Bills được phân tích', rawData.bills.length]);
+      analysisSheet.addRow(['Bill details đã cache', Object.keys(rawData.billDetails).length]);
+      analysisSheet.addRow(['']); // Empty row
+      
+      analysisSheet.addRow(['HIỆU SUẤT KINH DOANH']);
+      analysisSheet.addRow(['Doanh thu TB/ngày', formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))]);
+      analysisSheet.addRow(['Đơn hàng TB/ngày', (analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)]);
+      analysisSheet.addRow(['Giá trị TB/khách hàng', formatCurrency(analytics.avgCustomerValue)]);
+      analysisSheet.addRow(['Sản phẩm TB/đơn', (analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)]);
+      
+      // Style tất cả sheets
+      [summarySheet, customersSheet, productsSheet, shipperSheet, dailySheet, analysisSheet].forEach(sheet => {
+        // Style header rows
+        for (let i = 1; i <= sheet.rowCount; i++) {
+          const row = sheet.getRow(i);
+          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
+              (row.getCell(1).value.includes('STT') || 
+               row.getCell(1).value.includes('Top') || 
+               row.getCell(1).value.includes('Ngày') || 
+               row.getCell(1).value.includes('Chỉ số') ||
+               row.getCell(1).value.includes('Trạng thái'))) {
+            row.font = { bold: true };
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE0E0E0' }
+            };
+          }
+          
+          // Style title rows
+          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
+              (row.getCell(1).value.includes('THỐNG KÊ') || 
+               row.getCell(1).value.includes('CHỈ SỐ') ||
+               row.getCell(1).value.includes('CHI TIẾT') ||
+               row.getCell(1).value.includes('PHÂN TÍCH') ||
+               row.getCell(1).value.includes('THÔNG TIN') ||
+               row.getCell(1).value.includes('HIỆU SUẤT'))) {
+            row.font = { bold: true, size: 14 };
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF4472C4' }
+            };
+            row.getCell(1).font = { ...row.getCell(1).font, color: { argb: 'FFFFFFFF' } };
+          }
+        }
+        
+        // Auto-fit columns
         sheet.columns.forEach(column => {
           let maxLength = 0;
-          column.eachCell({ includeEmpty: false }, (cell) => {
+          column.eachCell({ includeEmpty: false }, cell => {
             const length = cell.value ? cell.value.toString().length : 0;
             if (length > maxLength) {
               maxLength = length;
@@ -1264,25 +1122,8 @@ const exportToExcel = async () => {
           column.width = Math.min(50, Math.max(10, maxLength + 2));
         });
       });
-
-      // Thêm shipper sheet vào auto-fit nếu có
-      if (analytics.shipperStats && analytics.shipperStats.length > 0) {
-        const shipperSheet = workbook.getWorksheet('Thống kê Shipper');
-        if (shipperSheet) {
-          shipperSheet.columns.forEach(column => {
-            let maxLength = 0;
-            column.eachCell({ includeEmpty: false }, (cell) => {
-              const length = cell.value ? cell.value.toString().length : 0;
-              if (length > maxLength) {
-                maxLength = length;
-              }
-            });
-            column.width = Math.min(50, Math.max(10, maxLength + 2));
-          });
-        }
-      }
-
-      // Export file
+      
+      // Export file với tên có timestamp - DÙNG DOWNLOAD LINK
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -1291,7 +1132,7 @@ const exportToExcel = async () => {
       const timestamp = new Date().toISOString().slice(0,16).replace(/[:-]/g, '');
       const filename = `BaoCaoThongKe_${dateRange.from.toISOString().slice(0,10)}_den_${dateRange.to.toISOString().slice(0,10)}_${timestamp}.xlsx`;
       
-      // Tạo download link
+      // 🔥 TẠO DOWNLOAD LINK MANUAL - KHÔNG CẦN FILE-SAVER
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -1302,11 +1143,10 @@ const exportToExcel = async () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      alert('✅ Xuất Excel thành công! File đã được tải với đầy đủ thông tin báo cáo.');
-      
+      alert('✅ Xuất Excel thành công! File đã được lưu với đầy đủ thông tin báo cáo.');
     } catch (error) {
       console.error('Lỗi xuất Excel:', error);
-      alert(`❌ Lỗi khi xuất Excel: ${error.message}. Vui lòng kiểm tra kết nối và thử lại.`);
+      alert(`⚠️ Lỗi khi xuất Excel: ${error.message}. Vui lòng kiểm tra và thử lại.`);
     }
   };
 
@@ -1353,9 +1193,9 @@ const exportToExcel = async () => {
   if (isLoading) {
     return (
       <div className="analytics-dashboard">
-        <div className="loading-container">
-          <div className="loading-content">
-            <div className="spinner"></div>
+        <div className="analytics-loading-container">
+          <div className="analytics-loading-content">
+            <div className="analytics-spinner"></div>
             <p>Đang tải dữ liệu...</p>
           </div>
         </div>
@@ -1368,33 +1208,33 @@ const exportToExcel = async () => {
       <TabBar />
 
       {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-content">
+      <div className="analytics-dashboard-header">
+        <div className="analytics-header-content">
           <h1>🧁 Thống kê toàn diện</h1>
           <p>Thống kê kinh doanh toàn diện - Dữ liệu khách hàng và sản phẩm đã được sửa</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="filters-container">
-        <div className="date-filter">
+      <div className="analytics-filters-container">
+        <div className="analytics-date-filter">
           <label>📅 Khoảng thời gian:</label>
           <input
             type="date"
             value={dateRange.from.toISOString().slice(0, 10)}
             onChange={(e) => handleDateChange('from', e)}
-            className="date-picker"
+            className="analytics-date-picker"
           />
           <span>→</span>
           <input
             type="date"
             value={dateRange.to.toISOString().slice(0, 10)}
             onChange={(e) => handleDateChange('to', e)}
-            className="date-picker"
+            className="analytics-date-picker"
           />
         </div>
 
-        <div className="quick-filters">
+        <div className="analytics-quick-filters">
           {[
             { key: 'today', label: 'Hôm nay' },
             { key: 'week', label: '7 ngày' },
@@ -1414,21 +1254,21 @@ const exportToExcel = async () => {
         <button
           onClick={exportToExcel}
           disabled={!analytics.detailedStats?.totalBillsInRange}
-          className="export-btn"
+          className="analytics-export-btn"
         >
           📊 Xuất Excel
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="tab-navigation">
+      <div className="analytics-tab-navigation">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
           >
-            <span className="tab-icon">{tab.icon}</span>
+            <span className="analytics-tab-icon">{tab.icon}</span>
             <div>
               <div>{tab.name}</div>
               <small>{tab.description}</small>
@@ -1439,8 +1279,8 @@ const exportToExcel = async () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="overview-section">
-          <div className="kpi-grid">
+        <div className="analytics-overview-section">
+          <div className="analytics-kpi-grid">
             {[
               {
                 title: 'Tổng doanh thu (đơn hoàn thành)',
@@ -1467,10 +1307,10 @@ const exportToExcel = async () => {
                 color: 'orange',
               },
             ].map((kpi, i) => (
-              <div key={i} className="kpi-card">
+              <div key={i} className="analytics-kpi-card">
                 <h3>{kpi.title}</h3>
-                <div className="value">{kpi.value}</div>
-                <div className="subtitle">
+                <div className="analytics-value">{kpi.value}</div>
+                <div className="analytics-subtitle">
                   {kpi.title.includes('doanh thu') && analytics.totalOrders > 0 ? 
                     `${analytics.totalOrders} đơn hoàn thành` : 
                     kpi.title.includes('khách hàng') ? 
@@ -1483,26 +1323,26 @@ const exportToExcel = async () => {
 
           {/* Thêm section thống kê shipper */}
           {analytics.shipperStats && analytics.shipperStats.length > 0 && (
-            <div className="shipper-stats-section">
+            <div className="analytics-shipper-stats-section">
               <h3>🚚 Thống kê Shipper & Chi phí giao hàng</h3>
-              <div className="shipper-summary">
-                <div className="summary-cards">
-                  <div className="summary-card">
+              <div className="analytics-shipper-summary">
+                <div className="analytics-summary-cards">
+                  <div className="analytics-summary-card">
                     <h4>💰 Tổng chi phí shipper</h4>
-                    <p className="big-number">{formatCurrency(analytics.totalShipperCost || 0)}</p>
+                    <p className="analytics-big-number">{formatCurrency(analytics.totalShipperCost || 0)}</p>
                     <small>50% phí ship + thưởng</small>
                   </div>
-                  <div className="summary-card">
+                  <div className="analytics-summary-card">
                     <h4>🚛 Số shipper hoạt động</h4>
-                    <p className="big-number">{analytics.shipperStats.length}</p>
+                    <p className="analytics-big-number">{analytics.shipperStats.length}</p>
                     <small>Có đơn hoàn thành</small>
                   </div>
                 </div>
               </div>
               
-              <div className="shipper-details">
+              <div className="analytics-shipper-details">
                 <h4>📋 Chi tiết thu nhập shipper</h4>
-                <div className="table-container">
+                <div className="analytics-table-container">
                   <table>
                     <thead>
                       <tr>
@@ -1522,16 +1362,16 @@ const exportToExcel = async () => {
                             <strong>{shipper.shipperName || 'Chưa xác định'}</strong>
                             <small style={{display: 'block', color: '#666'}}>ID: {shipper.shipperId}</small>
                           </td>
-                          <td className="orders">{shipper.completedOrders} đơn</td>
-                          <td className="earnings">{formatCurrency(shipper.totalEarnings)}</td>
-                          <td className="bonus">
+                          <td className="analytics-orders">{shipper.completedOrders} đơn</td>
+                          <td className="analytics-earnings">{formatCurrency(shipper.totalEarnings)}</td>
+                          <td className="analytics-bonus">
                             {shipper.bonus > 0 ? (
-                              <span className="bonus-badge">🎉 {formatCurrency(shipper.bonus)}</span>
+                              <span className="analytics-bonus-badge">🎉 {formatCurrency(shipper.bonus)}</span>
                             ) : (
-                              <span className="no-bonus">-</span>
+                              <span className="analytics-no-bonus">-</span>
                             )}
                           </td>
-                          <td className="total">
+                          <td className="analytics-total">
                             <strong>{formatCurrency(shipper.totalEarnings + shipper.bonus)}</strong>
                           </td>
                         </tr>
@@ -1540,17 +1380,17 @@ const exportToExcel = async () => {
                   </table>
                 </div>
                 
-                <div className="shipper-notes">
-                  <div className="note-item">
-                    <span className="note-icon">ℹ️</span>
+                <div className="analytics-shipper-notes">
+                  <div className="analytics-note-item">
+                    <span className="analytics-note-icon">ℹ️</span>
                     <span>Shipper nhận 50% phí giao hàng cho mỗi đơn hoàn thành</span>
                   </div>
-                  <div className="note-item">
-                    <span className="note-icon">🎁</span>
+                  <div className="analytics-note-item">
+                    <span className="analytics-note-icon">🎁</span>
                     <span>Thưởng 2 triệu đồng cho shipper đạt ≥50 đơn hoàn thành/tháng</span>
                   </div>
-                  <div className="note-item">
-                    <span className="note-icon">📊</span>
+                  <div className="analytics-note-item">
+                    <span className="analytics-note-icon">📊</span>
                     <span>Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)</span>
                   </div>
                 </div>
@@ -1561,49 +1401,49 @@ const exportToExcel = async () => {
       )}
 
       {activeTab === 'revenue' && (
-        <div className="revenue-section">
-          <div className="section-header">
+        <div className="analytics-revenue-section">
+          <div className="analytics-section-header">
             <h3>💰 Phân tích doanh thu chi tiết</h3>
-            <div className="stats-summary">
+            <div className="analytics-stats-summary">
               Tổng doanh thu: {formatCurrency(analytics.totalRevenue)} • Từ {analytics.totalOrders} đơn hoàn thành
             </div>
           </div>
 
-          <div className="revenue-grid">
-            <div className="revenue-summary">
+          <div className="analytics-revenue-grid">
+            <div className="analytics-revenue-summary">
               <h4>📈 Tổng quan doanh thu</h4>
-              <div className="summary-stats">
-                <div className="stat-item">
+              <div className="analytics-summary-stats">
+                <div className="analytics-stat-item">
                   <label>Doanh thu hoàn thành:</label>
-                  <span className="value green">{formatCurrency(analytics.completedRevenue)}</span>
+                  <span className="analytics-value analytics-green">{formatCurrency(analytics.completedRevenue)}</span>
                 </div>
-                <div className="stat-item">
+                <div className="analytics-stat-item">
                   <label>Giá nhập hàng:</label>
-                  <span className="value orange">{formatCurrency(analytics.totalCostPrice || 0)}</span>
+                  <span className="analytics-value analytics-orange">{formatCurrency(analytics.totalCostPrice || 0)}</span>
                 </div>
-                <div className="stat-item">
+                <div className="analytics-stat-item">
                   <label>Chi phí shipper:</label>
-                  <span className="value red">{formatCurrency(analytics.totalShipperCost || 0)}</span>
+                  <span className="analytics-value analytics-red">{formatCurrency(analytics.totalShipperCost || 0)}</span>
                 </div>
-                <div className="stat-item">
+                <div className="analytics-stat-item">
                   <label>Lợi nhuận thực tế:</label>
-                  <span className="value success">{formatCurrency(analytics.actualProfit || 0)}</span>
+                  <span className="analytics-value analytics-success">{formatCurrency(analytics.actualProfit || 0)}</span>
                 </div>
-                <div className="stat-item">
+                <div className="analytics-stat-item">
                   <label>Giờ bán chạy nhất:</label>
-                  <span className="value orange">{analytics.bestSellingHour}:00</span>
+                  <span className="analytics-value analytics-orange">{analytics.bestSellingHour}:00</span>
                 </div>
               </div>
             </div>
 
-            <div className="daily-breakdown">
+            <div className="analytics-daily-breakdown">
               <h4>📅 Doanh thu theo ngày</h4>
               {Object.keys(analytics.dailyRevenue).length === 0 ? (
-                <div className="no-data">
+                <div className="analytics-no-data">
                   <p>📊 Chưa có dữ liệu trong khoảng thời gian này</p>
                 </div>
               ) : (
-                <div className="table-container">
+                <div className="analytics-table-container">
                   <table>
                     <thead>
                       <tr>
@@ -1622,9 +1462,9 @@ const exportToExcel = async () => {
                           return (
                             <tr key={date}>
                               <td>{new Date(date).toLocaleDateString('vi-VN')}</td>
-                              <td className="revenue">{formatCurrency(revenue)}</td>
-                              <td className="orders">{orders}</td>
-                              <td className="avg">{formatCurrency(avgValue)}</td>
+                              <td className="analytics-revenue">{formatCurrency(revenue)}</td>
+                              <td className="analytics-orders">{orders}</td>
+                              <td className="analytics-avg">{formatCurrency(avgValue)}</td>
                             </tr>
                           );
                         })}
@@ -1638,18 +1478,18 @@ const exportToExcel = async () => {
       )}
 
       {activeTab === 'customers' && (
-        <div className="customers-section">
-          <div className="section-header">
+        <div className="analytics-customers-section">
+          <div className="analytics-section-header">
             <h3>🏆 Khách hàng VIP (thông tin đầy đủ + chỉ tính đơn hoàn thành)</h3>
-            <div className="stats-summary">
+            <div className="analytics-stats-summary">
               Tổng: {analytics.topCustomers.length} khách hàng • Tỷ lệ quay lại: {analytics.customerRetention.toFixed(1)}% • Chỉ tính doanh thu từ đơn hoàn thành
             </div>
           </div>
           
           {analytics.topCustomers.length === 0 ? (
-            <div className="no-data">
+            <div className="analytics-no-data">
               <p>👥 Chưa có dữ liệu khách hàng</p>
-              <div className="help-text">
+              <div className="analytics-help-text">
                 <p>🔧 Hiển thị tất cả khách hàng + chỉ tính doanh thu từ đơn done</p>
                 <p>🔍 Debug: Kiểm tra dữ liệu trong console</p>
                 <ul>
@@ -1660,7 +1500,7 @@ const exportToExcel = async () => {
               </div>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="analytics-table-container">
               <table>
                 <thead>
                   <tr>
@@ -1676,24 +1516,24 @@ const exportToExcel = async () => {
                 <tbody>
                   {analytics.topCustomers.map((customer, i) => (
                     <tr key={customer._id || i}>
-                      <td className="customer-name">
-                        <span className="rank">#{i + 1}</span>
+                      <td className="analytics-customer-name">
+                        <span className="analytics-rank">#{i + 1}</span>
                         {customer.name}
                       </td>
                       <td>
-                        <div className="email">{customer.email}</div>
-                        <div className="phone">{typeof customer.phone === 'string' ? customer.phone : 'SĐT chưa cập nhật'}</div>
+                        <div className="analytics-email">{customer.email}</div>
+                        <div className="analytics-phone">{typeof customer.phone === 'string' ? customer.phone : 'SĐT chưa cập nhật'}</div>
                       </td>
-                      <td className="orders" title="Chỉ đơn hoàn thành trong khoảng thời gian">
+                      <td className="analytics-orders" title="Chỉ đơn hoàn thành trong khoảng thời gian">
                         {customer.orderCount} đơn
                       </td>
-                      <td className="spent" title="Chỉ doanh thu từ đơn hoàn thành">
+                      <td className="analytics-spent" title="Chỉ doanh thu từ đơn hoàn thành">
                         {formatCurrency(customer.totalSpent)}
                       </td>
                       <td title="Giá trị trung bình đơn hoàn thành">
                         {formatCurrency(customer.avgOrderValue)}
                       </td>
-                      <td className="total-info" title="Tổng tất cả đơn hàng (tham khảo)">
+                      <td className="analytics-total-info" title="Tổng tất cả đơn hàng (tham khảo)">
                         <div>{customer.totalOrdersAllTime || 0} đơn</div>
                         <small>{formatCurrency(customer.totalSpentAllTime || 0)}</small>
                       </td>
@@ -1712,10 +1552,10 @@ const exportToExcel = async () => {
       )}
 
       {activeTab === 'products' && (
-        <div className="products-section">
-          <div className="section-header">
+        <div className="analytics-products-section">
+          <div className="analytics-section-header">
             <h3>🧁 Top sản phẩm bán chạy (chỉ sản phẩm đã bán)</h3>
-            <div className="stats-summary">
+            <div className="analytics-stats-summary">
               {analytics.topProducts.length > 0 ? 
                 `${analytics.topProducts.length} sản phẩm đã bán • Tổng: ${analytics.totalProductsSold} sản phẩm` :
                 'Chưa có sản phẩm nào được bán trong khoảng thời gian này'
@@ -1724,9 +1564,9 @@ const exportToExcel = async () => {
           </div>
           
           {analytics.topProducts.length === 0 ? (
-            <div className="no-data">
+            <div className="analytics-no-data">
               <p>🧁 Chưa có sản phẩm nào được bán</p>
-              <div className="help-text">
+              <div className="analytics-help-text">
                 <p>🔧 Không tìm thấy chi tiết sản phẩm trong bills</p>
                 <p>🔍 Thống kê dựa trên đơn hàng hoàn thành (done)</p>
                 <ul>
@@ -1738,7 +1578,7 @@ const exportToExcel = async () => {
               </div>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="analytics-table-container">
               <table>
                 <thead>
                   <tr>
@@ -1753,19 +1593,19 @@ const exportToExcel = async () => {
                 <tbody>
                   {analytics.topProducts.map((product, index) => (
                     <tr key={product._id || index}>
-                      <td className="rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                        <span className="rank-badge">#{index + 1}</span>
+                      <td className="analytics-rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                        <span className="analytics-rank-badge">#{index + 1}</span>
                       </td>
-                      <td className="top-rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                        {index === 0 && <span className="medal gold">🥇 Top 1</span>}
-                        {index === 1 && <span className="medal silver">🥈 Top 2</span>}
-                        {index === 2 && <span className="medal bronze">🥉 Top 3</span>}
-                        {index > 2 && <span className="medal normal">⭐ Top {index + 1}</span>}
+                      <td className="analytics-top-rank" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                        {index === 0 && <span className="analytics-medal analytics-gold">🥇 Top 1</span>}
+                        {index === 1 && <span className="analytics-medal analytics-silver">🥈 Top 2</span>}
+                        {index === 2 && <span className="analytics-medal analytics-bronze">🥉 Top 3</span>}
+                        {index > 2 && <span className="analytics-medal analytics-normal">⭐ Top {index + 1}</span>}
                       </td>
-                      <td className="product-name" style={{textAlign: 'left', verticalAlign: 'middle', paddingLeft: '12px'}}>
+                      <td className="analytics-product-name" style={{textAlign: 'left', verticalAlign: 'middle', paddingLeft: '12px'}}>
                         <strong>{product.name}</strong>
                       </td>
-                      <td className="product-image" style={{textAlign: 'center', verticalAlign: 'middle', padding: '8px'}}>
+                      <td className="analytics-product-image" style={{textAlign: 'center', verticalAlign: 'middle', padding: '8px'}}>
                         {product.image ? (
                           <img 
                             src={product.image} 
@@ -1796,7 +1636,7 @@ const exportToExcel = async () => {
                         </div>
                       </td>
                       <td style={{textAlign: 'center', verticalAlign: 'middle'}}>{product.category}</td>
-                      <td className="quantity-sold" style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                      <td className="analytics-quantity-sold" style={{textAlign: 'center', verticalAlign: 'middle'}}>
                         <strong style={{color: '#007bff'}}>{product.totalQuantitySold}</strong> 
                         <span style={{color: '#666', marginLeft: '4px'}}>sản phẩm</span>
                       </td>
@@ -1808,14 +1648,14 @@ const exportToExcel = async () => {
           )}
           
           {analytics.topProducts.some(p => p.isFallback || p.isEstimated) && (
-            <div className="data-notes" style={{display: 'none'}}>
-              <div className="note-item">
-                <span className="badge estimated"> </span>
+            <div className="analytics-data-notes" style={{display: 'none'}}>
+              <div className="analytics-note-item">
+                <span className="analytics-badge analytics-estimated"> </span>
                 <span>Dữ liệu ước tính từ tổng doanh thu và danh sách sản phẩm</span>
               </div>
               {analytics.topProducts.some(p => p.isFallback) && (
-                <div className="note-item" style={{display: 'none'}}>
-                  <span className="badge fallback">📊</span>
+                <div className="analytics-note-item" style={{display: 'none'}}>
+                  <span className="analytics-badge analytics-fallback">📊</span>
                   <span>Dữ liệu tổng hợp từ đơn hàng</span>
                 </div>
               )}
@@ -1826,13 +1666,13 @@ const exportToExcel = async () => {
       )}
 
       {activeTab === 'reports' && (
-        <div className="reports-section">
-          <div className="section-header">
+        <div className="analytics-reports-section">
+          <div className="analytics-section-header">
             <h3>📈 Báo cáo chi tiết</h3>
           </div>
 
-          <div className="report-summary">
-            <div className="summary-grid">
+          <div className="analytics-report-summary">
+            <div className="analytics-summary-grid">
               {[
                 { 
                   label: 'Tổng đơn trong khoảng', 
@@ -1855,94 +1695,124 @@ const exportToExcel = async () => {
                   description: `Có >1 đơn hoàn thành trong khoảng thời gian`
                 },
               ].map((item, i) => (
-                <div key={i} className="summary-item">
+                <div key={i} className="analytics-summary-item">
                   <h4>{item.label}</h4>
-                  <p className="summary-value">{item.value}</p>
-                  <small className="summary-description">{item.description}</small>
+                  <p className="analytics-summary-value">{item.value}</p>
+                  <small className="analytics-summary-description">{item.description}</small>
                 </div>
               ))}
             </div>
             
             {/* Thêm thông tin chi tiết theo trạng thái */}
-            <div className="status-breakdown">
+            <div className="analytics-status-breakdown">
               <h4>📊 Chi tiết theo trạng thái đơn hàng</h4>
-              <div className="status-grid">
-                <div className="status-item done">
-                  <span className="status-label">✅ Hoàn thành</span>
-                  <span className="status-count">{analytics.detailedStats?.completedBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.completedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+              <div className="analytics-status-grid">
+                <div className="analytics-status-item analytics-done">
+                  <span className="analytics-status-label">✅ Hoàn thành</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.completedBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.completedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item cancelled">
-                  <span className="status-label">❌ Đã hủy</span>
-                  <span className="status-count">{analytics.detailedStats?.cancelledBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.cancelledBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-cancelled">
+                  <span className="analytics-status-label">❌ Đã hủy</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.cancelledBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.cancelledBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item failed">
-                  <span className="status-label">⚠️ Giao thất bại</span>
-                  <span className="status-count">{analytics.detailedStats?.failedBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.failedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-failed">
+                  <span className="analytics-status-label">⚠️ Giao thất bại</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.failedBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.failedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item pending">
-                  <span className="status-label">⏳ Chờ xác nhận</span>
-                  <span className="status-count">{analytics.detailedStats?.pendingBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.pendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-pending">
+                  <span className="analytics-status-label">⏳ Chờ xác nhận</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.pendingBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.pendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item confirmed">
-                  <span className="status-label">✔️ Đã xác nhận</span>
-                  <span className="status-count">{analytics.detailedStats?.confirmedBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.confirmedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-confirmed">
+                  <span className="analytics-status-label">✔️ Đã xác nhận</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.confirmedBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.confirmedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item ready">
-                  <span className="status-label">📦 Sẵn sàng giao</span>
-                  <span className="status-count">{analytics.detailedStats?.readyBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.readyBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-ready">
+                  <span className="analytics-status-label">📦 Sẵn sàng giao</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.readyBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.readyBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
-                <div className="status-item shipping">
-                  <span className="status-label">🚚 Đang giao hàng</span>
-                  <span className="status-count">{analytics.detailedStats?.shippingBills || 0}</span>
-                  <span className="status-percent">{((analytics.detailedStats?.shippingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                <div className="analytics-status-item analytics-shipping">
+                  <span className="analytics-status-label">🚚 Đang giao hàng</span>
+                  <span className="analytics-status-count">{analytics.detailedStats?.shippingBills || 0}</span>
+                  <span className="analytics-status-percent">{((analytics.detailedStats?.shippingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                 </div>
                 {analytics.detailedStats?.returnedBills > 0 && (
-                  <div className="status-item returned">
-                    <span className="status-label">📦 Đã hoàn trả</span>
-                    <span className="status-count">{analytics.detailedStats?.returnedBills || 0}</span>
-                    <span className="status-percent">{((analytics.detailedStats?.returnedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  <div className="analytics-status-item analytics-returned">
+                    <span className="analytics-status-label">📦 Đã hoàn trả</span>
+                    <span className="analytics-status-count">{analytics.detailedStats?.returnedBills || 0}</span>
+                    <span className="analytics-status-percent">{((analytics.detailedStats?.returnedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                   </div>
                 )}
                 {analytics.detailedStats?.refundPendingBills > 0 && (
-                  <div className="status-item refund-pending">
-                    <span className="status-label">⏳ Chờ hoàn tiền</span>
-                    <span className="status-count">{analytics.detailedStats?.refundPendingBills || 0}</span>
-                    <span className="status-percent">{((analytics.detailedStats?.refundPendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  <div className="analytics-status-item analytics-refund-pending">
+                    <span className="analytics-status-label">⏳ Chờ hoàn tiền</span>
+                    <span className="analytics-status-count">{analytics.detailedStats?.refundPendingBills || 0}</span>
+                    <span className="analytics-status-percent">{((analytics.detailedStats?.refundPendingBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                   </div>
                 )}
                 {analytics.detailedStats?.refundedBills > 0 && (
-                  <div className="status-item refunded">
-                    <span className="status-label">💰 Đã hoàn tiền</span>
-                    <span className="status-count">{analytics.detailedStats?.refundedBills || 0}</span>
-                    <span className="status-percent">{((analytics.detailedStats?.refundedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  <div className="analytics-status-item analytics-refunded">
+                    <span className="analytics-status-label">💰 Đã hoàn tiền</span>
+                    <span className="analytics-status-count">{analytics.detailedStats?.refundedBills || 0}</span>
+                    <span className="analytics-status-percent">{((analytics.detailedStats?.refundedBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                   </div>
                 )}
                 {analytics.detailedStats?.otherBills > 0 && (
-                  <div className="status-item other">
-                    <span className="status-label">❓ Khác</span>
-                    <span className="status-count">{analytics.detailedStats?.otherBills || 0}</span>
-                    <span className="status-percent">{((analytics.detailedStats?.otherBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
+                  <div className="analytics-status-item analytics-other">
+                    <span className="analytics-status-label">❓ Khác</span>
+                    <span className="analytics-status-count">{analytics.detailedStats?.otherBills || 0}</span>
+                    <span className="analytics-status-percent">{((analytics.detailedStats?.otherBills || 0) / (analytics.detailedStats?.totalBillsInRange || 1) * 100).toFixed(1)}%</span>
                   </div>
                 )}
               </div>
             </div>
             
+            {/* Thêm insights kinh doanh */}
+            <div className="analytics-business-insights">
+              <h4>💡 Insights kinh doanh</h4>
+              <div className="analytics-insights-grid">
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">💰 Doanh thu TB/ngày</span>
+                  <span className="analytics-insight-value">{formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))}</span>
+                </div>
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">📦 Đơn hàng TB/ngày</span>
+                  <span className="analytics-insight-value">{(analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)} đơn</span>
+                </div>
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">🧁 Sản phẩm TB/đơn</span>
+                  <span className="analytics-insight-value">{(analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)} SP</span>
+                </div>
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">⏰ Giờ bán chạy</span>
+                  <span className="analytics-insight-value">{analytics.bestSellingHour}:00</span>
+                </div>
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">💎 Giá trị TB/khách</span>
+                  <span className="analytics-insight-value">{formatCurrency(analytics.avgCustomerValue)}</span>
+                </div>
+                <div className="analytics-insight-item">
+                  <span className="analytics-insight-label">🔄 Tỷ lệ quay lại</span>
+                  <span className="analytics-insight-value">{analytics.customerRetention.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="export-options">
-            <div className="export-card">
+          <div className="analytics-export-options">
+            <div className="analytics-export-card">
               <h4>📊 Báo cáo tổng quan chi tiết</h4>
               <p>Xuất toàn bộ dữ liệu thống kê ra Excel với đầy đủ thông tin khách hàng và sản phẩm</p>
               <button
                 onClick={exportToExcel}
                 disabled={analytics.detailedStats?.totalBillsInRange === 0}
-                className="export-btn"
+                className="analytics-export-btn"
               >
                 📊 Xuất Excel
               </button>
@@ -1950,7 +1820,7 @@ const exportToExcel = async () => {
           </div>
 
           {analytics.detailedStats?.totalBillsInRange === 0 && (
-            <div className="no-data">
+            <div className="analytics-no-data">
               <p>📊 Chưa có dữ liệu trong khoảng thời gian đã chọn</p>
               <p>Hãy thử chọn khoảng thời gian khác hoặc kiểm tra dữ liệu đơn hàng</p>
             </div>
@@ -1964,5 +1834,370 @@ const exportToExcel = async () => {
 export default AnalyticsDashboard;
 
 // 🎨 CSS STYLES CHO PRODUCTS TABLE
+const productStyles = `
+.products-section .table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
 
-// Inject styles vào document head
+.products-section .table-container th,
+.products-section .table-container td {
+  border: 1px solid #e5e7eb;
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+.products-section .table-container th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rank-badge {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.medal {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.medal.gold {
+  background: linear-gradient(135deg, #ffd700, #ffb000);
+  color: #8b4513;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.medal.silver {
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
+}
+
+.medal.bronze {
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+  color: white;
+  box-shadow: 0 2px 8px rgba(205, 127, 50, 0.3);
+}
+
+.medal.normal {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.quantity-sold {
+  color: #059669;
+  font-weight: 600;
+}
+
+.badge.real {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge.estimated {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.top-rank {
+  text-align: center;
+  min-width: 100px;
+}
+
+.ranking-info {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+}
+
+/* Styles cho báo cáo chi tiết */
+.summary-item {
+  text-align: center;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 8px 0 4px 0;
+}
+
+.summary-description {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.status-breakdown {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.status-item.done { background: #dcfce7; border-color: #16a34a; }
+.status-item.cancelled { background: #fecaca; border-color: #dc2626; }
+.status-item.failed { background: #fed7aa; border-color: #ea580c; }
+.status-item.pending { background: #fef3c7; border-color: #d97706; }
+.status-item.confirmed { background: #dbeafe; border-color: #2563eb; }
+.status-item.ready { background: #e0e7ff; border-color: #7c3aed; }
+.status-item.shipping { background: #cffafe; border-color: #06b6d4; }
+.status-item.returned { background: #fed7aa; border-color: #f97316; }
+.status-item.refund-pending { background: #fef3c7; border-color: #eab308; }
+.status-item.refunded { background: #ecfccb; border-color: #84cc16; }
+.status-item.other { background: #f1f5f9; border-color: #64748b; }
+
+.status-label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.status-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.status-percent {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.business-insights {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.insight-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.insight-label {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.insight-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+/* Styles cho shipper stats */
+.shipper-stats-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shipper-summary .summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px 0;
+}
+
+.summary-card {
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+}
+
+.summary-card h4 {
+  margin: 0 0 8px 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.big-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 8px 0;
+}
+
+.summary-card small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.shipper-details {
+  margin-top: 24px;
+}
+
+.shipper-details .table-container {
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.shipper-details table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shipper-details th,
+.shipper-details td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shipper-details th {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.orders {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.earnings {
+  color: #059669;
+  font-weight: 500;
+}
+
+.bonus-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.no-bonus {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.total {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.shipper-notes {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.note-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.note-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Thêm CSS cho revenue section values */
+.value.red {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.value.success {
+  color: #16a34a !important;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.value.green {
+  color: #059669 !important;
+  font-weight: 600;
+}
+
+.value.blue {
+  color: #2563eb !important;
+  font-weight: 500;
+}
+
+.value.purple {
+  color: #7c3aed !important;
+  font-weight: 500;
+}
+
+.value.orange {
+  color: #ea580c !important;
+  font-weight: 500;
+}
+`;
