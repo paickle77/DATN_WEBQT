@@ -308,9 +308,9 @@ export default function RefundManagement() {
             <button className="process-refund" onClick={() => handleProcessVNPayRefund(bill)}>
               💳 Hoàn VNPay
             </button>
-            <button className="reject-refund" onClick={() => handleRejectRefund(bill)}>
+            {/* <button className="reject-refund" onClick={() => handleRejectRefund(bill)}>
               ❌ Từ chối
-            </button>
+            </button> */}
           </>
         )}
 
@@ -320,9 +320,9 @@ export default function RefundManagement() {
             <button className="approve-refund" onClick={() => handleProcessVNPayRefund(bill)}>
               ✅ Duyệt hoàn tiền
             </button>
-            <button className="reject-refund" onClick={() => handleRejectRefund(bill)}>
+            {/* <button className="reject-refund" onClick={() => handleRejectRefund(bill)}>
               ❌ Từ chối
-            </button>
+            </button> */}
           </>
         )}
 

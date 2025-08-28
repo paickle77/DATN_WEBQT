@@ -364,7 +364,7 @@ export default function VoucherUserManagement() {
                   <th className="clickable" onClick={() => { headerClick('saved_at'); setPage(1); }}>Ngày lưu</th>
                   <th className="clickable" onClick={() => { headerClick('usage_count'); setPage(1); }}>Đã dùng / Tối đa</th>
                   <th className="clickable" onClick={() => { headerClick('used_at'); setPage(1); }}>Ngày dùng gần nhất</th>
-                  <th>Hành động</th>
+                  {/* <th>Hành động</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -398,9 +398,9 @@ export default function VoucherUserManagement() {
                         <td className="date-cell">{fmtVN(vu.saved_at)}</td>
                         <td className="usage-cell">{used} / {limitText}</td>
                         <td className="used-date-cell">{fmtVN(vu.used_at)}</td>
-                        <td className="actions-cell">
+                        {/* <td className="actions-cell">
                           <button className="delete-btn" onClick={() => del(vu._id)}>Xóa</button>
-                        </td>
+                        </td> */}
                       </tr>
                     );
                   })
