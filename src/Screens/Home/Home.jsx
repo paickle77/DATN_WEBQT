@@ -278,35 +278,6 @@ const Home = () => {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-
-            {/* Trạng thái hóa đơn (Việt hoá legend/label) */}
-            <div className="chart-box status-chart">
-              <div className="chart-header">
-                <h3>Tỷ lệ trạng thái hóa đơn</h3>
-                <div className="chart-subtitle">Trong 7 ngày gần nhất</div>
-              </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="label"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={40}
-                    paddingAngle={1}
-                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                  >
-                    {statusData.map((s, idx) => (
-                      <Cell key={idx} fill={s.color} />
-                    ))}
-                  </Pie>
-                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 12, color: SLATE_500 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
             {/* Hợp đồng NCC sắp hết hạn */}
             <div className="chart-box supplier-chart">
               <div className="chart-header">
