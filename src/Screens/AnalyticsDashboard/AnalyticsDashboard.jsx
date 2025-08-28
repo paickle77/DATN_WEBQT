@@ -584,7 +584,7 @@ const AnalyticsDashboard = () => {
       hasImage: !!p.image
     })));
     
-    // � NẾU KHÔNG TÌM THẤY SẢN PHẨM THỰC TẾ
+    //   NẾU KHÔNG TÌM THẤY SẢN PHẨM THỰC TẾ
     if (topProducts.length === 0) {
       console.log('🔍 No real product data found in bills');
       console.log('🔍 Trying to fetch individual bill details...');
@@ -715,7 +715,7 @@ const AnalyticsDashboard = () => {
         totalShipperCost += stats.bonus;
         console.log(`🎉 Shipper ${shipperId} gets bonus: ${stats.bonus}`);
       } else {
-        console.log(`� Shipper ${shipperId} needs ${50 - ordersThisMonth} more orders for bonus`);
+        console.log(`  Shipper ${shipperId} needs ${50 - ordersThisMonth} more orders for bonus`);
       }
     }
     
@@ -965,7 +965,7 @@ const AnalyticsDashboard = () => {
 
       // 👥 Sheet 2: Top Customers chi tiết
       const customersSheet = workbook.addWorksheet('Khách hàng VIP');
-      customersSheet.addRow(['STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn done (KPI)', 'Chi tiêu done (₫)', 'TB/đơn done (₫)', 'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Địa chỉ', 'Loại khách hàng']);
+      customersSheet.addRow(['STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn hoàn thành (KPI)', 'Chi tiêu hoàn thành (₫)', 'TB/đơn hoàn thành (₫)', 'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Địa chỉ', 'Loại khách hàng']);
       analytics.topCustomers.forEach((customer, index) => {
         const customerType = customer.orderCount >= 5 ? 'VIP' : 
                            customer.orderCount >= 3 ? 'Thân thiết' : 
@@ -1005,7 +1005,7 @@ const AnalyticsDashboard = () => {
         ]);
       });
       
-      // � Sheet 4: Thống kê Shipper
+      //   Sheet 4: Thống kê Shipper
       const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
       shipperSheet.addRow(['THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG']);
       shipperSheet.addRow(['']); // Empty row
@@ -1038,7 +1038,7 @@ const AnalyticsDashboard = () => {
       shipperSheet.addRow(['- Thưởng 2,000,000₫ cho shipper đạt ≥50 đơn hoàn thành/tháng']);
       shipperSheet.addRow(['- Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)']);
       
-      // �📅 Sheet 5: Doanh thu theo ngày
+      //  📅 Sheet 5: Doanh thu theo ngày
       const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
       dailySheet.addRow(['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)']);
       Object.entries(analytics.dailyRevenue)
@@ -1650,7 +1650,7 @@ const AnalyticsDashboard = () => {
           {analytics.topProducts.some(p => p.isFallback || p.isEstimated) && (
             <div className="data-notes" style={{display: 'none'}}>
               <div className="note-item">
-                <span className="badge estimated">�</span>
+                <span className="badge estimated"> </span>
                 <span>Dữ liệu ước tính từ tổng doanh thu và danh sách sản phẩm</span>
               </div>
               {analytics.topProducts.some(p => p.isFallback) && (
@@ -1773,36 +1773,6 @@ const AnalyticsDashboard = () => {
               </div>
             </div>
             
-            {/* Thêm insights kinh doanh */}
-            <div className="business-insights">
-              <h4>💡 Insights kinh doanh</h4>
-              <div className="insights-grid">
-                <div className="insight-item">
-                  <span className="insight-label">💰 Doanh thu TB/ngày</span>
-                  <span className="insight-value">{formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))}</span>
-                </div>
-                <div className="insight-item">
-                  <span className="insight-label">📦 Đơn hàng TB/ngày</span>
-                  <span className="insight-value">{(analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)} đơn</span>
-                </div>
-                <div className="insight-item">
-                  <span className="insight-label">🧁 Sản phẩm TB/đơn</span>
-                  <span className="insight-value">{(analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)} SP</span>
-                </div>
-                <div className="insight-item">
-                  <span className="insight-label">⏰ Giờ bán chạy</span>
-                  <span className="insight-value">{analytics.bestSellingHour}:00</span>
-                </div>
-                <div className="insight-item">
-                  <span className="insight-label">💎 Giá trị TB/khách</span>
-                  <span className="insight-value">{formatCurrency(analytics.avgCustomerValue)}</span>
-                </div>
-                <div className="insight-item">
-                  <span className="insight-label">🔄 Tỷ lệ quay lại</span>
-                  <span className="insight-value">{analytics.customerRetention.toFixed(1)}%</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="export-options">
@@ -1834,377 +1804,5 @@ const AnalyticsDashboard = () => {
 export default AnalyticsDashboard;
 
 // 🎨 CSS STYLES CHO PRODUCTS TABLE
-const productStyles = `
-.products-section .table-container table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.products-section .table-container th,
-.products-section .table-container td {
-  border: 1px solid #e5e7eb;
-  padding: 12px 8px;
-  vertical-align: middle;
-}
-
-.products-section .table-container th {
-  background-color: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-}
-
-.rank-badge {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  display: inline-block;
-}
-
-.medal {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.medal.gold {
-  background: linear-gradient(135deg, #ffd700, #ffb000);
-  color: #8b4513;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-}
-
-.medal.silver {
-  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
-  color: #374151;
-  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
-}
-
-.medal.bronze {
-  background: linear-gradient(135deg, #cd7f32, #a0522d);
-  color: white;
-  box-shadow: 0 2px 8px rgba(205, 127, 50, 0.3);
-}
-
-.medal.normal {
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  color: #6b7280;
-  border: 1px solid #d1d5db;
-}
-
-.quantity-sold {
-  color: #059669;
-  font-weight: 600;
-}
-
-.badge.real {
-  background: #dcfce7;
-  color: #16a34a;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.badge.estimated {
-  background: #dbeafe;
-  color: #1e40af;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.top-rank {
-  text-align: center;
-  min-width: 100px;
-}
-
-.ranking-info {
-  margin-top: 16px;
-  padding: 12px;
-  background-color: #f0f9ff;
-  border: 1px solid #0ea5e9;
-  border-radius: 8px;
-}
-
-/* Styles cho báo cáo chi tiết */
-.summary-item {
-  text-align: center;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.summary-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e40af;
-  margin: 8px 0 4px 0;
-}
-
-.summary-description {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.status-breakdown {
-  margin-top: 24px;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.status-item {
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #e2e8f0;
-}
-
-.status-item.done { background: #dcfce7; border-color: #16a34a; }
-.status-item.cancelled { background: #fecaca; border-color: #dc2626; }
-.status-item.failed { background: #fed7aa; border-color: #ea580c; }
-.status-item.pending { background: #fef3c7; border-color: #d97706; }
-.status-item.confirmed { background: #dbeafe; border-color: #2563eb; }
-.status-item.ready { background: #e0e7ff; border-color: #7c3aed; }
-.status-item.shipping { background: #cffafe; border-color: #06b6d4; }
-.status-item.returned { background: #fed7aa; border-color: #f97316; }
-.status-item.refund-pending { background: #fef3c7; border-color: #eab308; }
-.status-item.refunded { background: #ecfccb; border-color: #84cc16; }
-.status-item.other { background: #f1f5f9; border-color: #64748b; }
-
-.status-label {
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.status-count {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 2px;
-}
-
-.status-percent {
-  font-size: 11px;
-  color: #64748b;
-}
-
-.business-insights {
-  margin-top: 24px;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.insights-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.insight-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.insight-label {
-  font-size: 13px;
-  color: #475569;
-  font-weight: 500;
-}
-
-.insight-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e40af;
-}
-
-/* Styles cho shipper stats */
-.shipper-stats-section {
-  margin-top: 32px;
-  padding: 24px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.shipper-summary .summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin: 16px 0 24px 0;
-}
-
-.summary-card {
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  text-align: center;
-}
-
-.summary-card h4 {
-  margin: 0 0 8px 0;
-  color: #334155;
-  font-size: 14px;
-}
-
-.big-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e40af;
-  margin: 8px 0;
-}
-
-.summary-card small {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.shipper-details {
-  margin-top: 24px;
-}
-
-.shipper-details .table-container {
-  margin: 16px 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.shipper-details table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.shipper-details th,
-.shipper-details td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.shipper-details th {
-  background: #f1f5f9;
-  font-weight: 600;
-  color: #334155;
-  font-size: 14px;
-}
-
-.orders {
-  color: #2563eb;
-  font-weight: 500;
-}
-
-.earnings {
-  color: #059669;
-  font-weight: 500;
-}
-
-.bonus-badge {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.no-bonus {
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.total {
-  color: #1e40af;
-  font-weight: 600;
-}
-
-.shipper-notes {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.note-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #475569;
-}
-
-.note-icon {
-  margin-right: 8px;
-  font-size: 14px;
-}
-
-/* Thêm CSS cho revenue section values */
-.value.red {
-  color: #dc2626 !important;
-  font-weight: 600;
-}
-
-.value.success {
-  color: #16a34a !important;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.value.green {
-  color: #059669 !important;
-  font-weight: 600;
-}
-
-.value.blue {
-  color: #2563eb !important;
-  font-weight: 500;
-}
-
-.value.purple {
-  color: #7c3aed !important;
-  font-weight: 500;
-}
-
-.value.orange {
-  color: #ea580c !important;
-  font-weight: 500;
-}
-`;
 
 // Inject styles vào document head
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = productStyles;
-  document.head.appendChild(styleElement);
-}
