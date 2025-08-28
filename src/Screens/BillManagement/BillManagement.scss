@@ -465,6 +465,32 @@
                     background: #06b6d4;
                     color: white;
                   }
+
+                  // 🏪 CSS CHO BUTTON PICKUP ORDER
+                  &.btn-complete-pickup {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    font-weight: 700;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+
+                    &:hover {
+                      transform: translateY(-2px);
+                      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                      background: linear-gradient(135deg, #059669, #047857);
+                    }
+
+                    &:active {
+                      transform: translateY(0);
+                      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+                    }
+                  }
                 }
               }
             }

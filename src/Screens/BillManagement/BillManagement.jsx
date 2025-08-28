@@ -362,6 +362,42 @@ const BillManagement = () => {
     }
   };
 
+  // 🏪 HOÀN THÀNH ĐƠN NHẬN TẠI CỬA HÀNG
+  const completePickupOrder = async (billId) => {
+    const bill = bills.find(b => b._id === billId);
+    if (!bill) return;
+
+    const customerInfo = getCustomerInfo(bill);
+    const financialInfo = calculateFinancialInfo(bill);
+    const confirmMessage = `🏪 Xác nhận khách đã nhận hàng tại cửa hàng?\n\n` +
+      `📋 Mã đơn: ${bill._id.slice(-8)}\n` +
+      `👤 Khách hàng: ${customerInfo.name}\n` +
+      `💰 Tổng tiền: ${financialInfo.finalTotal_formatted}\n\n` +
+      `Đơn hàng sẽ được đánh dấu hoàn thành.`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await api.put(`/bills/${billId}/pickup-status`, {
+        status: 'done',
+        admin_note: 'Khách đã nhận hàng tại cửa hàng'
+      });
+
+      if (response.data.success) {
+        logAction('COMPLETE_PICKUP_ORDER', billId, 'Hoàn thành đơn nhận tại cửa hàng');
+        alert('🏪 ✅ Đã hoàn thành đơn nhận tại cửa hàng!');
+        fetchAll(); // Refresh danh sách
+      } else {
+        throw new Error(response.data.msg || 'Có lỗi xảy ra');
+      }
+    } catch (err) {
+      if (!handleAuthError(err)) {
+        console.error('❌ Complete pickup order error:', err);
+        alert('❌ Lỗi khi hoàn thành đơn: ' + (err.response?.data?.msg || err.message));
+      }
+    }
+  };
+
   // ✅ CHUYỂN SANG GIAO HÀNG
   const moveToShipment = (bill) => {
     const deliveryInfo = getDeliveryInfo(bill);
@@ -875,10 +911,15 @@ function hexToRgb(hex) {
     `);
   };
 
-  // Render action buttons cho từng trạng thái - BỎ NÚT HỦY
+  // Render action buttons cho từng trạng thái - BỎ NÚT HỦY + THÊM PICKUP LOGIC
   const renderActionButtons = (bill) => {
     const currentStatus = bill.status;
-    const allowedNextStates = ALLOWED_TRANSITIONS[currentStatus] || [];
+    const shippingMethod = getShippingMethod(bill);
+    
+    // 🏪 KIỂM TRA ĐƠN NHẬN TẠI CỬA HÀNG
+    const isPickupOrder = shippingMethod === 'Nhận tại cửa hàng' || 
+                         shippingMethod?.toLowerCase().includes('pickup') ||
+                         shippingMethod?.toLowerCase().includes('nhận tại');
 
     return (
       <td className="actions-cell">
@@ -890,30 +931,55 @@ function hexToRgb(hex) {
             🖨️ PDF
           </button>
           
-          {/* 🔥 CHỈ HIỂN THỊ CÁC NÚT CHUYỂN TRẠNG THÁI TIẾN BỘ - BỎ NÚT HỦY */}
-          {allowedNextStates.map(nextStatus => {
-            return (
-              <button
-                key={nextStatus}
-                onClick={() => updateBillStatus(bill._id, nextStatus)}
-                className={`btn-status btn-${nextStatus}`}
-                title={`Chuyển sang: ${STATUS_LABELS[nextStatus]}`}
-                style={{ backgroundColor: STATUS_COLORS[nextStatus] }}
-              >
-                {getStatusButtonLabel(nextStatus)}
-              </button>
-            );
-          })}
-          
-          {currentStatus === BILL_STATUS.READY && (
-            <button
-              onClick={() => moveToShipment(bill)}
-              className="btn-move-to-shipping"
-              title="Chuyển sang màn quản lý giao hàng"
-              style={{ backgroundColor: '#06b6d4' }}
-            >
-              🚚 Giao hàng
-            </button>
+          {/* 🔥 LOGIC MỚI: Phân biệt pickup vs delivery */}
+          {isPickupOrder ? (
+            // 🏪 ĐƠN NHẬN TẠI CỬA HÀNG
+            <>
+              {currentStatus === BILL_STATUS.PENDING && (
+                <button
+                  onClick={() => updateBillStatus(bill._id, BILL_STATUS.CONFIRMED)}
+                  className="btn-status btn-confirmed"
+                  style={{ backgroundColor: STATUS_COLORS[BILL_STATUS.CONFIRMED] }}
+                >
+                  ✅ Xác nhận
+                </button>
+              )}
+              {currentStatus === BILL_STATUS.CONFIRMED && (
+                <button
+                  onClick={() => completePickupOrder(bill._id)}
+                  className="btn-complete-pickup"
+                  style={{ backgroundColor: '#10b981' }}
+                >
+                  🏪 Hoàn thành đơn
+                </button>
+              )}
+            </>
+          ) : (
+            // 🚚 ĐƠN GIAO HÀNG BÌNH THƯỜNG
+            <>
+              {ALLOWED_TRANSITIONS[currentStatus]?.map(nextStatus => (
+                <button
+                  key={nextStatus}
+                  onClick={() => updateBillStatus(bill._id, nextStatus)}
+                  className={`btn-status btn-${nextStatus}`}
+                  title={`Chuyển sang: ${STATUS_LABELS[nextStatus]}`}
+                  style={{ backgroundColor: STATUS_COLORS[nextStatus] }}
+                >
+                  {getStatusButtonLabel(nextStatus)}
+                </button>
+              ))}
+              
+              {currentStatus === BILL_STATUS.READY && (
+                <button
+                  onClick={() => moveToShipment(bill)}
+                  className="btn-move-to-shipping"
+                  title="Chuyển sang màn quản lý giao hàng"
+                  style={{ backgroundColor: '#06b6d4' }}
+                >
+                  🚚 Giao hàng
+                </button>
+              )}
+            </>
           )}
 
           {/* 🔥 CHỈ HIỂN THỊ TRẠNG THÁI ĐÃ HỦY, KHÔNG CHO THAO TÁC GÌ */}
