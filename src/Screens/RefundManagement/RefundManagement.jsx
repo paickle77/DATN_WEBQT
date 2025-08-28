@@ -88,16 +88,17 @@ export default function RefundManagement() {
     };
   };
 
-  // 🔥 XỬ LÝ HOÀN TIỀN VNPAY
+  // 🔥 XỬ LÝ HOÀN TIỀN VNPAY + GỬI THÔNG BÁO
   const handleProcessVNPayRefund = async (bill) => {
     if (!window.confirm(
       `Xác nhận hoàn tiền VNPay cho đơn #${bill._id.slice(-8)}?\n\n` +
       `Số tiền: ${calcMoney(bill).fmt.total}\n` +
-      `Khách hàng: ${getCustomerInfo(bill).name}`
+      `Khách hàng: ${getCustomerInfo(bill).name}\n\n` +
+      `✅ Hệ thống sẽ tự động gửi thông báo đến khách hàng sau khi hoàn tiền thành công.`
     )) return;
 
     try {
-      // Gọi API hoàn tiền VNPay
+      // 1. Gọi API hoàn tiền VNPay
       const refundResult = await api.post('/payments/vnpay/refund', {
         bill_id: bill._id,
         amount: bill.total,
@@ -107,7 +108,7 @@ export default function RefundManagement() {
       });
 
       if (refundResult.data.code === '00') {
-        // Cập nhật trạng thái đơn hàng
+        // 2. Cập nhật trạng thái đơn hàng
         await api.put(`/bills/${bill._id}`, {
           status: REFUND_STATUSES.REFUNDED,
           refund_note: 'Hoàn tiền VNPay thành công',
@@ -115,7 +116,61 @@ export default function RefundManagement() {
           vnpay_refund_code: refundResult.data.vnp_TransactionNo
         });
 
-        alert('✅ Đã hoàn tiền VNPay thành công!');
+        // 3. 🔥 GỬI THÔNG BÁO ĐẾN USER
+        let userId = null; // Khai báo userId ở ngoài để dùng trong catch block
+        try {
+          const moneyInfo = calcMoney(bill);
+          
+          const notificationContent = `💰 Hoàn tiền thành công!\n\n` +
+            `🛒 Đơn hàng: #${bill._id.slice(-8)}\n` +
+            `💵 Số tiền hoàn: ${moneyInfo.fmt.total}\n` +
+            `📅 Thời gian: ${new Date().toLocaleString('vi-VN')}\n\n` +
+            `Tiền đã được hoàn vào tài khoản VNPay của bạn. Vui lòng kiểm tra!`;
+
+          // 🔍 DEBUG: Kiểm tra các field có thể chứa user_id
+          console.log('� DEBUG - Bill object keys:', Object.keys(bill));
+          console.log('🔍 DEBUG - Possible user fields:', {
+            user_id: bill.user_id,
+            customer_id: bill.customer_id,
+            user: bill.user,
+            customer: bill.customer,
+            account_id: bill.account_id,
+            account: bill.account
+          });
+
+          userId = bill.user_id || bill.customer_id || bill.account_id || 
+                  (bill.user && bill.user._id) || 
+                  (bill.customer && bill.customer._id) ||
+                  (bill.account && bill.account._id);
+
+          console.log('🔔 Chuẩn bị gửi thông báo hoàn tiền đến user:', userId);
+          console.log('📄 Nội dung thông báo:', notificationContent);
+
+          if (!userId) {
+            console.error('❌ Không tìm thấy user_id trong bill object:', bill);
+            throw new Error('Không tìm thấy user_id để gửi thông báo');
+          }
+
+          const notificationResponse = await api.post('/notifications', {
+            user_id: userId,
+            content: notificationContent,
+            type: 'personal'
+          });
+
+          console.log('✅ Response từ notification API:', notificationResponse.data);
+          console.log('✅ Đã gửi thông báo hoàn tiền thành công đến user:', userId);
+        } catch (notifyError) {
+          console.error('⚠️ Chi tiết lỗi gửi thông báo:', {
+            error: notifyError,
+            response: notifyError.response?.data,
+            status: notifyError.response?.status,
+            user_id: userId,
+            bill_id: bill._id
+          });
+          // Không throw error vì hoàn tiền đã thành công
+        }
+
+        alert('✅ Đã hoàn tiền VNPay thành công!\n📱 Thông báo đã được gửi đến khách hàng.');
         loadData();
       } else {
         throw new Error(`VNPay error: ${refundResult.data.message}`);
@@ -127,21 +182,52 @@ export default function RefundManagement() {
     }
   };
 
-  // 🔥 XỬ LÝ ĐƠN GIAO THẤT BẠI - HOÀN HÀNG
+  // 🔥 XỬ LÝ ĐƠN GIAO THẤT BẠI - HOÀN HÀNG + GỬI THÔNG BÁO
   const handleReturnFailedOrder = async (bill) => {
     if (!window.confirm(
       `Xác nhận hoàn trả hàng cho đơn giao thất bại #${bill._id.slice(-8)}?\n\n` +
-      `Hàng sẽ được trả về kho và có thể hoàn tiền nếu đã thanh toán online.`
+      `Hàng sẽ được trả về kho và có thể hoàn tiền nếu đã thanh toán online.\n\n` +
+      `✅ Hệ thống sẽ tự động gửi thông báo đến khách hàng.`
     )) return;
 
     try {
+      // 1. Cập nhật trạng thái đơn hàng
       await api.put(`/bills/${bill._id}`, {
         status: REFUND_STATUSES.RETURNED,
         return_note: 'Hoàn trả hàng do giao thất bại',
         return_date: new Date().toISOString()
       });
 
-      alert('✅ Đã xác nhận hoàn trả hàng. Kiểm tra có cần hoàn tiền thêm.');
+      // 2. 🔥 GỬI THÔNG BÁO ĐẾN USER
+      try {
+        const deliveryInfo = getDeliveryInfo(bill);
+        
+        const notificationContent = `📦 Thông báo hoàn trả hàng\n\n` +
+          `🛒 Đơn hàng: #${bill._id.slice(-8)}\n` +
+          `❌ Lý do: Giao hàng thất bại\n` +
+          `📅 Thời gian: ${new Date().toLocaleString('vi-VN')}\n` +
+          `📍 Địa chỉ giao: ${deliveryInfo.address}\n\n` +
+          `Hàng đã được hoàn trả về kho. Nếu bạn đã thanh toán online, chúng tôi sẽ hoàn tiền trong thời gian sớm nhất.`;
+
+        console.log('🔔 Chuẩn bị gửi thông báo hoàn trả đến user:', bill.user_id || bill.customer_id);
+
+        await api.post('/notifications', {
+          user_id: bill.user_id || bill.customer_id,
+          content: notificationContent,
+          type: 'personal'
+        });
+
+        console.log('✅ Đã gửi thông báo hoàn trả đến user:', bill.user_id || bill.customer_id);
+      } catch (notifyError) {
+        console.error('⚠️ Chi tiết lỗi gửi thông báo hoàn trả:', {
+          error: notifyError,
+          response: notifyError.response?.data,
+          status: notifyError.response?.status,
+          user_id: bill.user_id || bill.customer_id
+        });
+      }
+
+      alert('✅ Đã xác nhận hoàn trả hàng.\n📱 Thông báo đã được gửi đến khách hàng.\n💡 Kiểm tra có cần hoàn tiền thêm.');
       loadData();
     } catch (err) {
       console.error(err);
@@ -149,7 +235,7 @@ export default function RefundManagement() {
     }
   };
 
-  // 🔥 ASSIGN LẠI CHO SHIPPER KHÁC - BỎ SHIPPER_ID ĐỂ APP SHIPPER CÓ THỂ NHẬN LẠI
+  // 🔥 ASSIGN LẠI CHO SHIPPER KHÁC - BỎ SHIPPER_ID ĐỂ APP SHIPPER CÓ THỂ NHẬN LẠI + GỬI THÔNG BÁO
   const handleReassignShipper = async (bill) => {
     const newShipperNote = prompt(
       `Giao lại đơn #${bill._id.slice(-8)} cho shipper khác?\n\n` +
@@ -159,6 +245,7 @@ export default function RefundManagement() {
     if (!newShipperNote || !newShipperNote.trim()) return;
 
     try {
+      // 1. Cập nhật trạng thái đơn hàng
       await api.put(`/bills/${bill._id}`, {
         status: 'ready', // Đưa về trạng thái sẵn sàng giao để shipper khác nhận
         shipper_id: null, // 🔥 ĐẶT VỀ NULL ĐỂ APP SHIPPER CÓ THỂ NHẬN LẠI
@@ -171,7 +258,36 @@ export default function RefundManagement() {
         shipping_notes: null // Reset ghi chú giao hàng
       });
 
-      alert('✅ Đã đặt lại đơn hàng về trạng thái "Sẵn sàng giao".\n🚚 Shipper khác có thể nhận đơn này trong app.');
+      // 2. 🔥 GỬI THÔNG BÁO ĐẾN USER
+      try {
+        const deliveryInfo = getDeliveryInfo(bill);
+        
+        const notificationContent = `🔄 Đơn hàng được giao lại\n\n` +
+          `🛒 Đơn hàng: #${bill._id.slice(-8)}\n` +
+          `📍 Địa chỉ giao: ${deliveryInfo.address}\n` +
+          `📅 Thời gian: ${new Date().toLocaleString('vi-VN')}\n` +
+          `👤 Người nhận: ${deliveryInfo.name} - ${deliveryInfo.phone}\n\n` +
+          `Đơn hàng của bạn đang được sắp xếp giao lại bởi shipper khác. Chúng tôi sẽ liên hệ sớm nhất!`;
+
+        console.log('🔔 Chuẩn bị gửi thông báo giao lại đến user:', bill.user_id || bill.customer_id);
+
+        await api.post('/notifications', {
+          user_id: bill.user_id || bill.customer_id,
+          content: notificationContent,
+          type: 'personal'
+        });
+
+        console.log('✅ Đã gửi thông báo giao lại đến user:', bill.user_id || bill.customer_id);
+      } catch (notifyError) {
+        console.error('⚠️ Chi tiết lỗi gửi thông báo giao lại:', {
+          error: notifyError,
+          response: notifyError.response?.data,
+          status: notifyError.response?.status,
+          user_id: bill.user_id || bill.customer_id
+        });
+      }
+
+      alert('✅ Đã đặt lại đơn hàng về trạng thái "Sẵn sàng giao".\n🚚 Shipper khác có thể nhận đơn này trong app.\n📱 Thông báo đã được gửi đến khách hàng.');
       loadData();
     } catch (err) {
       console.error(err);
