@@ -149,7 +149,7 @@ export default function RefundManagement() {
     }
   };
 
-  // 🔥 ASSIGN LẠI CHO SHIPPER KHÁC
+  // 🔥 ASSIGN LẠI CHO SHIPPER KHÁC - BỎ SHIPPER_ID ĐỂ APP SHIPPER CÓ THỂ NHẬN LẠI
   const handleReassignShipper = async (bill) => {
     const newShipperNote = prompt(
       `Giao lại đơn #${bill._id.slice(-8)} cho shipper khác?\n\n` +
@@ -161,12 +161,17 @@ export default function RefundManagement() {
     try {
       await api.put(`/bills/${bill._id}`, {
         status: 'ready', // Đưa về trạng thái sẵn sàng giao để shipper khác nhận
+        shipper_id: null, // 🔥 ĐẶT VỀ NULL ĐỂ APP SHIPPER CÓ THỂ NHẬN LẠI
+        shipper_name: null, // Xóa tên shipper cũ
         reassign_note: newShipperNote,
         reassign_date: new Date().toISOString(),
-        previous_shipper: bill.shipper_name || 'Unknown'
+        previous_shipper: bill.shipper_name || 'Unknown',
+        failed_shipper_id: bill.shipper_id || null, // Lưu lại shipper giao thất bại
+        shipping_started_at: null, // Reset thời gian bắt đầu giao
+        shipping_notes: null // Reset ghi chú giao hàng
       });
 
-      alert('✅ Đã chuyển đơn về trạng thái "Sẵn sàng giao" để shipper khác nhận.');
+      alert('✅ Đã đặt lại đơn hàng về trạng thái "Sẵn sàng giao".\n🚚 Shipper khác có thể nhận đơn này trong app.');
       loadData();
     } catch (err) {
       console.error(err);
@@ -446,6 +451,9 @@ export default function RefundManagement() {
                         {b.failed_reason && <div className="failed-reason">Lỗi: {b.failed_reason}</div>}
                         {b.refund_note && <div className="refund-note">Hoàn: {b.refund_note}</div>}
                         {b.return_note && <div className="return-note">Trả: {b.return_note}</div>}
+                        {b.reassign_note && <div className="reassign-note">Giao lại: {b.reassign_note}</div>}
+                        {b.shipper_name && <div className="shipper-info">Shipper: {b.shipper_name}</div>}
+                        {b.previous_shipper && <div className="previous-shipper">Trước: {b.previous_shipper}</div>}
                       </div>
                     </td>
                     <td>
