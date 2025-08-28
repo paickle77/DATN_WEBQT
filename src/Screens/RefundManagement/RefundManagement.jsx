@@ -509,6 +509,10 @@ export default function RefundManagement() {
                 <th>Đơn hàng</th>
                 <th>Khách hàng</th>
                 <th>Người nhận</th>
+                <th>Địa chỉ giao</th>
+                <th>Tiền hàng</th>
+                <th>Phí ship</th>
+                <th>Giảm giá</th>
                 <th>Tổng tiền</th>
                 <th>Thanh toán</th>
                 <th>Trạng thái</th>
@@ -547,6 +551,14 @@ export default function RefundManagement() {
                         {d.phone !== 'Chưa có SĐT' && <a href={`tel:${d.phone}`} className="phone">📞 {d.phone}</a>}
                       </div>
                     </td>
+                    <td>
+                      <div className="address-cell">
+                        <div className="address">{d.address}</div>
+                      </div>
+                    </td>
+                    <td className="money items">{m.fmt.items}</td>
+                    <td className="money ship">{m.fmt.ship}</td>
+                    <td className="money discount">{m.fmt.disc}</td>
                     <td className="money total">{m.fmt.total}</td>
                     <td>
                       <div className="payment-info">
@@ -563,13 +575,31 @@ export default function RefundManagement() {
                     </td>
                     <td>
                       <div className="reason-cell">
-                        {b.cancel_reason && <div className="cancel-reason">Hủy: {b.cancel_reason}</div>}
-                        {b.failed_reason && <div className="failed-reason">Lỗi: {b.failed_reason}</div>}
-                        {b.refund_note && <div className="refund-note">Hoàn: {b.refund_note}</div>}
-                        {b.return_note && <div className="return-note">Trả: {b.return_note}</div>}
-                        {b.reassign_note && <div className="reassign-note">Giao lại: {b.reassign_note}</div>}
-                        {b.shipper_name && <div className="shipper-info">Shipper: {b.shipper_name}</div>}
-                        {b.previous_shipper && <div className="previous-shipper">Trước: {b.previous_shipper}</div>}
+                        {/* Lý do hủy đơn */}
+                        {b.cancel_reason && <div className="cancel-reason">❌ Hủy: {b.cancel_reason}</div>}
+                        
+                        {/* Lý do giao thất bại */}
+                        {b.failed_reason && <div className="failed-reason">🚫 Giao thất bại: {b.failed_reason}</div>}
+                        
+                        {/* Ghi chú hoàn tiền */}
+                        {b.refund_note && <div className="refund-note">💰 Hoàn tiền: {b.refund_note}</div>}
+                        
+                        {/* Ghi chú hoàn trả hàng */}
+                        {b.return_note && <div className="return-note">📦 Hoàn trả: {b.return_note}</div>}
+                        
+                        {/* Ghi chú giao lại */}
+                        {b.reassign_note && <div className="reassign-note">🔄 Giao lại: {b.reassign_note}</div>}
+                        
+                        {/* Thông tin shipper hiện tại */}
+                        {b.shipper_name && <div className="shipper-info">🚚 Shipper: {b.shipper_name}</div>}
+                        
+                        {/* Shipper trước đó (nếu có reassign) */}
+                        {b.previous_shipper && <div className="previous-shipper">⬅️ Trước: {b.previous_shipper}</div>}
+                        
+                        {/* Nếu không có lý do gì */}
+                        {!b.cancel_reason && !b.failed_reason && !b.refund_note && !b.return_note && !b.reassign_note && (
+                          <div className="no-reason">📝 Chưa có ghi chú</div>
+                        )}
                       </div>
                     </td>
                     <td>
@@ -579,7 +609,7 @@ export default function RefundManagement() {
                 );
               }) : (
                 <tr>
-                  <td colSpan={9}>Không có đơn hàng cần xử lý hoàn tiền/hoàn hàng.</td>
+                  <td colSpan={13}>Không có đơn hàng cần xử lý hoàn tiền/hoàn hàng.</td>
                 </tr>
               )}
             </tbody>
