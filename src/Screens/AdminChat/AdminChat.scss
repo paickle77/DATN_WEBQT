@@ -1,0 +1,179 @@
+/* Bọc trang như các màn quản lý khác */
+.admin-chat-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fffaf3, #ffffff);
+}
+
+/* Nếu TabBar là fixed, tạo khoảng trống dưới */
+.tab-bar + .admin-chat { margin-top: 64px; }
+
+/* KHUNG CHÍNH */
+.admin-chat {
+  display: flex;
+  height: calc(100vh - 64px);
+  background-color: #fafaf9;
+  gap: 0;
+  padding: 0 12px 12px;
+  position: relative;
+  isolation: isolate;
+}
+
+/* ===== Sidebar hội thoại ===== */
+.chat-sidebar {
+  position: relative;
+  z-index: 10;          /* cao hơn chat-area để nhận click */
+  flex-shrink: 0;
+  width: 320px;
+  background: #fff;
+  border-right: 1px solid #e7e5e4;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px 0 0 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+
+  .sidebar-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid #f5f5f4;
+
+    .header-content {
+      display: flex; align-items: center; gap: 12px;
+
+      .admin-avatar {
+        width: 40px; height: 40px; border-radius: 12px;
+        background: linear-gradient(to bottom right, #92400e, #57534e);
+        display: grid; place-items: center;
+        .chat-icon { width: 20px; height: 20px; color: #fff; }
+      }
+      .admin-title { margin: 0; font-size: 18px; font-weight: 600; color: #292524; }
+      .admin-subtitle { margin: 0; font-size: 13px; color: #78716c; }
+    }
+  }
+
+  .user-list-container { flex: 1; overflow: auto; }
+  .user-list { padding: 12px; }
+
+  .conversation-title {
+    margin: 0 0 8px 0; font-size: 12px; color: #78716c; letter-spacing: .05em;
+  }
+
+  .users { display: flex; flex-direction: column; gap: 8px; }
+
+  .user-item {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: .2s;
+
+    &:hover { background: #f5f5f4; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    &.selected { background: linear-gradient(to right, #fef7ed, #fafaf9); border-left: 4px solid #92400e; }
+
+    .user-content { display: flex; gap: 12px; align-items: flex-start; }
+    .user-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(to bottom right, #78716c, #57534e);
+      display: grid; place-items: center; color: #fff; font-weight: 600;
+    }
+    .avatar-text { color: #fff; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { margin: 0 0 4px 0; color: #292524; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .last-message, .timestamp { margin: 0; font-size: 12px; color: #78716c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+
+  .no-convo { color: #a8a29e; padding: 12px; text-align: center; }
+}
+
+/* ===== Khu chat ===== */
+.chat-area {
+  flex: 1; display: flex; flex-direction: column; background: #fff;
+  border-radius: 0 14px 14px 0; box-shadow: 0 6px 20px rgba(0,0,0,.06);
+  position: relative;
+  z-index: 1;
+
+  .chat-header {
+    padding: 16px; border-bottom: 1px solid #f5f5f4;
+    .chat-header-content { display: flex; align-items: center; gap: 12px; }
+    .selected-user-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(to bottom right, #78716c, #57534e);
+      display: grid; place-items: center; color: #fff; font-weight: 600;
+    }
+    .selected-user-name { margin: 0; font-size: 18px; font-weight: 600; color: #292524; }
+  }
+
+  .messages-container {
+    flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    background: linear-gradient(to bottom, #fafaf9, #ffffff);
+
+    .message-wrapper { display: flex;
+      &.admin { justify-content: flex-end; }
+      &.user { justify-content: flex-start; }
+    }
+
+    .message {
+      max-width: 620px; padding: 10px 14px; border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+
+      &.message-admin {
+        background: linear-gradient(to bottom right, #92400e, #57534e);
+        color: #fff; border-bottom-right-radius: 6px;
+        .message-time { color: #fef3e2; }
+      }
+      &.message-user {
+        background: #fff; border: 1px solid #e7e5e4; color: #292524; border-bottom-left-radius: 6px;
+        .message-time { color: #a8a29e; }
+      }
+
+      .message-text { margin: 0; line-height: 1.6; font-size: 14px; }
+      .message-time { margin: 6px 0 0 0; font-size: 12px; }
+      .message-image { max-width: 100%; height: auto; border-radius: 8px; display: block; }
+    }
+  }
+
+  .input-area {
+    padding: 16px; border-top: 1px solid #f5f5f4; background: #fff;
+    .input-container { display: flex; align-items: center; gap: 12px; }
+    .input-wrapper { flex: 1; position: relative; }
+
+    .message-input {
+      width: 100%; padding: 12px 14px; border: 1px solid #e7e5e4; border-radius: 14px;
+      outline: none; resize: none; background: #fafaf9; transition: .2s; font-size: 14px; line-height: 1.4;
+      &:focus { box-shadow: 0 0 0 2px rgba(146, 64, 14, .3); border-color: transparent; background: #fff; }
+      &::placeholder { color: #a8a29e; }
+    }
+
+    .send-button {
+      padding: 12px 18px; border: none; border-radius: 14px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 600;
+      background: linear-gradient(to right, #92400e, #57534e); color: #fff;
+      box-shadow: 0 6px 16px rgba(0,0,0,.1); transition: .2s;
+      &:hover:not(:disabled) { transform: translateY(-1px); }
+      &:disabled { opacity: .5; cursor: not-allowed; }
+      .send-icon { width: 16px; height: 16px; }
+    }
+  }
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1; display: grid; place-items: center;
+  background: linear-gradient(to bottom right, #fafaf9, #fef7ed);
+  .empty-content { text-align: center; }
+  .empty-icon { width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(to bottom right, #92400e, #57534e);
+    display: grid; place-items: center; margin: 0 auto 12px;
+    .empty-chat-icon { width: 32px; height: 32px; color: #fff; }
+  }
+  .empty-title { margin: 0 0 6px; font-size: 18px; color: #44403c; }
+  .empty-description { margin: 0; color: #78716c; max-width: 320px; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-chat { flex-direction: column; height: auto; }
+  .chat-sidebar { width: 100%; border-radius: 14px; }
+  .chat-area { border-radius: 14px; }
+}

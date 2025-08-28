@@ -1,13 +1,21 @@
+// src/component/ENUM/enum.ts
 export enum ENUM_PAGE {
   Login = "/",
   Home = "/home",
-  sidebar = "/sidebar",
   RevenueByDate = "/RevenueByDate",
   RevenueByMonth = "/RevenueByMonth",
   RevenueByYear = "/RevenueByYear",
   ProductManagement = "/ProductManagement",
-  OrderManagement = "/OrderManagement",
+  BillManagement = "/BillManagement",
+  RefundManagement = "/RefundManagement",
   CustomerManagement = "/CustomerManagement",
-  StatisticReport = "/StatisticReport",
-  VoucherManagement = "/VoucherManagement"
+  VoucherManagement = "/VoucherManagement",
+  VoucherUserManagement = "/VoucherUserManagement",
+  SupplierManagement = "/SupplierManagement",
+  NotificationManagement = "/NotificationManagement",
+  LogManagement = "/LogManagement",
+  AnalyticsDashboard = "/AnalyticsDashboard",
+  ShipmentManagement = "/ShipmentManagement",
+  ShipperManagement = "/ShipperManagement", // Thêm route mới cho quản lý shipper
+  AdminChat = "/AdminChat",
 }

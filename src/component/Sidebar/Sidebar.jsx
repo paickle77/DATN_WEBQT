@@ -1,82 +1,71 @@
 import React, { useState } from 'react';
 import './Sidebar.scss';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaCaretDown, FaList, FaUserCog, FaCogs, FaPen, FaTh, FaGlobe  } from 'react-icons/fa';
+import { FaHome, FaChartLine, FaBoxOpen, FaShoppingCart, FaUsers, FaTicketAlt, FaLeaf, FaBell, FaClipboardList, FaUndo, FaChartPie, FaCalendarDay, FaCalendarAlt, FaCalendar, FaTruck, FaChevronDown, FaUserTie } from 'react-icons/fa';
+import { ENUM_PAGE } from '../ENUM/enum.ts';
 
 const Sidebar = () => {
-        const navigate = useNavigate();
-  const [openCategory, setOpenCategory] = useState(false);
-
-
-    const gotohome=()=>{
-        console.log('click')
-        //   navigate('/');
-    }
-     const gotoRevenueByDate=()=>{
-        console.log('click')
-          navigate('/RevenueByDate');
-    }
-    const gotoRevenueByMonth=()=>{
-        console.log('click')
-          navigate('/RevenueByMonth');
-    }
-    const gotoRevenueByYear=()=>{
-        console.log('click')
-          navigate('/RevenueByYear');
-    }
-    const gotoProductmanager=()=>{
-        console.log('click')
-          navigate('/ProductManagement');
-    }
-     const gotoOdermanager=()=>{
-        console.log('click')
-          navigate('/OrderManagement');
-    }
-    const gotoStaticReport=()=>{
-          console.log('click')
-          navigate('/StatisticReport');
-    }
-     const gotoCustomer=()=>{
-          console.log('click')
-          navigate('/CustomerManagement');
-    }
-    const gotoVoucherManagement = () => {
-      console.log('click');
-      navigate('/VoucherManagement');
-    }
+  const navigate = useNavigate();
+  const [openRevenue, setOpenRevenue] = useState(false);
+  const [openStatistic, setOpenStatistic] = useState(false);
 
   return (
     <div className="sidebar">
-      <div className="sidebar-item">
-        <FaHome /> <span>Trang chủ Admin</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.Home)}>
+        <FaHome />
+        <span>Trang chủ Admin</span>
       </div>
-
-      <div className="sidebar-item" onClick={() => setOpenCategory(!openCategory)}>
-        <FaList /> <span>Doanh thu</span>
-        <FaCaretDown className={`dropdown-icon ${openCategory ? 'rotate' : ''}`} />
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ProductManagement)}>
+        <FaBoxOpen />
+        <span>Quản lý sản phẩm</span>
       </div>
-      {openCategory && (
-        <div className="sidebar-sub">
-          <div className="sidebar-sub-item" onClick={gotoRevenueByDate}>Doanh thu theo ngày</div>
-          <div className="sidebar-sub-item" onClick={gotoRevenueByMonth} >Doanh thu theo tháng</div>
-          <div className="sidebar-sub-item" onClick={gotoRevenueByYear}>Doanh thu theo năm</div>
-        </div>
-      )}
-
-      <div className="sidebar-item" onClick={gotoProductmanager}>
-        <FaTh /> <span >Quản lý sản phẩm</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.BillManagement)}>
+        <FaShoppingCart />
+        <span>Quản lý đơn hàng</span>
       </div>
-      <div className="sidebar-item" onClick={gotoOdermanager}>
-        <FaCogs /> <span>Quản lý đơn hàng</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ShipmentManagement)}>
+        <FaTruck />
+        <span>Quản lý giao hàng</span>
       </div>
-      <div className="sidebar-item" onClick={gotoCustomer}>
-        <FaGlobe /> <span>Quản lý khách hàng</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.RefundManagement)}>
+        <FaUndo />
+        <span>Quản lý hoàn tiền & hoàn hàng</span>
       </div>
-      <div className="sidebar-item"  onClick={gotoStaticReport}>
-        <FaUserCog /> <span>Thông kê và báo cáo</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.ShipperManagement)}>
+        <FaUserTie />
+        <span>Quản lý shipper</span>
       </div>
-      <div className="sidebar-item" onClick={gotoVoucherManagement}>
-        <FaPen /> <span> Quản lý khuyến mãi / mã giảm giá</span>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.CustomerManagement)}>
+        <FaUsers />
+        <span>Quản lý khách hàng</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.VoucherManagement)}>
+        <FaTicketAlt />
+        <span>Quản lý voucher</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.VoucherUserManagement)}>
+        <FaUsers />
+        <span>Quản lý voucher người dùng</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.SupplierManagement)}>
+        <FaLeaf />
+        <span>Quản lý nhà cung cấp</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.NotificationManagement)}>
+        <FaBell />
+        <span>Quản lý thông báo</span>
+      </div>
+      {/* <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.LogManagement)}>
+        <FaClipboardList />
+        <span>Nhật ký kiểm toán</span>
+      </div> */}
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.AnalyticsDashboard)}>
+        <FaChartPie />
+        <span>Thống kê & Báo cáo</span>
+      </div>
+      <div className="sidebar-item" onClick={() => navigate(ENUM_PAGE.AdminChat)}>
+        <FaChartLine />
+        <span>Admin message</span>
       </div>
     </div>
   );
