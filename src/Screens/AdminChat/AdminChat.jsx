@@ -6,8 +6,8 @@ import TabBarr from "../../component/tabbar/TabBar.jsx";
 import "./AdminChat.scss";
 
 /** ====== Config ====== */
-const SOCKET_URL = "http://192.168.0.110:3002";
-const API_URL    = "http://192.168.0.110:3002/api";
+const SOCKET_URL = "http://14.225.198.220:5555";
+const API_URL    = "http://14.225.198.220:5555/api";
 const ADMIN_ID   = "685e2fea79bd687050637953";
 
 // Chuẩn hoá mọi kiểu id về string

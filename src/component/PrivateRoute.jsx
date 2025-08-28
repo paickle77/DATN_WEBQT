@@ -17,7 +17,7 @@ const isAuthenticated = () => {
     // ✅ Kiểm tra cấu trúc token (3 parts separated by dots)
     const tokenParts = token.split('.');
     if (tokenParts.length !== 3) {
-      console.warn('🚨 PrivateRoute: Invalid token structure');
+      console.warn('🚨 PrivateRoute: Invalid token structure' , tokenParts);
       return false;
     }
 

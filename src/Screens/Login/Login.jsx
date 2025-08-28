@@ -18,9 +18,12 @@ const LoginForm = () => {
     try {
       // Gọi API đăng nhập
       const res = await api.post('/login', { email, password });
-      const token = res.data.data.token;
+      console.log('====================================');
+      console.log('🚀 ~ file: Login.jsx:22 ~ handleSubmit ~ res:', res);
+      console.log('====================================');
+      const token = res.data.data.accessToken;
       // Lưu token để dùng cho các request sau
-      localStorage.setItem('token', res.data.data.token);
+      localStorage.setItem('token', res.data.data.accessToken);
       // Điều hướng về Home using ENUM_PAGE
       navigate(ENUM_PAGE.Home, { replace: true });
     } catch (err) {
