@@ -914,206 +914,348 @@ const AnalyticsDashboard = () => {
   }, [rawData, dateRange]);
 
   // ── Export Excel Functions  
-  const exportToExcel = async () => {
+const exportToExcel = async () => {
     try {
-      // 🔥 CHỈ DÙNG EXCELJS, KHÔNG DÙNG FILE-SAVER
+      // Import ExcelJS động
       const ExcelJS = (await import('exceljs')).default;
       
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'Analytics Dashboard - Báo cáo chi tiết';
       workbook.created = new Date();
       
-      // 📊 Sheet 1: Báo cáo tổng quan (giống như UI)
-      const summarySheet = workbook.addWorksheet('Báo cáo tổng quan');
+      // === SHEET 1: TỔNG QUAN ===
+      const summarySheet = workbook.addWorksheet('Tổng quan kinh doanh');
       
-      // Header thông tin thời gian
-      summarySheet.addRow(['THỐNG KÊ TOÀN DIỆN - BÁO CÁO CHI TIẾT']);
-      summarySheet.addRow([`Từ ngày: ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`]);
-      summarySheet.addRow([`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`]);
-      summarySheet.addRow(['']); // Empty row
-      
+      // Header
+      summarySheet.mergeCells('A1:F1');
+      summarySheet.getCell('A1').value = 'BÁO CÁO THỐNG KÊ TOÀN DIỆN';
+      summarySheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      summarySheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+      summarySheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+      summarySheet.getRow(1).height = 25;
+
+      // Thông tin thời gian
+      summarySheet.getCell('A3').value = 'Thời gian phân tích:';
+      summarySheet.getCell('B3').value = `${dateRange.from.toLocaleDateString('vi-VN')} - ${dateRange.to.toLocaleDateString('vi-VN')}`;
+      summarySheet.getCell('A4').value = 'Ngày xuất báo cáo:';
+      summarySheet.getCell('B4').value = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN');
+
       // KPI chính
-      summarySheet.addRow(['CHỈ SỐ KINH DOANH CHÍNH']);
-      summarySheet.addRow(['Chỉ số', 'Giá trị', 'Ghi chú']);
-      summarySheet.addRow(['Tổng đơn trong khoảng', analytics.detailedStats?.totalBillsInRange || 0, 'Tất cả đơn hàng']);
-      summarySheet.addRow(['Đơn hoàn thành', analytics.completedOrders, 'Chỉ đơn status = done']);
-      summarySheet.addRow(['Tỷ lệ hoàn thành', `${(analytics.detailedStats?.completionRate || 0).toFixed(1)}%`, 'Hoàn thành/Tổng đơn']);
-      summarySheet.addRow(['Tỷ lệ hủy đơn', `${analytics.cancellationRate.toFixed(1)}%`, 'Bao gồm cancelled + failed']);
-      summarySheet.addRow(['Tổng doanh thu', formatCurrency(analytics.totalRevenue), 'Chỉ từ đơn hoàn thành']);
-      summarySheet.addRow(['Giá trị TB/đơn', formatCurrency(analytics.avgOrderValue), 'Doanh thu/Số đơn done']);
-      summarySheet.addRow(['Khách hàng mua thành công', analytics.totalCustomers, 'Có ít nhất 1 đơn done']);
-      summarySheet.addRow(['Khách trung thành', analytics.topCustomers.filter(c => c.orderCount > 1).length, 'Có >1 đơn done']);
-      summarySheet.addRow(['Tỷ lệ quay lại', `${analytics.customerRetention.toFixed(1)}%`, 'Khách mua lại/Tổng khách']);
-      summarySheet.addRow(['Sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm']);
-      summarySheet.addRow(['Loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán']);
-      summarySheet.addRow(['Users có data', rawData.users.length, 'Khách hàng trong hệ thống']);
-      summarySheet.addRow(['Chi phí shipper', formatCurrency(analytics.totalShipperCost || 0), '50% phí ship + thưởng']);
-      summarySheet.addRow(['Lợi nhuận ước tính', formatCurrency(analytics.estimatedProfit || 0), 'Sau trừ chi phí shipper']);
-      summarySheet.addRow(['']); // Empty row
+      let currentRow = 6;
+      summarySheet.mergeCells(`A${currentRow}:F${currentRow}`);
+      summarySheet.getCell(`A${currentRow}`).value = 'CHỈ SỐ KINH DOANH CHÍNH';
+      summarySheet.getCell(`A${currentRow}`).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      summarySheet.getCell(`A${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+      
+      currentRow++;
+      const kpiHeaders = ['Chỉ số', 'Giá trị', 'Ghi chú'];
+      kpiHeaders.forEach((header, index) => {
+        const cell = summarySheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+      });
 
-      // Chi tiết theo trạng thái
-      summarySheet.addRow(['CHI TIẾT THEO TRẠNG THÁI ĐỚN HÀNG']);
-      summarySheet.addRow(['Trạng thái', 'Số lượng', 'Tỷ lệ']);
-      const total = analytics.detailedStats?.totalBillsInRange || 1;
-      summarySheet.addRow(['Done (Hoàn thành)', analytics.detailedStats?.completedBills || 0, `${((analytics.detailedStats?.completedBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Cancelled (Đã hủy)', analytics.detailedStats?.cancelledBills || 0, `${((analytics.detailedStats?.cancelledBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Failed (Thất bại)', analytics.detailedStats?.failedBills || 0, `${((analytics.detailedStats?.failedBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Pending (Chờ xử lý)', analytics.detailedStats?.pendingBills || 0, `${((analytics.detailedStats?.pendingBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Confirmed (Đã xác nhận)', analytics.detailedStats?.confirmedBills || 0, `${((analytics.detailedStats?.confirmedBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Ready (Sẵn sàng)', analytics.detailedStats?.readyBills || 0, `${((analytics.detailedStats?.readyBills || 0) / total * 100).toFixed(1)}%`]);
-      summarySheet.addRow(['Shipping (Đang giao)', analytics.detailedStats?.shippingBills || 0, `${((analytics.detailedStats?.shippingBills || 0) / total * 100).toFixed(1)}%`]);
+      // Data KPI
+      const kpiData = [
+        ['Tổng đơn trong khoảng thời gian', analytics.detailedStats?.totalBillsInRange || 0, 'Tất cả đơn hàng trong khoảng thời gian'],
+        ['Đơn hoàn thành (Done)', analytics.completedOrders, 'Chỉ đơn có status = done'],
+        ['Tỷ lệ hoàn thành (%)', (analytics.detailedStats?.completionRate || 0).toFixed(1) + '%', 'Đơn hoàn thành / Tổng đơn × 100'],
+        ['Tỷ lệ hủy đơn (%)', analytics.cancellationRate.toFixed(1) + '%', 'Bao gồm cancelled + failed'],
+        ['Tổng doanh thu (VND)', analytics.totalRevenue, 'Chỉ từ đơn hoàn thành'],
+        ['Giá trị trung bình/đơn (VND)', analytics.avgOrderValue, 'Doanh thu / Số đơn hoàn thành'],
+        ['Số khách hàng mua thành công', analytics.totalCustomers, 'Có ít nhất 1 đơn hoàn thành'],
+        ['Khách hàng trung thành', analytics.topCustomers.filter(c => c.orderCount > 1).length, 'Có >1 đơn hoàn thành'],
+        ['Tỷ lệ khách hàng quay lại (%)', analytics.customerRetention.toFixed(1) + '%', 'Khách mua lại / Tổng khách × 100'],
+        ['Tổng sản phẩm đã bán', analytics.totalProductsSold, 'Tổng số lượng sản phẩm trong đơn hoàn thành'],
+        ['Số loại sản phẩm khác nhau', analytics.topProducts.length, 'Số SKU đã bán'],
+        ['Chi phí shipper (VND)', analytics.totalShipperCost || 0, '50% phí ship + thưởng ≥50 đơn/tháng'],
+        ['Giá nhập hàng (VND)', analytics.totalCostPrice || 0, 'Chi phí mua hàng từ nhà cung cấp'],
+        ['Lợi nhuận thực tế (VND)', analytics.actualProfit || 0, 'Doanh thu - Chi phí shipper - Giá nhập'],
+      ];
 
-      // 👥 Sheet 2: Top Customers chi tiết
-      const customersSheet = workbook.addWorksheet('Khách hàng VIP');
-      customersSheet.addRow(['STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Đơn hoàn thành (KPI)', 'Chi tiêu hoàn thành (₫)', 'TB/đơn hoàn thành (₫)', 'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Địa chỉ', 'Loại khách hàng']);
-      analytics.topCustomers.forEach((customer, index) => {
-        const customerType = customer.orderCount >= 5 ? 'VIP' : 
-                           customer.orderCount >= 3 ? 'Thân thiết' : 
-                           customer.orderCount >= 2 ? 'Trung thành' : 
-                           customer.orderCount === 0 ? 'Chưa mua' : 'Mới';
+      kpiData.forEach((row, index) => {
+        currentRow++;
+        summarySheet.getCell(currentRow, 1).value = row[0];
+        const valueCell = summarySheet.getCell(currentRow, 2);
         
-        customersSheet.addRow([
+        // Format số tiền
+        if (typeof row[1] === 'number' && (row[0].includes('VND') || row[0].includes('doanh thu') || row[0].includes('chi phí') || row[0].includes('giá trị') || row[0].includes('lợi nhuận'))) {
+          valueCell.value = row[1];
+          valueCell.numFmt = '#,##0 "₫"';
+        } else {
+          valueCell.value = row[1];
+        }
+        
+        summarySheet.getCell(currentRow, 3).value = row[2];
+        
+        // Màu sắc cho các hàng quan trọng
+        if (row[0].includes('Lợi nhuận')) {
+          [1,2,3].forEach(col => {
+            summarySheet.getCell(currentRow, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+          });
+        }
+      });
+
+      // Chi tiết trạng thái
+      currentRow += 2;
+      summarySheet.mergeCells(`A${currentRow}:F${currentRow}`);
+      summarySheet.getCell(`A${currentRow}`).value = 'CHI TIẾT THEO TRẠNG THÁI ĐƠN HÀNG';
+      summarySheet.getCell(`A${currentRow}`).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      summarySheet.getCell(`A${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE67C73' } };
+      summarySheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+
+      currentRow++;
+      ['Trạng thái', 'Số lượng', 'Tỷ lệ (%)'].forEach((header, index) => {
+        const cell = summarySheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE5CD' } };
+      });
+
+      const total = analytics.detailedStats?.totalBillsInRange || 1;
+      const statusData = [
+        ['✅ Done (Hoàn thành)', analytics.detailedStats?.completedBills || 0],
+        ['❌ Cancelled (Đã hủy)', analytics.detailedStats?.cancelledBills || 0],
+        ['⚠️ Failed (Thất bại)', analytics.detailedStats?.failedBills || 0],
+        ['⏳ Pending (Chờ xử lý)', analytics.detailedStats?.pendingBills || 0],
+        ['✔️ Confirmed (Đã xác nhận)', analytics.detailedStats?.confirmedBills || 0],
+        ['📦 Ready (Sẵn sàng)', analytics.detailedStats?.readyBills || 0],
+        ['🚚 Shipping (Đang giao)', analytics.detailedStats?.shippingBills || 0],
+      ];
+
+      if (analytics.detailedStats?.returnedBills > 0) {
+        statusData.push(['📦 Returned (Đã hoàn trả)', analytics.detailedStats?.returnedBills || 0]);
+      }
+      if (analytics.detailedStats?.refundPendingBills > 0) {
+        statusData.push(['⏳ Refund Pending (Chờ hoàn tiền)', analytics.detailedStats?.refundPendingBills || 0]);
+      }
+      if (analytics.detailedStats?.refundedBills > 0) {
+        statusData.push(['💰 Refunded (Đã hoàn tiền)', analytics.detailedStats?.refundedBills || 0]);
+      }
+
+      statusData.forEach((row) => {
+        currentRow++;
+        summarySheet.getCell(currentRow, 1).value = row[0];
+        summarySheet.getCell(currentRow, 2).value = row[1];
+        summarySheet.getCell(currentRow, 3).value = ((row[1] / total) * 100).toFixed(1) + '%';
+      });
+
+      // === SHEET 2: TOP CUSTOMERS ===
+      const customersSheet = workbook.addWorksheet('Khách hàng VIP');
+      
+      // Header
+      customersSheet.mergeCells('A1:K1');
+      customersSheet.getCell('A1').value = 'DANH SÁCH KHÁCH HÀNG VIP';
+      customersSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      customersSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9A6FB0' } };
+      customersSheet.getCell('A1').alignment = { horizontal: 'center' };
+      customersSheet.getRow(1).height = 25;
+
+      customersSheet.getCell('A2').value = `Lọc: Chỉ khách hàng có đơn hoàn thành từ ${dateRange.from.toLocaleDateString('vi-VN')} đến ${dateRange.to.toLocaleDateString('vi-VN')}`;
+      customersSheet.getCell('A2').font = { italic: true };
+
+      const customerHeaders = [
+        'STT', 'Tên khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ',
+        'Đơn hoàn thành (KPI)', 'Chi tiêu hoàn thành (₫)', 'TB/đơn hoàn thành (₫)',
+        'Tổng đơn (tham khảo)', 'Tổng chi tiêu (tham khảo)', 'Loại khách hàng'
+      ];
+
+      customerHeaders.forEach((header, index) => {
+        const cell = customersSheet.getCell(4, index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+      });
+
+      analytics.topCustomers.forEach((customer, index) => {
+        const customerType = customer.orderCount >= 5 ? '👑 VIP' : 
+                           customer.orderCount >= 3 ? '⭐ Thân thiết' : 
+                           customer.orderCount >= 2 ? '💎 Trung thành' : 
+                           customer.orderCount === 0 ? '😴 Chưa mua' : '🆕 Mới';
+        
+        const row = 5 + index;
+        const rowData = [
           index + 1,
           customer.name,
           customer.email,
-          customer.phone,
+          typeof customer.phone === 'string' ? customer.phone : 'SĐT chưa cập nhật',
+          customer.address || 'Chưa cập nhật địa chỉ',
           customer.orderCount,
           customer.totalSpent,
           customer.avgOrderValue,
           customer.totalOrdersAllTime || 0,
           customer.totalSpentAllTime || 0,
-          customer.address || 'Chưa cập nhật',
           customerType
-        ]);
+        ];
+
+        rowData.forEach((value, colIndex) => {
+          const cell = customersSheet.getCell(row, colIndex + 1);
+          cell.value = value;
+          
+          // Format tiền
+          if ([7, 8, 10].includes(colIndex + 1) && typeof value === 'number') {
+            cell.numFmt = '#,##0 "₫"';
+          }
+        });
+
+        // Màu nền theo loại khách hàng
+        if (customerType.includes('VIP')) {
+          for (let col = 1; col <= 11; col++) {
+            customersSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+          }
+        } else if (customerType.includes('Thân thiết')) {
+          for (let col = 1; col <= 11; col++) {
+            customersSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+          }
+        }
       });
-      
-      // 🧁 Sheet 3: Top Products chi tiết
+
+      // === SHEET 3: TOP PRODUCTS ===
       const productsSheet = workbook.addWorksheet('Sản phẩm bán chạy');
-      productsSheet.addRow(['Top', 'Tên sản phẩm', 'Danh mục', 'Số lượng đã bán', 'Ranking']);
+      
+      productsSheet.mergeCells('A1:F1');
+      productsSheet.getCell('A1').value = 'TOP SẢN PHẨM BÁN CHẠY';
+      productsSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      productsSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1975A' } };
+      productsSheet.getCell('A1').alignment = { horizontal: 'center' };
+      productsSheet.getRow(1).height = 25;
+
+      productsSheet.getCell('A2').value = `Dựa trên ${analytics.totalProductsSold} sản phẩm đã bán từ ${analytics.completedOrders} đơn hoàn thành`;
+      productsSheet.getCell('A2').font = { italic: true };
+
+      const productHeaders = ['Hạng', 'Tên sản phẩm', 'Danh mục', 'Số lượng bán', 'Thành tích', 'Ghi chú'];
+      productHeaders.forEach((header, index) => {
+        const cell = productsSheet.getCell(4, index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE5CD' } };
+      });
+
       analytics.topProducts.forEach((product, index) => {
         const ranking = index === 0 ? '🥇 Top 1' : 
                        index === 1 ? '🥈 Top 2' : 
                        index === 2 ? '🥉 Top 3' : 
                        `⭐ Top ${index + 1}`;
         
-        productsSheet.addRow([
-          index + 1,
-          product.name,
-          product.category,
-          product.totalQuantitySold,
-          ranking
-        ]);
-      });
-      
-      //   Sheet 4: Thống kê Shipper
-      const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
-      shipperSheet.addRow(['THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG']);
-      shipperSheet.addRow(['']); // Empty row
-      shipperSheet.addRow(['Tổng chi phí shipper', formatCurrency(analytics.totalShipperCost || 0)]);
-      shipperSheet.addRow(['Tổng giá nhập hàng', formatCurrency(analytics.totalCostPrice || 0)]);
-      shipperSheet.addRow(['Số shipper hoạt động', analytics.shipperStats?.length || 0]);
-      shipperSheet.addRow(['Lợi nhuận thực tế', formatCurrency(analytics.actualProfit || 0)]);
-      shipperSheet.addRow(['']); // Empty row
-      
-      shipperSheet.addRow(['CHI TIẾT THU NHẬP SHIPPER']);
-      shipperSheet.addRow(['Tên Shipper', 'Shipper ID', 'Đơn hoàn thành', 'Thu nhập cơ bản (₫)', 'Thưởng (₫)', 'Tổng thu nhập (₫)']);
-      if (analytics.shipperStats && analytics.shipperStats.length > 0) {
-        analytics.shipperStats
-          .sort((a, b) => (b.totalEarnings + b.bonus) - (a.totalEarnings + a.bonus))
-          .forEach((shipper) => {
-            shipperSheet.addRow([
-              shipper.shipperName || 'Chưa xác định',
-              shipper.shipperId === 'unknown' ? 'Chưa xác định' : shipper.shipperId,
-              shipper.completedOrders,
-              shipper.totalEarnings,
-              shipper.bonus,
-              shipper.totalEarnings + shipper.bonus
-            ]);
-          });
-      }
-      
-      shipperSheet.addRow(['']); // Empty row
-      shipperSheet.addRow(['GHI CHÚ:']);
-      shipperSheet.addRow(['- Shipper nhận 50% phí giao hàng cho mỗi đơn hoàn thành']);
-      shipperSheet.addRow(['- Thưởng 2,000,000₫ cho shipper đạt ≥50 đơn hoàn thành/tháng']);
-      shipperSheet.addRow(['- Lợi nhuận = Doanh thu - Chi phí shipper (chưa tính giá nhập)']);
-      
-      //  📅 Sheet 5: Doanh thu theo ngày
-      const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
-      dailySheet.addRow(['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)']);
-      Object.entries(analytics.dailyRevenue)
-        .sort(([a], [b]) => new Date(b) - new Date(a))
-        .forEach(([date, revenue]) => {
-          const orders = analytics.dailyOrders[date] || 0;
-          const avgValue = orders > 0 ? revenue / orders : 0;
-          dailySheet.addRow([
-            new Date(date).toLocaleDateString('vi-VN'),
-            revenue,
-            orders,
-            avgValue
-          ]);
-        });
-      
-      // 📊 Sheet 6: Phân tích chuyên sâu
-      const analysisSheet = workbook.addWorksheet('Phân tích chuyên sâu');
-      analysisSheet.addRow(['PHÂN TÍCH CHUYÊN SÂU']);
-      analysisSheet.addRow(['']); // Empty row
-      
-      analysisSheet.addRow(['THÔNG TIN THỜI GIAN & DATA']);
-      analysisSheet.addRow(['Khoảng thời gian phân tích', `${dateRange.from.toLocaleDateString('vi-VN')} - ${dateRange.to.toLocaleDateString('vi-VN')}`]);
-      analysisSheet.addRow(['Tổng số ngày', Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))]);
-      analysisSheet.addRow(['Giờ bán chạy nhất', `${analytics.bestSellingHour}:00`]);
-      analysisSheet.addRow(['Bills được phân tích', rawData.bills.length]);
-      analysisSheet.addRow(['Bill details đã cache', Object.keys(rawData.billDetails).length]);
-      analysisSheet.addRow(['']); // Empty row
-      
-      analysisSheet.addRow(['HIỆU SUẤT KINH DOANH']);
-      analysisSheet.addRow(['Doanh thu TB/ngày', formatCurrency(analytics.totalRevenue / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24))))]);
-      analysisSheet.addRow(['Đơn hàng TB/ngày', (analytics.totalOrders / Math.max(1, Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24)))).toFixed(1)]);
-      analysisSheet.addRow(['Giá trị TB/khách hàng', formatCurrency(analytics.avgCustomerValue)]);
-      analysisSheet.addRow(['Sản phẩm TB/đơn', (analytics.totalProductsSold / Math.max(1, analytics.totalOrders)).toFixed(1)]);
-      
-      // Style tất cả sheets
-      [summarySheet, customersSheet, productsSheet, shipperSheet, dailySheet, analysisSheet].forEach(sheet => {
-        // Style header rows
-        for (let i = 1; i <= sheet.rowCount; i++) {
-          const row = sheet.getRow(i);
-          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
-              (row.getCell(1).value.includes('STT') || 
-               row.getCell(1).value.includes('Top') || 
-               row.getCell(1).value.includes('Ngày') || 
-               row.getCell(1).value.includes('Chỉ số') ||
-               row.getCell(1).value.includes('Trạng thái'))) {
-            row.font = { bold: true };
-            row.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFE0E0E0' }
-            };
-          }
-          
-          // Style title rows
-          if (row.getCell(1).value && typeof row.getCell(1).value === 'string' && 
-              (row.getCell(1).value.includes('THỐNG KÊ') || 
-               row.getCell(1).value.includes('CHỈ SỐ') ||
-               row.getCell(1).value.includes('CHI TIẾT') ||
-               row.getCell(1).value.includes('PHÂN TÍCH') ||
-               row.getCell(1).value.includes('THÔNG TIN') ||
-               row.getCell(1).value.includes('HIỆU SUẤT'))) {
-            row.font = { bold: true, size: 14 };
-            row.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FF4472C4' }
-            };
-            row.getCell(1).font = { ...row.getCell(1).font, color: { argb: 'FFFFFFFF' } };
+        const row = 5 + index;
+        productsSheet.getCell(row, 1).value = index + 1;
+        productsSheet.getCell(row, 2).value = product.name;
+        productsSheet.getCell(row, 3).value = product.category;
+        productsSheet.getCell(row, 4).value = product.totalQuantitySold;
+        productsSheet.getCell(row, 5).value = ranking;
+        productsSheet.getCell(row, 6).value = product.isRealData ? 'Dữ liệu thực tế' : 'Ước tính';
+
+        // Màu nền cho top 3
+        if (index < 3) {
+          for (let col = 1; col <= 6; col++) {
+            const bgColor = index === 0 ? 'FFFFF2CC' : index === 1 ? 'FFF2F2F2' : 'FFFFE599';
+            productsSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
           }
         }
+      });
+
+      // === SHEET 4: SHIPPER STATS ===
+      if (analytics.shipperStats && analytics.shipperStats.length > 0) {
+        const shipperSheet = workbook.addWorksheet('Thống kê Shipper');
         
-        // Auto-fit columns
+        shipperSheet.mergeCells('A1:F1');
+        shipperSheet.getCell('A1').value = 'THỐNG KÊ SHIPPER & CHI PHÍ GIAO HÀNG';
+        shipperSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+        shipperSheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6FA8DC' } };
+        shipperSheet.getCell('A1').alignment = { horizontal: 'center' };
+        shipperSheet.getRow(1).height = 25;
+
+        // Tổng quan
+        shipperSheet.getCell('A3').value = 'Tổng chi phí shipper:';
+        shipperSheet.getCell('B3').value = analytics.totalShipperCost || 0;
+        shipperSheet.getCell('B3').numFmt = '#,##0 "₫"';
+
+        shipperSheet.getCell('A4').value = 'Số shipper hoạt động:';
+        shipperSheet.getCell('B4').value = analytics.shipperStats.length;
+
+        // Chi tiết shipper
+        const shipperHeaders = ['Tên Shipper', 'Shipper ID', 'Đơn hoàn thành', 'Thu nhập cơ bản (₫)', 'Thưởng (₫)', 'Tổng thu nhập (₫)'];
+        shipperHeaders.forEach((header, index) => {
+          const cell = shipperSheet.getCell(6, index + 1);
+          cell.value = header;
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+        });
+
+        analytics.shipperStats
+          .sort((a, b) => (b.totalEarnings + b.bonus) - (a.totalEarnings + a.bonus))
+          .forEach((shipper, index) => {
+            const row = 7 + index;
+            shipperSheet.getCell(row, 1).value = shipper.shipperName || 'Chưa xác định';
+            shipperSheet.getCell(row, 2).value = shipper.shipperId === 'unknown' ? 'Chưa xác định' : shipper.shipperId;
+            shipperSheet.getCell(row, 3).value = shipper.completedOrders;
+            
+            const earningsCell = shipperSheet.getCell(row, 4);
+            earningsCell.value = shipper.totalEarnings;
+            earningsCell.numFmt = '#,##0 "₫"';
+            
+            const bonusCell = shipperSheet.getCell(row, 5);
+            bonusCell.value = shipper.bonus;
+            bonusCell.numFmt = '#,##0 "₫"';
+            
+            const totalCell = shipperSheet.getCell(row, 6);
+            totalCell.value = shipper.totalEarnings + shipper.bonus;
+            totalCell.numFmt = '#,##0 "₫"';
+            totalCell.font = { bold: true };
+
+            if (shipper.bonus > 0) {
+              for (let col = 1; col <= 6; col++) {
+                shipperSheet.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+              }
+            }
+          });
+      }
+
+      // === SHEET 5: DOANH THU THEO NGÀY ===
+      const dailySheet = workbook.addWorksheet('Doanh thu theo ngày');
+      
+      dailySheet.mergeCells('A1:D1');
+      dailySheet.getCell('A1').value = 'DOANH THU THEO NGÀY';
+      dailySheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      dailySheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+      dailySheet.getCell('A1').alignment = { horizontal: 'center' };
+      dailySheet.getRow(1).height = 25;
+
+      const dailyHeaders = ['Ngày', 'Doanh thu (₫)', 'Số đơn hoàn thành', 'Giá trị TB/đơn (₫)'];
+      dailyHeaders.forEach((header, index) => {
+        const cell = dailySheet.getCell(3, index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+      });
+
+      Object.entries(analytics.dailyRevenue)
+        .sort(([a], [b]) => new Date(b) - new Date(a))
+        .forEach(([date, revenue], index) => {
+          const orders = analytics.dailyOrders[date] || 0;
+          const avgValue = orders > 0 ? revenue / orders : 0;
+          const row = 4 + index;
+          
+          dailySheet.getCell(row, 1).value = new Date(date).toLocaleDateString('vi-VN');
+          
+          const revenueCell = dailySheet.getCell(row, 2);
+          revenueCell.value = revenue;
+          revenueCell.numFmt = '#,##0 "₫"';
+          
+          dailySheet.getCell(row, 3).value = orders;
+          
+          const avgCell = dailySheet.getCell(row, 4);
+          avgCell.value = avgValue;
+          avgCell.numFmt = '#,##0 "₫"';
+        });
+
+      // Auto-fit columns cho tất cả sheets
+      [summarySheet, customersSheet, productsSheet, dailySheet].forEach(sheet => {
         sheet.columns.forEach(column => {
           let maxLength = 0;
-          column.eachCell({ includeEmpty: false }, cell => {
+          column.eachCell({ includeEmpty: false }, (cell) => {
             const length = cell.value ? cell.value.toString().length : 0;
             if (length > maxLength) {
               maxLength = length;
@@ -1122,8 +1264,25 @@ const AnalyticsDashboard = () => {
           column.width = Math.min(50, Math.max(10, maxLength + 2));
         });
       });
-      
-      // Export file với tên có timestamp - DÙNG DOWNLOAD LINK
+
+      // Thêm shipper sheet vào auto-fit nếu có
+      if (analytics.shipperStats && analytics.shipperStats.length > 0) {
+        const shipperSheet = workbook.getWorksheet('Thống kê Shipper');
+        if (shipperSheet) {
+          shipperSheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: false }, (cell) => {
+              const length = cell.value ? cell.value.toString().length : 0;
+              if (length > maxLength) {
+                maxLength = length;
+              }
+            });
+            column.width = Math.min(50, Math.max(10, maxLength + 2));
+          });
+        }
+      }
+
+      // Export file
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -1132,7 +1291,7 @@ const AnalyticsDashboard = () => {
       const timestamp = new Date().toISOString().slice(0,16).replace(/[:-]/g, '');
       const filename = `BaoCaoThongKe_${dateRange.from.toISOString().slice(0,10)}_den_${dateRange.to.toISOString().slice(0,10)}_${timestamp}.xlsx`;
       
-      // 🔥 TẠO DOWNLOAD LINK MANUAL - KHÔNG CẦN FILE-SAVER
+      // Tạo download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -1143,10 +1302,11 @@ const AnalyticsDashboard = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      alert('✅ Xuất Excel thành công! File đã được lưu với đầy đủ thông tin báo cáo.');
+      alert('✅ Xuất Excel thành công! File đã được tải với đầy đủ thông tin báo cáo.');
+      
     } catch (error) {
       console.error('Lỗi xuất Excel:', error);
-      alert(`⚠️ Lỗi khi xuất Excel: ${error.message}. Vui lòng kiểm tra và thử lại.`);
+      alert(`❌ Lỗi khi xuất Excel: ${error.message}. Vui lòng kiểm tra kết nối và thử lại.`);
     }
   };
 
